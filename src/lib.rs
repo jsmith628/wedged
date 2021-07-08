@@ -1,4 +1,3 @@
-#![feature(trait_alias)]
 #![feature(specialization)]
 #![feature(trace_macros)]
 #![recursion_limit="16384"]
@@ -7,20 +6,21 @@ extern crate nalgebra;
 extern crate macro_lisp;
 
 use std::ops::*;
-use std::borrow::*;
 
 use macro_lisp::*;
 use nalgebra::base::dimension::*;
 use typenum::{Unsigned};
 
-pub trait Storage<T> = Index<usize, Output=T> + IndexMut<usize> + AsRef<[T]> + AsMut<[T]> + Borrow<[T]> + BorrowMut<[T]>;
+use self::storage::*;
+
+pub mod storage;
 
 pub unsafe trait _StorageFor<N, G>: Sized {
-    type Storage: Storage<Self>;
+    type Storage: Storage<Self,N,G>;
 }
 
 unsafe impl<T,N:Dim,G:Dim> _StorageFor<N,G> for T {
-    default type Storage = [T;0];
+    default type Storage = DynStorage<T,N,G>;
 }
 
 macro_rules! to_const {
