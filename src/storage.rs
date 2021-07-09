@@ -2,7 +2,7 @@
 use std::borrow::{Borrow, BorrowMut};
 use nalgebra::base::dimension::{Dim, DimName};
 
-pub unsafe trait Storage<T, N, G>: Borrow<[T]> + BorrowMut<[T]> {
+pub unsafe trait Storage<T, N:Dim, G:Dim>: Borrow<[T]> + BorrowMut<[T]> {
     fn dim(&self) -> N;
     fn grade(&self) -> G;
 }
