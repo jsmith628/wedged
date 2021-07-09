@@ -6,4 +6,3 @@ edition = "2018"
 [dependencies]
 typenum = "^1.13"
 nalgebra = "^0.27"
-macro-lisp = {path = "../macro-lisp"}

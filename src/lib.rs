@@ -2,20 +2,15 @@
 #![feature(trace_macros)]
 #![recursion_limit="16384"]
 
-extern crate nalgebra;
-extern crate macro_lisp;
-
 use std::ops::*;
 
-use macro_lisp::*;
 use nalgebra::base::dimension::*;
-use typenum::{Unsigned};
 
 use self::storage::*;
-use self::allocator::*;
+use self::alloc::*;
 
 pub mod storage;
-pub mod allocator;
+pub mod alloc;
 
 ///
 /// Computes the [binomial coefficient](1) of n terms at position k.

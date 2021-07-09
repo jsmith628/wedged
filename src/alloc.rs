@@ -39,11 +39,11 @@ macro_rules! impl_Alloc {
     (; $($_G:literal)*; @tests $(($N:literal, $G:literal))*) => {
         $(
             assert_eq!(
-                std::mem::size_of::<Allocate<f32, Const<$N>, Const<$G>>>()
-                std::mem::size_of::<f32>() * binom($N, $G),
+                std::mem::size_of::<Allocate<f32, Const<$N>, Const<$G>>>(),
+                std::mem::size_of::<f32>() * binom($N, $G)
             );
         )*
-    }
+    };
 }
 
 impl_Alloc!(
