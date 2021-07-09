@@ -68,14 +68,13 @@ pub const fn binom(n:usize, k:usize) -> usize {
     (n-k+1) * binom(n, k-1) / k
 }
 
-pub struct Blade<T, N: Dim, G: Dim> where DefaultAllocator: Allocator<T,N,G> {
+pub struct Blade<T:Alloc<N,G>, N: Dim, G: Dim> {
     pub data: Allocate<T,N,G>
 }
 
 impl<T,N:Dim,G1:Dim,G2:Dim> BitXor<Blade<T,N,G2>> for Blade<T,N,G1> where
-    T:Mul<T,Output=T>,
-    G1:DimAdd<G2>,
-    DefaultAllocator: Allocator<T,N,DimSum<G1,G2>> + Allocator<T,N,G1> + Allocator<T,N,G2>
+    T: Mul<T,Output=T> + Alloc<N,G1> + Alloc<N,G2> + Alloc<N,DimSum<G1,G2>>,
+    G1: DimAdd<G2>,
 {
     type Output = Blade<T,N,DimSum<G1, G2>>;
     fn bitxor(self, rhs: Blade<T,N,G2>) -> Self::Output { unimplemented!() }
