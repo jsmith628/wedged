@@ -27,7 +27,7 @@ impl BasisBlade {
     }
 
     ///
-    /// Gets the sign bit as either BasisBlade::one() or -BasisBlade::one()
+    /// Gets the sign bit as either `BasisBlade::one()` or `-BasisBlade::one()`
     ///
     /// This isn't `pub` since there is non-arbitry choice for when a basis blade is negative
     /// or positive. This is simply an internal function relative the internal representation.
@@ -38,6 +38,11 @@ impl BasisBlade {
         BasisBlade { bits: self.bits & Bits::MIN }
     }
 
+    ///
+    /// Returns the nth basis vector
+    ///
+    /// Panics if n is greater than the maximum dimension
+    ///
     pub fn basis_vector(n: usize) -> BasisBlade {
         if n >= Self::MAX_DIM {
             panic!("Only Vectors up to dimension {} are currently supported", Self::MAX_DIM )
@@ -45,14 +50,77 @@ impl BasisBlade {
         BasisBlade { bits: 1 << n }
     }
 
+    ///
+    /// Returns the nth basis vector
+    ///
+    /// Returns `BasisBlade::one()` if n is greater than the maximum dimension
+    ///
     pub const fn const_basic_vector(n: usize) -> BasisBlade {
         BasisBlade { bits: 1 << n }.abs()
     }
 
+    ///
+    /// Computes the minimum dimension this `BasisBlade` is contained in
+    ///
+    /// # Examples
+    ///```
+    /// # use galgebra::basis_blade::*;
+    /// # use num_traits::One;
+    ///
+    /// let e = BasisBlade::one();
+    /// let e1 = BasisBlade::basis_vector(0);
+    /// let e2 = BasisBlade::basis_vector(1);
+    /// let e3 = BasisBlade::basis_vector(2);
+    /// let e12 = e1*e2;
+    /// let e13 = e1*e3;
+    /// let e23 = e2*e3;
+    /// let e123 = e1*e2*e3;
+    ///
+    /// assert_eq!(e.dim(), 0);
+    /// assert_eq!(e1.dim(), 1);
+    /// assert_eq!(e2.dim(), 2);
+    /// assert_eq!(e3.dim(), 3);
+    /// assert_eq!(e12.dim(), 2);
+    /// assert_eq!(e13.dim(), 3);
+    /// assert_eq!(e23.dim(), 3);
+    /// assert_eq!(e123.dim(), 3);
+    /// assert_eq!((-e123).dim(), 3);
+    ///
+    ///```
+    ///
     pub const fn dim(&self) -> usize {
         (Bits::BITS - self.abs().bits.leading_zeros()) as usize
     }
 
+    ///
+    /// Computes the grade of this `BasisBlade`
+    ///
+    /// # Examples
+    ///```
+    /// # use galgebra::basis_blade::*;
+    /// # use num_traits::One;
+    ///
+    /// let e = BasisBlade::one();
+    /// let e1 = BasisBlade::basis_vector(0);
+    /// let e2 = BasisBlade::basis_vector(1);
+    /// let e3 = BasisBlade::basis_vector(2);
+    /// let e12 = e1*e2;
+    /// let e13 = e1*e3;
+    /// let e23 = e2*e3;
+    /// let e123 = e1*e2*e3;
+    ///
+    /// assert_eq!(e.grade(), 0);
+    /// assert_eq!(e1.grade(), 1);
+    /// assert_eq!(e2.grade(), 1);
+    /// assert_eq!(e3.grade(), 1);
+    /// assert_eq!(e12.grade(), 2);
+    /// assert_eq!(e13.grade(), 2);
+    /// assert_eq!(e23.grade(), 2);
+    /// assert_eq!(e123.grade(), 3);
+    /// assert_eq!((-e123).grade(), 3);
+    ///
+    ///```
+    ///
     pub const fn grade(&self) -> usize {
         self.abs().bits.count_ones() as usize
     }
