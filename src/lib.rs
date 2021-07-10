@@ -1,12 +1,8 @@
-#![feature(specialization)]
-#![feature(trace_macros)]
-#![recursion_limit="16384"]
 
 use std::ops::*;
 
 use nalgebra::base::dimension::*;
 
-use self::storage::*;
 use self::alloc::*;
 
 pub mod storage;
