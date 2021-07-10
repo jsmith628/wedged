@@ -6,14 +6,21 @@ use std::fmt::{Formatter, Debug, Display, Binary, Result as FmtResult};
 //So we can maybe change it later though there really is no reason it needs any more bits than this
 type Bits = i32;
 
-#[derive(Clone, Copy, PartialEq, Eq, Hash, Debug)]
+#[derive(Clone, Copy, PartialEq, Eq, Hash)]
 pub struct BasisBlade {
     bits: Bits
 }
 
 impl BasisBlade {
 
-    pub const MAX_DIM: usize = Bits::MAX.count_ones() as usize;
+    ///The maximum number of dimensions supported
+    pub const MAX_DIM: usize = (Bits::BITS - 1) as usize; //the bit width minus one for the sign
+
+    ///The multiplicative identity
+    pub const ONE: BasisBlade = BasisBlade { bits: 0 }; //1 is just the empty product (ie when bits==0)
+
+    ///Negative one
+    pub const NEG_ONE: BasisBlade = BasisBlade { bits: Bits::MIN }; //0 with the leading bit flipped
 
     ///
     /// Clears the sign bit
@@ -32,10 +39,17 @@ impl BasisBlade {
     /// This isn't `pub` since there is non-arbitry choice for when a basis blade is negative
     /// or positive. This is simply an internal function relative the internal representation.
     ///
-    #[allow(dead_code)]
     pub(crate) const fn sign(self) -> BasisBlade {
         //get just the first bit
         BasisBlade { bits: self.bits & Bits::MIN }
+    }
+
+    pub(crate) const fn positive(self) -> bool {
+        self.sign().bits == BasisBlade::ONE.bits
+    }
+
+    pub(crate) const fn negative(self) -> bool {
+        self.sign().bits == BasisBlade::NEG_ONE.bits
     }
 
     ///
@@ -133,10 +147,100 @@ impl Binary for BasisBlade {
     }
 }
 
+impl Debug for BasisBlade {
+    fn fmt(&self, f: &mut Formatter) -> FmtResult { Display::fmt(self, f) }
+}
+
+impl Display for BasisBlade {
+    fn fmt(&self, f: &mut Formatter) -> FmtResult {
+
+        //converts a number into an iterator of subscript characters
+        fn subscript_digits(mut n: usize) -> impl Iterator<Item=char> {
+
+            //find the greatest power of 10 less than or equal to n
+            let mut div = 1;
+            let mut digits = 1;
+            while div*10 <= n {
+                div *= 10;
+                digits += 1;
+            }
+
+            //loop from most sig digit to least
+            (0..digits).into_iter().map(
+                move |_| {
+                    let (q, r) = (n/div, n%div);
+                    let digit = unsafe { char::from_u32_unchecked(0x2080 + q as u32) };
+                    n = r;
+                    div /= 10;
+                    digit
+                }
+            )
+
+        }
+
+        let alt = f.alternate();
+        let dim = self.dim();
+
+        //writes a single basis vector with subscript i
+        let write_vector = |f: &mut Formatter, i| {
+            if dim>=10 { write!(f, "e")?; }
+            for d in subscript_digits(i) {
+                write!(f, "{}", d)?;
+            }
+            Ok(())
+        };
+
+        if !alt || self.positive() || self.grade()<=1 {
+            //does negatives by prepending a '-'
+
+            if self.negative() { write!(f, "-")?; }
+            if dim < 10 { write!(f, "e")?; }
+
+            for i in 0..Self::MAX_DIM {
+                if ((1<<i) & self.bits) != 0 {
+                    write_vector(f, i+1)?;
+                }
+            }
+
+        } else {
+            //
+            //does negatives by swapping the first two vectors
+            //
+
+            if dim<10 { write!(f, "e")?; }
+
+            let mut first = None;
+            let mut start = true;
+
+            for i in 0..Self::MAX_DIM {
+                if ((1<<i) & self.bits) != 0 {
+
+                    match first {
+                        //store the first vector
+                        None => first = Some(i),
+
+                        //if we've already stored the first, print the second then the first
+                        Some(j) => {
+                            write_vector(f, i+1)?;
+                            if start {
+                                write_vector(f, j+1)?;
+                                start = false;
+                            }
+                        }
+                    }
+
+                }
+            }
+
+        }
+
+        Ok(())
+
+    }
+}
+
 impl One for BasisBlade {
-    //1 is just the empty product. ie when bits==0
-    fn one() -> Self { BasisBlade { bits: 0 } }
-    fn is_one(&self) -> bool { self.bits == 0 }
+    fn one() -> Self { Self::ONE }
 }
 
 impl Neg for BasisBlade {
@@ -241,7 +345,7 @@ mod tests {
 
     use super::*;
 
-    const e: BasisBlade = BasisBlade { bits: 0 };
+    const e: BasisBlade = BasisBlade::ONE;
 
     const e1: BasisBlade = BasisBlade::const_basic_vector(0);
     const e2: BasisBlade = BasisBlade::const_basic_vector(1);
@@ -261,6 +365,62 @@ mod tests {
     const e234: BasisBlade = BasisBlade { bits: 0b1110 };
 
     const e1234: BasisBlade = BasisBlade { bits: 0b1111 };
+
+    #[test]
+    fn display() {
+
+        macro_rules! test_fmt {
+            ($e:expr; $fmt:literal $neg_alt:literal) => {
+                assert_eq!(format!("{}", $e), $fmt);
+                assert_eq!(format!("{:#}", $e), $fmt);
+                assert_eq!(format!("{}", -$e), concat!("-", $fmt));
+                assert_eq!(format!("{:#}", -$e), $neg_alt);
+
+                assert_eq!(format!("{:?}", $e), $fmt);
+                assert_eq!(format!("{:#?}", $e), $fmt);
+                assert_eq!(format!("{:?}", -$e), concat!("-", $fmt));
+                assert_eq!(format!("{:#?}", -$e), $neg_alt);
+            }
+        }
+
+        assert_eq!(format!("{}", e), "e");
+        assert_eq!(format!("{}", -e), "-e");
+        test_fmt!(e1; "e₁" "-e₁");
+        test_fmt!(e2; "e₂" "-e₂");
+        test_fmt!(e3; "e₃" "-e₃");
+        test_fmt!(e4; "e₄" "-e₄");
+        test_fmt!(e12; "e₁₂" "e₂₁");
+        test_fmt!(e13; "e₁₃" "e₃₁");
+        test_fmt!(e14; "e₁₄" "e₄₁");
+        test_fmt!(e23; "e₂₃" "e₃₂");
+        test_fmt!(e24; "e₂₄" "e₄₂");
+        test_fmt!(e34; "e₃₄" "e₄₃");
+        test_fmt!(e123; "e₁₂₃" "e₂₁₃");
+        test_fmt!(e124; "e₁₂₄" "e₂₁₄");
+        test_fmt!(e134; "e₁₃₄" "e₃₁₄");
+        test_fmt!(e234; "e₂₃₄" "e₃₂₄");
+        test_fmt!(e1234; "e₁₂₃₄" "e₂₁₃₄");
+
+
+        let e9 = BasisBlade::basis_vector(8);
+
+        test_fmt!(e9; "e₉" "-e₉");
+        test_fmt!(e1*e9; "e₁₉" "e₉₁");
+
+        //
+        //Dims greater than 10
+        //
+
+        let e10 = BasisBlade::basis_vector(9);
+        let e11 = BasisBlade::basis_vector(10);
+        test_fmt!(e10; "e₁₀" "-e₁₀");
+        test_fmt!(e11; "e₁₁" "-e₁₁");
+        test_fmt!(e10*e11; "e₁₀e₁₁" "e₁₁e₁₀");
+        test_fmt!(e1*e11; "e₁e₁₁" "e₁₁e₁");
+        test_fmt!(e1*e2*e11; "e₁e₂e₁₁" "e₂e₁e₁₁");
+
+
+    }
 
     #[test]
     fn abs() {
@@ -285,6 +445,10 @@ mod tests {
                 $(
                     assert_eq!($e.sign(), e);
                     assert_eq!((-$e).sign(), -e);
+                    assert!($e.positive());
+                    assert!(!$e.negative());
+                    assert!((-$e).negative());
+                    assert!(!(-$e).positive());
                 )*
             }
         }
@@ -365,7 +529,7 @@ mod tests {
 
         macro_rules! test_one {
             ($($e:ident)*) => {
-                $(test_mul!(e*$e == $e; true);)*
+                $(test_mul!(one*$e == $e; true);)*
             }
         }
 
