@@ -15,13 +15,19 @@ impl BasisBlade {
 
     pub const MAX_DIM: usize = Bits::MAX.count_ones() as usize;
 
-    const fn abs(self) -> BasisBlade {
+    ///
+    /// Clears the sign bit
+    ///
+    /// This isn't `pub` since there is non-arbitry choice for when a basis blade is negative
+    /// or positive. This is simply an internal function relative the internal representation.
+    ///
+    pub(crate) const fn abs(self) -> BasisBlade {
         //mask out the first bit
         BasisBlade { bits: self.bits & Bits::MAX }
     }
 
     #[allow(dead_code)]
-    const fn sign(self) -> BasisBlade {
+    pub(crate) const fn sign(self) -> BasisBlade {
         //get just the first bit
         BasisBlade { bits: self.bits & Bits::MIN }
     }
@@ -177,6 +183,21 @@ mod tests {
     const e234: BasisBlade = BasisBlade { bits: 0b1110 };
 
     const e1234: BasisBlade = BasisBlade { bits: 0b1111 };
+
+    #[test]
+    fn abs() {
+
+        macro_rules! test_abs {
+            ($($e:ident)*) => {
+                $(
+                    assert_eq!($e.abs(), $e);
+                    assert_eq!((-$e).abs(), $e);
+                )*
+            }
+        }
+
+        test_abs!(e e1 e2 e3 e4 e12 e13 e14 e23 e24 e34 e123 e124 e134 e234 e1234);
+    }
 
     macro_rules! test_mul {
         ($b1:ident*$b2:ident == $b3:expr; $commutative:literal) => {
