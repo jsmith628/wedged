@@ -1,12 +1,15 @@
 
 use std::ops::*;
 
+extern crate num_traits;
+
 use nalgebra::base::dimension::*;
 
 use self::alloc::*;
 
 pub mod storage;
 pub mod alloc;
+pub mod basis_blade;
 
 ///
 /// Computes the [binomial coefficient](1) of n terms at position k.
