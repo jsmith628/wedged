@@ -225,6 +225,10 @@ macro_rules! impl_bin_op {
         impl $Assign for BasisBlade {
             fn $assign(&mut self, rhs: Self) { *self = self.$op(rhs) }
         }
+
+        impl<'a> $Assign<&'a BasisBlade> for BasisBlade {
+            fn $assign(&mut self, rhs: &'a BasisBlade) { *self = self.$op(rhs) }
+        }
     }
 }
 
