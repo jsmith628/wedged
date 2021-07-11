@@ -142,14 +142,106 @@ impl BasisBlade {
         BasisBlade { bits: 1 << n }.abs()
     }
 
-    pub fn basis_blade(n:usize, g:usize, i:usize) -> BasisBlade {
+    pub const fn basis_blade(n:usize, g:usize, i:usize) -> BasisBlade {
 
-        if n==g {
-            (0..n).into_iter().map(|i| Self::const_basis_vector(i)).fold(Self::one(), |l,r| l*r)
-        } else if i < binom(n-1,g) {
-            Self::basis_blade(n-1, g, i)
+        //TODO: panics for invalid blades
+
+        //invalid basis vectors
+        if g>n || i>binom(n,g) { return Self::ONE; }
+
+        //Rule #0: if grade==0, then the basis is just the identity
+        if g==0 { return Self::ONE; }
+
+        if n==2 && g==2 { return BasisBlade { bits: 0b11 }; }
+
+        //rule #1: if grade==1, then the basis is e_i
+        if g==1 { return Self::const_basis_vector(i); }
+
+        if g <= n/2 {
+            //the number of elements of this grade in the prev dimension
+            let count_prev = binom(n-1,g);
+
+            if i < count_prev {
+                //Rule #2: if g<=n/2 and i<binom(n-1,g), then the basis is the same as in the previous dimension
+                Self::basis_blade(n-1,g,i)
+            } else {
+
+                //Rule #4: for g<n/2, basis_blade(n,g,i) == basis_blade(n,n-g,i) / psuedoscalar(n)
+
+                //From this, we can prove that psuedoscalar(n) = e_n * psuedoscalar(n-1) (for n>2)
+                //as e_n = basis_blade(n,n-1,n-1) / psuedoscalar(n)
+                //so 1 = e_n * basis_blade(n,n-1,n-1) / psuedoscalar(n)
+                //   psuedoscalar(n) = e_n * basis_blade(n,n-1,n-1)
+                //but since n>2, by Rule #3: basis_blade(n,n-1,n-1) = basis_blade(n-1,n-1,0), so therefore
+                //   psuedoscalar(n) = e_n * psuedoscalar(n-1)
+
+                //next, we use this as follows: for i > binom(n-1,g)
+                //   basis_blade(n,g,i) == basis_blade(n,n-g,i) / psuedoscalar(n)
+                //   basis_blade(n,g,i) == basis_blade(n,n-g,i) * psuedoscalar(n).inv()
+                //   basis_blade(n,g,i) == basis_blade(n,n-g,i) * (e_n * psuedoscalar(n-1)).inv()
+                //   basis_blade(n,g,i) == basis_blade(n,n-g,i) * psuedoscalar(n-1).inv() * e_n
+                //since g<n/2, n-g > n/2 > (n-1)/2, and since i>binom(n-1,g), i>binom(n-1,n-g)
+                //so by Rule #3: for j = i - binom(n-1,n-g):
+                //   basis_blade(n,g,i) == basis_blade(n-1,n-g,j) * psuedoscalar(n-1).inv() * e_n
+                //again by Rule #4:
+                //   basis_blade(n,g,i) == basis_blade(n-1,(n-1)-(n-g),j) * e_n
+                //   basis_blade(n,g,i) == basis_blade(n-1,g-1,j) * e_n
+                let prev_dual = Self::basis_blade(n-1, g-1, i-count_prev);
+                let new_basis_vector = Self::const_basis_vector(n-1);
+
+                //next, we can just multiply using XOR since
+                //it is a right mul by e_n and prev_dual.dim() < n
+                BasisBlade { bits: prev_dual.bits ^ new_basis_vector.bits }
+
+            }
         } else {
-            Self::basis_blade(n-1, g-1, i-binom(n-1,g)) * Self::const_basis_vector(n-1)
+            //the number of elements of the *dual* grade in the prev dimension
+            let count_prev_dual = binom(n-1,n-g);
+            if i < count_prev_dual {
+
+                //From Rule #4: for g < n/2:
+                //   basis_blade(n,g,i) == basis_blade(n,n-g,i) /
+                //   basis_blade(n,g,i) * psuedoscalar(n) == basis_blade(n,n-g,i)
+                //   basis_blade(n,n-g,i) == basis_blade(n,g,i) * psuedoscalar(n)
+                //so, for g > n/2:
+                //   basis_blade(n,g,i) == basis_blade(n,n-g,i) * psuedoscalar(n)
+
+                //next, for i < binom(n-1,n-g)
+                //   basis_blade(n,g,i) == basis_blade(n,n-g,i) * psuedoscalar(n)
+                //   basis_blade(n,g,i) == basis_blade(n,n-g,i) * e_n * psuedoscalar(n-1)
+                //   basis_blade(n,g,i) == (-1)^(n-1) * basis_blade(n,n-g,i) * psuedoscalar(n-1) * e_n
+                //since g>n/2 and i<binom(n-1,n-g), n-g < n/2 <= (n-1)/2
+                //
+                //If n-g < (n-1)/2, by Rule #2:
+                //   basis_blade(n,g,i) == (-1)^(n-1) * basis_blade(n-1,n-g,i) * psuedoscalar(n-1) * e_n
+                //again by Rule #4:
+                //   basis_blade(n,g,i) == (-1)^(n-1) * basis_blade(n-1,(n-1)-(n-g),i) * e_n
+                //   basis_blade(n,g,i) == (-1)^(n-1) * basis_blade(n-1,g-1,i) * e_n
+                //
+                //Else, n-g == (n-1)/2, so by Rule #6:
+                //   if i<(n-1)/2:
+                //   basis_blade(n,g,i) == (-1)^(n-1) * basis_blade(n-1,n-g,i+binom(n-1,(n-1)-g)) * psuedoscalar(n-1) * e_n
+                //   else:
+                //   basis_blade(n,g,i) == (-1)^(n-1) (-1)^(n-2) * basis_blade(n-1,n-g,i-binom(n-1,(n-1)-g)) * psuedoscalar(n-1) * e_n
+                //
+
+                let j = if g-1 == (n-1)/2 {
+                    let c = count_prev_dual;
+                    (i+c/2)%c
+                } else { i };
+
+                let prev_dual = Self::basis_blade(n-1, g-1, j);
+                let new_basis_vector = Self::const_basis_vector(n-1);
+                let sign = (((n-1)&1) as Bits) << Self::MAX_DIM;
+
+                //next, we can just multiply using XOR since
+                //it is a right mul by e_n and prev_dual.dim() < n
+                BasisBlade { bits: prev_dual.bits ^ new_basis_vector.bits ^ sign }
+            } else {
+                //Rule #3: if g>n/2, and i>binom(n-1, n-g). then the basis is the same as in
+                //the previous dimension but with the index shifted down by binom(n-1, n-g).
+                Self::basis_blade(n-1,g,i-count_prev_dual)
+            }
         }
 
     }
@@ -159,13 +251,13 @@ impl BasisBlade {
 #[test]
 fn basis_blade() {
 
-    for n in 0..=6 {
+    for n in 0..=5 {
         println!("\nn={}", n);
         for g in 0..=n {
 
             print!("g={}: ", g);
             for i in 0..binom(n,g) {
-                print!("{}", BasisBlade::basis_blade(n,g,i));
+                print!("{:7}", BasisBlade::basis_blade(n,g,i));
             }
             println!();
         }
