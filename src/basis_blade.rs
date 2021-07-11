@@ -8,6 +8,7 @@ use super::binom;
 //So we can maybe change it later though there really is no reason it needs any more bits than this
 type Bits = i32;
 
+#[repr(transparent)]
 #[derive(Clone, Copy, PartialEq, Eq, Hash)]
 pub struct BasisBlade {
     bits: Bits
