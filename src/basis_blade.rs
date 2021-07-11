@@ -23,57 +23,6 @@ impl BasisBlade {
     pub const NEG_ONE: BasisBlade = BasisBlade { bits: Bits::MIN }; //0 with the leading bit flipped
 
     ///
-    /// Clears the sign bit
-    ///
-    /// This isn't `pub` since there is non-arbitry choice for when a basis blade is negative
-    /// or positive. This is simply an internal function relative the internal representation.
-    ///
-    pub(crate) const fn abs(self) -> BasisBlade {
-        //mask out the first bit
-        BasisBlade { bits: self.bits & Bits::MAX }
-    }
-
-    ///
-    /// Gets the sign bit as either `BasisBlade::one()` or `-BasisBlade::one()`
-    ///
-    /// This isn't `pub` since there is non-arbitry choice for when a basis blade is negative
-    /// or positive. This is simply an internal function relative the internal representation.
-    ///
-    pub(crate) const fn sign(self) -> BasisBlade {
-        //get just the first bit
-        BasisBlade { bits: self.bits & Bits::MIN }
-    }
-
-    pub(crate) const fn positive(self) -> bool {
-        self.sign().bits == BasisBlade::ONE.bits
-    }
-
-    pub(crate) const fn negative(self) -> bool {
-        self.sign().bits == BasisBlade::NEG_ONE.bits
-    }
-
-    ///
-    /// Returns the nth basis vector
-    ///
-    /// Panics if n is greater than the maximum dimension
-    ///
-    pub fn basis_vector(n: usize) -> BasisBlade {
-        if n >= Self::MAX_DIM {
-            panic!("Only Vectors up to dimension {} are currently supported", Self::MAX_DIM )
-        }
-        BasisBlade { bits: 1 << n }
-    }
-
-    ///
-    /// Returns the nth basis vector
-    ///
-    /// Returns `BasisBlade::one()` if n is greater than the maximum dimension
-    ///
-    pub const fn const_basic_vector(n: usize) -> BasisBlade {
-        BasisBlade { bits: 1 << n }.abs()
-    }
-
-    ///
     /// Computes the minimum dimension this `BasisBlade` is contained in
     ///
     /// # Examples
@@ -137,6 +86,57 @@ impl BasisBlade {
     ///
     pub const fn grade(&self) -> usize {
         self.abs().bits.count_ones() as usize
+    }
+
+    ///
+    /// Clears the sign bit
+    ///
+    /// This isn't `pub` since there is non-arbitry choice for when a basis blade is negative
+    /// or positive. This is simply an internal function relative the internal representation.
+    ///
+    pub(crate) const fn abs(self) -> BasisBlade {
+        //mask out the first bit
+        BasisBlade { bits: self.bits & Bits::MAX }
+    }
+
+    ///
+    /// Gets the sign bit as either `BasisBlade::one()` or `-BasisBlade::one()`
+    ///
+    /// This isn't `pub` since there is non-arbitry choice for when a basis blade is negative
+    /// or positive. This is simply an internal function relative the internal representation.
+    ///
+    pub(crate) const fn sign(self) -> BasisBlade {
+        //get just the first bit
+        BasisBlade { bits: self.bits & Bits::MIN }
+    }
+
+    pub(crate) const fn positive(self) -> bool {
+        self.sign().bits == BasisBlade::ONE.bits
+    }
+
+    pub(crate) const fn negative(self) -> bool {
+        self.sign().bits == BasisBlade::NEG_ONE.bits
+    }
+
+    ///
+    /// Returns the nth basis vector
+    ///
+    /// Panics if n is greater than the maximum dimension
+    ///
+    pub fn basis_vector(n: usize) -> BasisBlade {
+        if n >= Self::MAX_DIM {
+            panic!("Only Vectors up to dimension {} are currently supported", Self::MAX_DIM )
+        }
+        BasisBlade { bits: 1 << n }
+    }
+
+    ///
+    /// Returns the nth basis vector
+    ///
+    /// Returns `BasisBlade::one()` if n is greater than the maximum dimension
+    ///
+    pub const fn const_basic_vector(n: usize) -> BasisBlade {
+        BasisBlade { bits: 1 << n }.abs()
     }
 
 }
