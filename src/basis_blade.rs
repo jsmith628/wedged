@@ -1,7 +1,7 @@
 
 use num_traits::{One, Inv};
 use std::ops::{Neg, Mul, MulAssign, Div, DivAssign};
-use std::fmt::{Formatter, Debug, Display, Binary, Result as FmtResult};
+use std::fmt::{Formatter, Debug, Display, Binary, Result as FmtResult, Alignment};
 
 use super::binom;
 
@@ -164,7 +164,7 @@ fn basis_blade() {
 
             print!("g={}: ", g);
             for i in 0..binom(n,g) {
-                print!("{:7}", BasisBlade::basis_blade(n,g,i));
+                print!("{}", BasisBlade::basis_blade(n,g,i));
             }
             println!();
         }
@@ -209,24 +209,72 @@ impl Display for BasisBlade {
 
         }
 
-        let alt = f.alternate();
         let dim = self.dim();
+        let grade = self.grade();
+
+        //if we should use a '-' sign instead of swapping
+        let minus_mode = f.sign_minus() || grade<=1;
+
+        //if a sign should be printed
+        let do_sign = f.sign_plus() || minus_mode && self.negative();
+
+        //if each vector should have it's own 'e'. this is required for dim>=10
+        //as if we don't, we get ambiguity on if a digit is another vector or in the 10s place
+        let separate_e = dim>=10;
+
+        let num_chars = {
+            (if do_sign { 1 } else { 0 }) +
+            (if separate_e { 2*grade } else { 1+grade })
+        };
+
+        let padding = {
+            match f.width() {
+                None => 0,
+                Some(w) => w.saturating_sub(num_chars)
+            }
+        };
+
+        //adds the appropriate amount of padding
+        let do_padding = |f: &mut Formatter, count| {
+            for _ in 0..count {
+                write!(f, "{}", f.fill())?
+            }
+            Ok(())
+        };
 
         //writes a single basis vector with subscript i
+        //if dim>=10, it adds an 'e'
         let write_vector = |f: &mut Formatter, i| {
-            if dim>=10 { write!(f, "e")?; }
+            if separate_e { write!(f, "e")?; }
             for d in subscript_digits(i) {
                 write!(f, "{}", d)?;
             }
             Ok(())
         };
 
-        if !alt || self.positive() || self.grade()<=1 {
-            //does negatives by prepending a '-'
+        //do the padding on the left
+        match f.align() {
+            Some(Alignment::Right) => do_padding(f, padding)?,
+            Some(Alignment::Center) => do_padding(f, padding/2)?,
+            _ => ()
+        }
 
-            if self.negative() { write!(f, "-")?; }
-            if dim < 10 { write!(f, "e")?; }
+        //for prepending a sign
+        if do_sign {
+            if self.negative() {
+                write!(f, "-")?;
+            } else {
+                write!(f, "+")?;
+            }
+        }
 
+        //if the dim<10 we can write all the vectors as subscripts of one 'e'
+        if !separate_e { write!(f, "e")?; }
+
+        //if we are in minus mode or positive, we don't want to do any swaps
+        if minus_mode || self.positive() {
+
+            //just print out all vectors apart of this blade in ascending order
             for i in 0..Self::MAX_DIM {
                 if ((1<<i) & self.bits) != 0 {
                     write_vector(f, i+1)?;
@@ -234,11 +282,7 @@ impl Display for BasisBlade {
             }
 
         } else {
-            //
-            //does negatives by swapping the first two vectors
-            //
-
-            if dim<10 { write!(f, "e")?; }
+            //else, we swap the first two vectors to negate the basis blade
 
             let mut first = None;
             let mut start = true;
@@ -263,6 +307,13 @@ impl Display for BasisBlade {
                 }
             }
 
+        }
+
+        //do the padding on the left
+        match f.align() {
+            Some(Alignment::Left) | None => do_padding(f, padding)?,
+            Some(Alignment::Center) => do_padding(f, padding - padding/2)?,
+            _ => ()
         }
 
         Ok(())
@@ -402,15 +453,15 @@ mod tests {
 
         macro_rules! test_fmt {
             ($e:expr; $fmt:literal $neg_alt:literal) => {
+                assert_eq!(format!("{:-}", $e), $fmt);
                 assert_eq!(format!("{}", $e), $fmt);
-                assert_eq!(format!("{:#}", $e), $fmt);
-                assert_eq!(format!("{}", -$e), concat!("-", $fmt));
-                assert_eq!(format!("{:#}", -$e), $neg_alt);
+                assert_eq!(format!("{:-}", -$e), concat!("-", $fmt));
+                assert_eq!(format!("{}", -$e), $neg_alt);
 
+                assert_eq!(format!("{:-?}", $e), $fmt);
                 assert_eq!(format!("{:?}", $e), $fmt);
-                assert_eq!(format!("{:#?}", $e), $fmt);
-                assert_eq!(format!("{:?}", -$e), concat!("-", $fmt));
-                assert_eq!(format!("{:#?}", -$e), $neg_alt);
+                assert_eq!(format!("{:-?}", -$e), concat!("-", $fmt));
+                assert_eq!(format!("{:?}", -$e), $neg_alt);
             }
         }
 
