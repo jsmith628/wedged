@@ -3,6 +3,8 @@ use num_traits::{One, Inv};
 use std::ops::{Neg, Mul, MulAssign, Div, DivAssign};
 use std::fmt::{Formatter, Debug, Display, Binary, Result as FmtResult};
 
+use super::binom;
+
 //So we can maybe change it later though there really is no reason it needs any more bits than this
 type Bits = i32;
 
@@ -135,8 +137,37 @@ impl BasisBlade {
     ///
     /// Returns `BasisBlade::one()` if n is greater than the maximum dimension
     ///
-    pub const fn const_basic_vector(n: usize) -> BasisBlade {
+    pub const fn const_basis_vector(n: usize) -> BasisBlade {
         BasisBlade { bits: 1 << n }.abs()
+    }
+
+    pub fn basis_blade(n:usize, g:usize, i:usize) -> BasisBlade {
+
+        if n==g {
+            (0..n).into_iter().map(|i| Self::const_basis_vector(i)).fold(Self::one(), |l,r| l*r)
+        } else if i < binom(n-1,g) {
+            Self::basis_blade(n-1, g, i)
+        } else {
+            Self::basis_blade(n-1, g-1, i-binom(n-1,g)) * Self::const_basis_vector(n-1)
+        }
+
+    }
+
+}
+
+#[test]
+fn basis_blade() {
+
+    for n in 0..=6 {
+        println!("\nn={}", n);
+        for g in 0..=n {
+
+            print!("g={}: ", g);
+            for i in 0..binom(n,g) {
+                print!("{:7}", BasisBlade::basis_blade(n,g,i));
+            }
+            println!();
+        }
     }
 
 }
@@ -347,10 +378,10 @@ mod tests {
 
     const e: BasisBlade = BasisBlade::ONE;
 
-    const e1: BasisBlade = BasisBlade::const_basic_vector(0);
-    const e2: BasisBlade = BasisBlade::const_basic_vector(1);
-    const e3: BasisBlade = BasisBlade::const_basic_vector(2);
-    const e4: BasisBlade = BasisBlade::const_basic_vector(3);
+    const e1: BasisBlade = BasisBlade::const_basis_vector(0);
+    const e2: BasisBlade = BasisBlade::const_basis_vector(1);
+    const e3: BasisBlade = BasisBlade::const_basis_vector(2);
+    const e4: BasisBlade = BasisBlade::const_basis_vector(3);
 
     const e12: BasisBlade = BasisBlade { bits: 0b0011 };
     const e13: BasisBlade = BasisBlade { bits: 0b0101 };
