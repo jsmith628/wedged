@@ -157,14 +157,7 @@ impl BasisBlade {
     //Lemma #2: for g==n/2, i>binom(n,g)/2,
     //      basis_blade(n,g,i) == basis_blade(n,n-g,i-binom(n,g)/2) * psuedoscalar(n)
 
-    pub fn psuedoscalar(n:usize) -> BasisBlade {
-        if n==0 { return Self::ONE; }
-        if n==1 { return Self::const_basis_vector(0); }
-        if n==2 { return BasisBlade { bits: 0b11 }; }
-        Self::const_basis_vector(n-1) * Self::psuedoscalar(n-1)
-    }
-
-    pub fn basis_blade(n:usize, g:usize, i:usize) -> BasisBlade {
+    pub const fn basis_blade(n:usize, g:usize, i:usize) -> BasisBlade {
 
         //TODO: panics for invalid blades
 
@@ -177,6 +170,9 @@ impl BasisBlade {
         //From Rule #1
         if g==1 { return Self::const_basis_vector(i); }
 
+        //The below optimizations for applying Rules 4-5 only work for n>2, so we hardcode n==2
+        if n==2 && g==2 && i==0 { return BasisBlade { bits: 0b11 }; }
+
         if 2*g < n {
             //the number of elements of this grade in the prev dimension
             let count_prev = binom(n-1,g);
@@ -185,8 +181,30 @@ impl BasisBlade {
                 //From Rule #2
                 Self::basis_blade(n-1,g,i)
             } else {
-                //From Rule #4
-                Self::basis_blade(n,n-g,i) / Self::psuedoscalar(n)
+
+                //From Rule #4:
+                //  basis_blade(n,g,i) = basis_blade(n,n-g,i) / psuedoscalar(n)
+                //Since g < n/2, n-g > n/2, and
+                //Since i > binom(n-1, g) = binom(n-1, n - (n-g))
+                //By Rule #3: letting j = i-binom(n-1, n - (n-g)) = i - binom(n-1, g)
+                //  basis_blade(n,g,i) = basis_blade(n-1,n-g,j) / psuedoscalar(n)
+                //  basis_blade(n,g,i) = basis_blade(n-1,n-g,j) * psuedoscalar(n).inv()
+                //  basis_blade(n,g,i) = basis_blade(n-1,n-g,j) * (e_n * psuedoscalar(n-1)).inv()
+                //  basis_blade(n,g,i) = basis_blade(n-1,n-g,j) * psuedoscalar(n-1).inv() * e_n
+                //  basis_blade(n,g,i) = (basis_blade(n-1,n-g,j) / psuedoscalar(n-1)) * e_n
+                //Now since n-g > n/2, n-g > (n-1)/2, so:
+                //From Rule #4 again:
+                //  basis_blade(n,g,i) = basis_blade(n-1,(n-1)-(n-g),j) * e_n
+                //  basis_blade(n,g,i) = basis_blade(n-1,g-1,j) * e_n
+
+                let j = i - count_prev;
+                let prev_blade = Self::basis_blade(n-1, g-1, j);
+                let e_n = Self::const_basis_vector(n-1);
+
+                //since prev_blade.dim() < n and we're doing right-mul by e_n, we can just
+                //multiply by doing the XOR of the bits
+                BasisBlade { bits: prev_blade.bits ^ e_n.bits }
+
             }
         } else if 2*g==n {
             //the number of elements of this grade in the prev dimension
@@ -196,17 +214,55 @@ impl BasisBlade {
                 //From Rule #2
                 Self::basis_blade(n-1,g,i)
             } else {
-                //From Lemma #2
-                Self::basis_blade(n,g,i-count/2) * Self::psuedoscalar(n)
+
+                //From Lemma #2 we can derive a fact very similar to the above using the
+                //exact same logic
+
+                let j = i - count/2;
+                let prev_blade = Self::basis_blade(n-1, g-1, j);
+                let e_n = Self::const_basis_vector(n-1);
+
+                //like above, we can mul just using XOR
+                BasisBlade { bits: prev_blade.bits ^ e_n.bits }
             }
         } else {
             //the number of elements of the *dual* grade in the prev dimension
-            let count_prev_dual = binom(n-1,n-g);
+            let count_prev_dual = binom(n-1, n-g);
             if i < count_prev_dual {
+
                 //From Lemma #1
-                Self::basis_blade(n,n-g,i) * Self::psuedoscalar(n)
+                //  basis_blade(n,g,i) = basis_blade(n,n-g,i) * psuedoscalar(n)
+                //Since g > n/2, n-g < n/2
+                //Since i < binom(n-1, n-g)
+                //By Rule #3:
+                //  basis_blade(n,g,i) = basis_blade(n-1,n-g,i) * psuedoscalar(n)
+                //  basis_blade(n,g,i) = basis_blade(n-1,n-g,i) * e_n * psuedoscalar(n-1)
+                //  basis_blade(n,g,i) = (-1)^n * basis_blade(n-1,n-g,i) * psuedoscalar(n-1) * e_n
+                //Now we have two cases:
+                //If g > (n-1)/2: We can use Rule #4 again:
+                //  basis_blade(n,g,i) = (-1)^n * basis_blade(n-1,(n-1)-(n-g),i) * e_n
+                //  basis_blade(n,g,i) = (-1)^n * basis_blade(n-1,g-1,i) * e_n
+                //Else: g == (n-1)/2, and we use Rule #5:
+                //  basis_blade(n,g,i) = (-1)^n * basis_blade(n-1,(n-1)-(n-g),j) * e_n
+                //  basis_blade(n,g,i) = (-1)^n * basis_blade(n-1,g-1,j) * e_n
+                //where j = i+binom(n-1,g)/2 if i<binom(n-1,g)/2 or j = i-binom(n-1,g)/2 otherwise
+
+                let j = if 2*g == n-1 {
+                    let count = count_prev_dual;
+                    if i<count/2 { i+count/2 } else { i-count/2 }
+                } else {
+                    i
+                };
+
+                let prev_blade = Self::basis_blade(n-1,g-1,j);
+                let e_n = Self::const_basis_vector(n-1);
+                let sign = ((n&1) as Bits) << Self::MAX_DIM;
+
+                //like above, we can multiply everything together just using XOR
+                BasisBlade { bits: prev_blade.bits ^ e_n.bits ^ sign }
+
             } else {
-                //From Rule #3:
+                //From Rule #3
                 Self::basis_blade(n-1,g,i-count_prev_dual)
             }
         }
