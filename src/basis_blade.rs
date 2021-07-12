@@ -242,12 +242,12 @@ impl BasisBlade {
                 //If g > (n-1)/2: We can use Rule #4 again:
                 //  basis_blade(n,g,i) = (-1)^n * basis_blade(n-1,(n-1)-(n-g),i) * e_n
                 //  basis_blade(n,g,i) = (-1)^n * basis_blade(n-1,g-1,i) * e_n
-                //Else: g == (n-1)/2, and we use Rule #5:
+                //Else: g-1 == (n-1)/2, and we use Rule #5:
                 //  basis_blade(n,g,i) = (-1)^n * basis_blade(n-1,(n-1)-(n-g),j) * e_n
                 //  basis_blade(n,g,i) = (-1)^n * basis_blade(n-1,g-1,j) * e_n
-                //where j = i+binom(n-1,g)/2 if i<binom(n-1,g)/2 or j = i-binom(n-1,g)/2 otherwise
+                //where j = i+binom(n-1,g-1)/2 if i<binom(n-1,g-1)/2 or j = i-binom(n-1,g-1)/2 otherwise
 
-                let j = if 2*g == n-1 {
+                let j = if 2*(g-1) == n-1 {
                     let count = count_prev_dual;
                     if i<count/2 { i+count/2 } else { i-count/2 }
                 } else {
