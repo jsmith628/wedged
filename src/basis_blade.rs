@@ -130,7 +130,7 @@ impl BasisBlade {
         if n >= Self::MAX_DIM {
             panic!("Only Vectors up to dimension {} are currently supported", Self::MAX_DIM )
         }
-        BasisBlade { bits: 1 << n }
+        BasisBlade::const_basis_vector(n)
     }
 
     ///
@@ -140,6 +140,19 @@ impl BasisBlade {
     ///
     pub const fn const_basis_vector(n: usize) -> BasisBlade {
         BasisBlade { bits: 1 << n }.abs()
+    }
+
+    pub fn basis_blade(n:usize, g:usize, i:usize) -> BasisBlade {
+        if n >= Self::MAX_DIM {
+            panic!("Only Blades up to dimension {} are currently supported", Self::MAX_DIM );
+        }
+
+        if g>n || i>binom(n,g) {
+            panic!("No basis {}-dimensional blade of grade {} at index {}", n, g, i);
+        }
+
+        Self::const_basis_blade(n, g, i)
+
     }
 
     //Rule #0: if grade==0, then the basis is just the identity
@@ -157,9 +170,7 @@ impl BasisBlade {
     //Lemma #2: for g==n/2, i>binom(n,g)/2,
     //      basis_blade(n,g,i) == basis_blade(n,n-g,i-binom(n,g)/2) * psuedoscalar(n)
 
-    pub const fn basis_blade(n:usize, g:usize, i:usize) -> BasisBlade {
-
-        //TODO: panics for invalid blades
+    pub const fn const_basis_blade(n:usize, g:usize, i:usize) -> BasisBlade {
 
         //invalid basis vectors
         if g>n || i>binom(n,g) { return Self::ONE; }
@@ -179,7 +190,7 @@ impl BasisBlade {
 
             if i < count_prev {
                 //From Rule #2
-                Self::basis_blade(n-1,g,i)
+                Self::const_basis_blade(n-1,g,i)
             } else {
 
                 //From Rule #4:
@@ -198,7 +209,7 @@ impl BasisBlade {
                 //  basis_blade(n,g,i) = basis_blade(n-1,g-1,j) * e_n
 
                 let j = i - count_prev;
-                let prev_blade = Self::basis_blade(n-1, g-1, j);
+                let prev_blade = Self::const_basis_blade(n-1, g-1, j);
                 let e_n = Self::const_basis_vector(n-1);
 
                 //since prev_blade.dim() < n and we're doing right-mul by e_n, we can just
@@ -212,14 +223,14 @@ impl BasisBlade {
 
             if i < count/2 {
                 //From Rule #2
-                Self::basis_blade(n-1,g,i)
+                Self::const_basis_blade(n-1,g,i)
             } else {
 
                 //From Lemma #2 we can derive a fact very similar to the above using the
                 //exact same logic
 
                 let j = i - count/2;
-                let prev_blade = Self::basis_blade(n-1, g-1, j);
+                let prev_blade = Self::const_basis_blade(n-1, g-1, j);
                 let e_n = Self::const_basis_vector(n-1);
 
                 //like above, we can mul just using XOR
@@ -254,36 +265,19 @@ impl BasisBlade {
                     i
                 };
 
-                let prev_blade = Self::basis_blade(n-1,g-1,j);
+                let prev_blade = Self::const_basis_blade(n-1,g-1,j);
                 let e_n = Self::const_basis_vector(n-1);
-                let sign = ((n&1) as Bits) << Self::MAX_DIM;
+                let sign = (((n-1)&1) as Bits) << Self::MAX_DIM;
 
                 //like above, we can multiply everything together just using XOR
                 BasisBlade { bits: prev_blade.bits ^ e_n.bits ^ sign }
 
             } else {
                 //From Rule #3
-                Self::basis_blade(n-1,g,i-count_prev_dual)
+                Self::const_basis_blade(n-1,g,i-count_prev_dual)
             }
         }
 
-    }
-
-}
-
-#[test]
-fn basis_blade() {
-
-    for n in 0..=5 {
-        println!("\nn={}", n);
-        for g in 0..=n {
-
-            print!("g={}: ", g);
-            for i in 0..binom(n,g) {
-                print!("{:7}", BasisBlade::basis_blade(n,g,i));
-            }
-            println!();
-        }
     }
 
 }
