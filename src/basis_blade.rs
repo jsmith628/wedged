@@ -26,6 +26,25 @@ impl BasisBlade {
     pub const NEG_ONE: BasisBlade = BasisBlade { bits: Bits::MIN }; //0 with the leading bit flipped
 
     ///
+    /// Quickly does `(-1)^n`
+    ///
+    #[inline(always)]
+    const fn neg_one_pow(n:usize) -> BasisBlade {
+        BasisBlade { bits:((n & 1) as Bits) << Self::MAX_DIM }
+    }
+
+    ///
+    /// Multiplies two basis blades quickly by using only XOR
+    ///
+    /// This **only** works if `self.dim()` is less than or equal to the min dim of the vectors
+    /// in `rhs`, as this is the only way to guarantee that we don't need any swaps
+    ///
+    #[inline(always)]
+    const fn unchecked_fast_mul(self, rhs: BasisBlade) -> BasisBlade {
+        BasisBlade { bits: self.bits ^ rhs.bits }
+    }
+
+    ///
     /// Computes the minimum dimension this `BasisBlade` is contained in
     ///
     /// # Examples
@@ -170,6 +189,36 @@ impl BasisBlade {
     //Lemma #2: for g==n/2, i>binom(n,g)/2,
     //      basis_blade(n,g,i) == basis_blade(n,n-g,i-binom(n,g)/2) * psuedoscalar(n)
 
+
+    const fn const_undual_basis(n:usize, g:usize, i:usize) -> BasisBlade {
+
+        //invalid basis vectors
+        if g>n || i>binom(n,g) { return Self::ONE; }
+
+        if 2*g < n {
+            //Rule #3
+            Self::const_basis_blade(n, n-g, i)
+        } else if 2*g == n {
+
+            //Rule #5
+            let prev_count = binom(n,g)/2;
+            if i < prev_count {
+                Self::const_basis_blade(n, g, i + prev_count)
+            } else {
+                let sign = Self::neg_one_pow(n*(n-1)/2);
+                Self::const_basis_blade(n, n-g, i - prev_count).unchecked_fast_mul(sign)
+            }
+
+        } else {
+            //Rule #4
+            //the sign converts from dual to undual
+            let sign = Self::neg_one_pow(n*(n-1)/2);
+            Self::const_basis_blade(n, n-g, i).unchecked_fast_mul(sign)
+        }
+
+
+    }
+
     pub const fn const_basis_blade(n:usize, g:usize, i:usize) -> BasisBlade {
 
         //invalid basis vectors
@@ -225,16 +274,8 @@ impl BasisBlade {
                 //From Rule #2
                 Self::const_basis_blade(n-1,g,i)
             } else {
-
-                //From Lemma #2 we can derive a fact very similar to the above using the
-                //exact same logic
-
-                let j = i - count/2;
-                let prev_blade = Self::const_basis_blade(n-1, g-1, j);
-                let e_n = Self::const_basis_vector(n-1);
-
-                //like above, we can mul just using XOR
-                BasisBlade { bits: prev_blade.bits ^ e_n.bits }
+                //From Lemma #2
+                Self::const_undual_basis(n,g,i)
             }
         } else {
             //the number of elements of the *dual* grade in the prev dimension
@@ -258,19 +299,12 @@ impl BasisBlade {
                 //  basis_blade(n,g,i) = (-1)^n * basis_blade(n-1,g-1,j) * e_n
                 //where j = i+binom(n-1,g-1)/2 if i<binom(n-1,g-1)/2 or j = i-binom(n-1,g-1)/2 otherwise
 
-                let j = if 2*(g-1) == n-1 {
-                    let count = count_prev_dual;
-                    if i<count/2 { i+count/2 } else { i-count/2 }
-                } else {
-                    i
-                };
-
-                let prev_blade = Self::const_basis_blade(n-1,g-1,j);
+                let prev_blade = Self::const_undual_basis(n-1,n-g,i);
                 let e_n = Self::const_basis_vector(n-1);
-                let sign = (((n-1)&1) as Bits) << Self::MAX_DIM;
+                let sign = Self::neg_one_pow(n-1);
 
                 //like above, we can multiply everything together just using XOR
-                BasisBlade { bits: prev_blade.bits ^ e_n.bits ^ sign }
+                prev_blade.unchecked_fast_mul(e_n).unchecked_fast_mul(sign)
 
             } else {
                 //From Rule #3
@@ -760,5 +794,44 @@ mod tests {
         test_div!(e e1 e2 e3 e4 e12 e13 e14 e23 e24 e34 e123 e124 e134 e234 e1234);
 
     }
+
+
+
+    #[test]
+    fn basis() {
+
+        for n in 0..=5 {
+            println!("\nn={}", n);
+            for g in 0..=n {
+
+                print!("g={}: ", g);
+                for i in 0..binom(n,g) {
+                    print!("{:7}", BasisBlade::basis_blade(n,g,i));
+                }
+                println!();
+            }
+        }
+
+        assert_eq!(e, BasisBlade::basis_blade(0,0,0));
+
+        assert_eq!(e,  BasisBlade::basis_blade(1,0,0));
+        assert_eq!(e1, BasisBlade::basis_blade(1,1,0));
+
+        assert_eq!(e,   BasisBlade::basis_blade(2,0,0));
+        assert_eq!(e1,  BasisBlade::basis_blade(2,1,0));
+        assert_eq!(e2,  BasisBlade::basis_blade(2,1,1));
+        assert_eq!(e12, BasisBlade::basis_blade(2,2,0));
+
+        assert_eq!(e,     BasisBlade::basis_blade(3,0,0));
+        assert_eq!(e1,    BasisBlade::basis_blade(3,1,0));
+        assert_eq!(e2,    BasisBlade::basis_blade(3,1,1));
+        assert_eq!(e3,    BasisBlade::basis_blade(3,1,2));
+        assert_eq!(e2*e3, BasisBlade::basis_blade(3,2,0));
+        assert_eq!(e3*e1, BasisBlade::basis_blade(3,2,1));
+        assert_eq!(e1*e2, BasisBlade::basis_blade(3,2,2));
+        assert_eq!(e123,  BasisBlade::basis_blade(3,3,0));
+
+    }
+
 
 }
