@@ -206,7 +206,7 @@ impl BasisBlade {
                 Self::const_basis_blade(n, g, i + prev_count)
             } else {
                 let sign = Self::neg_one_pow(n*(n-1)/2);
-                Self::const_basis_blade(n, n-g, i - prev_count).unchecked_fast_mul(sign)
+                Self::const_basis_blade(n, g, i - prev_count).unchecked_fast_mul(sign)
             }
 
         } else {
@@ -274,8 +274,16 @@ impl BasisBlade {
                 //From Rule #2
                 Self::const_basis_blade(n-1,g,i)
             } else {
-                //From Lemma #2
-                Self::const_undual_basis(n,g,i)
+                //From Lemma #2 we can derive a fact very similar to the above using the
+                //exact same logic
+
+                let j = i - count/2;
+                let prev_blade = Self::const_basis_blade(n-1, g-1, j);
+                let e_n = Self::const_basis_vector(n-1);
+                let sign = Self::neg_one_pow((n-1) * n * (n-1) / 2);
+
+                //like above, we can mul just using XOR
+                prev_blade.unchecked_fast_mul(e_n).unchecked_fast_mul(sign)
             }
         } else {
             //the number of elements of the *dual* grade in the prev dimension
@@ -800,7 +808,7 @@ mod tests {
     #[test]
     fn basis() {
 
-        for n in 0..=5 {
+        for n in 0..=6 {
             println!("\nn={}", n);
             for g in 0..=n {
 
@@ -831,6 +839,83 @@ mod tests {
         assert_eq!(e1*e2, BasisBlade::basis_blade(3,2,2));
         assert_eq!(e123,  BasisBlade::basis_blade(3,3,0));
 
+    }
+
+    #[test]
+    fn basis_rule_1() {
+        for n in 0..BasisBlade::MAX_DIM {
+            for i in 0..n {
+                assert_eq!(BasisBlade::basis_blade(n,1,i), BasisBlade::basis_vector(i));
+            }
+        }
+    }
+
+    #[test]
+    fn basis_rule_2_3() {
+        for n in 1..16 {
+            for g in 0..=(n-1) {
+                let count = binom(n,g);
+                if 2*g <= n {
+                    //Rule #2
+                    let prev_count = binom(n-1,g);
+                    for i in 0..prev_count {
+                        assert_eq!(
+                            BasisBlade::basis_blade(n,g,i),
+                            BasisBlade::basis_blade(n-1,g,i)
+                        );
+                    }
+                } else {
+                    //Rule #3
+                    let prev_count = binom(n-1,n-g);
+                    for i in prev_count..count {
+                        assert_eq!(
+                            BasisBlade::basis_blade(n,g,i),
+                            BasisBlade::basis_blade(n-1,g,i-prev_count)
+                        );
+                    }
+                }
+            }
+
+        }
+    }
+
+    #[test]
+    fn basis_rule_4_5() {
+        for n in 1..16 {
+            for g in 0..=(n-1) {
+                let count = binom(n,g);
+                let ps = BasisBlade::basis_blade(n,n,0);
+                if 2*g < n {
+                    let prev_count = binom(n-1,g);
+                    for i in 0..prev_count {
+                        assert_eq!(
+                            BasisBlade::basis_blade(n,g,i),
+                            BasisBlade::basis_blade(n,n-g,i) / ps
+                        );
+                    }
+                } else if 2*g == n {
+                    for i in 0..count/2 {
+                        assert_eq!(
+                            BasisBlade::basis_blade(n,g,i),
+                            BasisBlade::basis_blade(n,g,i+count/2) / ps
+                        );
+                        assert_eq!(
+                            BasisBlade::basis_blade(n,g,i+count/2),
+                            BasisBlade::basis_blade(n,g,i) * ps
+                        );
+                    }
+                } else {
+                    let prev_count = binom(n-1,n-g);
+                    for i in prev_count..count {
+                        assert_eq!(
+                            BasisBlade::basis_blade(n,g,i),
+                            BasisBlade::basis_blade(n,n-g,i) * ps
+                        );
+                    }
+                }
+            }
+
+        }
     }
 
 
