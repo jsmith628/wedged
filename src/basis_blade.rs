@@ -140,6 +140,55 @@ impl BasisBlade {
         self.sign().bits == BasisBlade::NEG_ONE.bits
     }
 
+    pub const fn const_mul(self, rhs: Self) -> Self {
+        //we only have to abs() self since it will mask out the sign of rhs
+        let a = self.abs().bits;
+        let b = rhs.bits;
+
+        //compute the sign of the result by computing the number of swaps
+        //required to align all the basis vectors
+
+        const fn compute_swaps(a: Bits, b: Bits) -> Bits {
+            if a==0 {
+                0
+            } else {
+                (a&b).count_ones() as Bits + compute_swaps(a>>1, b)
+            }
+        }
+        let swaps = compute_swaps(a >> 1, b);
+
+        //if swaps is even, this is 0, if it is odd, it is Bits::MIN
+        let sign = (swaps & 1) << Self::MAX_DIM;
+
+        //xor everything together
+        //self.bits ^ rhs.bits selects out all basis vectors not in common
+        //^ sign flips the sign according to the swaps we had to do
+        BasisBlade { bits: self.bits ^ rhs.bits ^ sign }
+    }
+
+    pub const fn const_inv(self) -> Self {
+        //to invert, we need to reverse the order of the basic vectors:
+        //- To do this, we must pass the `i`th vector in the mul through the `i-1` vectors before it
+        //  giving `i-1` swaps for each of the g vectors.
+        //- Summing this all up, we get `0 + 1 + .. (g-1) = g*(g-1)/2` total swaps
+        //- Now, this value is only even iff `4 | g*(g-1)`
+        //- but this can only happen if either `4|g` or `4|(g-1)` as 2 cannot divide both `g` and
+        //  `g-1` at the same time
+        //- Therefore, to invert, we negate iff g == 2,3 mod 4
+
+        //get the grade
+        let g = self.grade() as Bits;
+
+        //test if the grade is 2 or 3 mod 4 by masking out the 2nd bit
+        //and then shifting that bit to the leading position
+        let sign = (g & 0b10) << (Self::MAX_DIM-1);
+
+        //multiply self by sign
+        BasisBlade { bits: self.bits ^ sign }
+    }
+
+    pub const fn const_div(self, rhs: Self) -> Self { self.const_mul(rhs.const_inv()) }
+
     ///
     /// Returns the nth basis vector
     ///
@@ -525,60 +574,17 @@ impl Neg for BasisBlade {
 
 impl Inv for BasisBlade {
     type Output = Self;
-    fn inv(self) -> Self {
-        //to invert, we need to reverse the order of the basic vectors:
-        //- To do this, we must pass the `i`th vector in the mul through the `i-1` vectors before it
-        //  giving `i-1` swaps for each of the g vectors.
-        //- Summing this all up, we get `0 + 1 + .. (g-1) = g*(g-1)/2` total swaps
-        //- Now, this value is only even iff `4 | g*(g-1)`
-        //- but this can only happen if either `4|g` or `4|(g-1)` as 2 cannot divide both `g` and
-        //  `g-1` at the same time
-        //- Therefore, to invert, we negate iff g == 2,3 mod 4
-
-        //get the grade
-        let g = self.grade() as Bits;
-
-        //test if the grade is 2 or 3 mod 4 by masking out the 2nd bit
-        //and then shifting that bit to the leading position
-        let sign = (g & 0b10) << (Self::MAX_DIM-1);
-
-        //multiply self by sign
-        BasisBlade { bits: self.bits ^ sign }
-
-    }
+    fn inv(self) -> Self { self.const_inv() }
 }
 
 impl Mul for BasisBlade {
     type Output = Self;
-    fn mul(self, rhs: Self) -> Self {
-
-        //we only have to abs() self since it will mask out the sign of rhs
-        let mut a = self.abs().bits;
-        let b = rhs.bits;
-
-        //compute the sign of the result by computing the number of swaps
-        //required to align all the basis vectors
-        a >>= 1;
-        let mut swaps = 0;
-        while a!=0 {
-            swaps += (a&b).count_ones() as Bits;
-            a >>= 1
-        }
-
-        //if swaps is even, this is 0, if it is odd, it is Bits::MIN
-        let sign = (swaps & 1) << Self::MAX_DIM;
-
-        //xor everything together
-        //self.bits ^ rhs.bits selects out all basis vectors not in common
-        //^ sign flips the sign according to the swaps we had to do
-        BasisBlade { bits: self.bits ^ rhs.bits ^ sign }
-
-    }
+    fn mul(self, rhs: Self) -> Self { self.const_mul(rhs) }
 }
 
 impl Div for BasisBlade {
     type Output = Self;
-    fn div(self, rhs: Self) -> Self { self * rhs.inv() }
+    fn div(self, rhs: Self) -> Self { self.const_div(rhs) }
 }
 
 macro_rules! impl_bin_op {
