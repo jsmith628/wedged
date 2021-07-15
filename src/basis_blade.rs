@@ -277,6 +277,8 @@ impl BasisBlade {
                 //From Lemma #2 we can derive a fact very similar to the above using the
                 //exact same logic
 
+                //TODO: explain
+
                 let j = i - count/2;
                 let prev_blade = Self::const_basis_blade(n-1, g-1, j);
                 let e_n = Self::const_basis_vector(n-1);
@@ -320,6 +322,42 @@ impl BasisBlade {
             }
         }
 
+    }
+
+    const fn get_index_in_dim_grade(self, n: usize, g: usize) -> usize {
+
+        if n==0 || g==0 { return 0; }
+
+        let e_n = Self::const_basis_vector(n-1);
+        let contains_e_n = (self.bits & e_n.bits) != 0;
+
+        if g == 1 {
+            if contains_e_n { n-1 } else { self.get_index_in_dim_grade(n-1, g) }
+        } else if 2*g <= n {
+            if contains_e_n {
+                self.unchecked_fast_mul(e_n).get_index_in_dim_grade(n-1, g-1) + binom(n-1, g)
+            } else {
+                self.get_index_in_dim_grade(n-1, g)
+            }
+        } else {
+            if contains_e_n {
+
+                if 2*(g-1) == n-1 {
+                    let count = binom(n-1, g-1);
+                    (self.unchecked_fast_mul(e_n).get_index_in_dim_grade(n-1, g-1) + count/2) % count
+                } else {
+                    self.unchecked_fast_mul(e_n).get_index_in_dim_grade(n-1, g-1)
+                }
+            } else {
+                self.get_index_in_dim_grade(n-1, g) + binom(n-1, n-g)
+            }
+        }
+
+    }
+
+    pub const fn get_index_in_dim(&self, n: usize) -> usize {
+        let n = if n > Self::MAX_DIM { Self::MAX_DIM } else { n };
+        self.get_index_in_dim_grade(n, self.grade())
     }
 
 }
@@ -808,17 +846,17 @@ mod tests {
     #[test]
     fn basis() {
 
-        for n in 0..=6 {
-            println!("\nn={}", n);
-            for g in 0..=n {
-
-                print!("g={}: ", g);
-                for i in 0..binom(n,g) {
-                    print!("{:7}", BasisBlade::basis_blade(n,g,i));
-                }
-                println!();
-            }
-        }
+        // for n in 0..=6 {
+        //     println!("\nn={}", n);
+        //     for g in 0..=n {
+        //
+        //         print!("g={}: ", g);
+        //         for i in 0..binom(n,g) {
+        //             print!("{:7}", BasisBlade::basis_blade(n,g,i));
+        //         }
+        //         println!();
+        //     }
+        // }
 
         assert_eq!(e, BasisBlade::basis_blade(0,0,0));
 
@@ -882,7 +920,7 @@ mod tests {
     #[test]
     fn basis_rule_4_5() {
         for n in 1..16 {
-            for g in 0..=(n-1) {
+            for g in 0..=n {
                 let count = binom(n,g);
                 let ps = BasisBlade::basis_blade(n,n,0);
                 if 2*g < n {
@@ -915,6 +953,21 @@ mod tests {
                 }
             }
 
+        }
+    }
+
+    #[test]
+    fn blade_index() {
+        for n in 1..16 {
+            // println!("\nn = {}:", n);
+            for g in 0..=n {
+                for i in 0..binom(n,g) {
+                    let blade = BasisBlade::basis_blade(n,g,i);
+                    // print!("{}={} ", i, blade.get_index_in_dim(n))
+                    assert_eq!(i, blade.get_index_in_dim(n));
+                }
+                // println!();
+            }
         }
     }
 
