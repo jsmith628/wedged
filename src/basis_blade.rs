@@ -373,40 +373,68 @@ impl BasisBlade {
 
     }
 
-    const fn get_index_in_dim_grade(self, n: usize, g: usize) -> usize {
+    pub const fn get_index(&self, n: usize) -> usize {
+        self.get_index_sign(n).0
+    }
 
-        if n==0 || g==0 { return 0; }
+
+    const fn get_index_sign_in(self, n: usize, g: usize) -> (usize, bool) {
+
+        //TODO: explain
+
+        const fn sign_pow(n: usize) -> bool { (n&1)==1 }
+
+        if n==0 || g==0 { return (0, self.positive()); }
 
         let e_n = Self::const_basis_vector(n-1);
         let contains_e_n = (self.bits & e_n.bits) != 0;
 
         if g == 1 {
-            if contains_e_n { n-1 } else { self.get_index_in_dim_grade(n-1, g) }
-        } else if 2*g <= n {
+            if contains_e_n { (n-1, self.positive()) } else { self.get_index_sign_in(n-1, g) }
+        } else if 2*g < n {
             if contains_e_n {
-                self.unchecked_fast_mul(e_n).get_index_in_dim_grade(n-1, g-1) + binom(n-1, g)
+                let (index, sign) = self.unchecked_fast_mul(e_n).get_index_sign_in(n-1, g-1);
+                (index + binom(n-1, g), sign)
             } else {
-                self.get_index_in_dim_grade(n-1, g)
+                self.get_index_sign_in(n-1, g)
+            }
+        } else if 2*g == n {
+            if contains_e_n {
+                let (index, sign) = self.unchecked_fast_mul(e_n).get_index_sign_in(n-1, g-1);
+                (index + binom(n-1, g), sign ^ sign_pow((n-1) * n * (n-1) / 2))
+            } else {
+                self.get_index_sign_in(n-1, g)
             }
         } else {
             if contains_e_n {
 
+                let (index, sign) = self.unchecked_fast_mul(e_n).get_index_sign_in(n-1, g-1);
+                let sign = sign ^ sign_pow(n-1);
+
                 if 2*(g-1) == n-1 {
                     let count = binom(n-1, g-1);
-                    (self.unchecked_fast_mul(e_n).get_index_in_dim_grade(n-1, g-1) + count/2) % count
+                    if index < count/2 {
+                        ((index + count/2), sign ^ sign_pow(n * (n-1) / 2))
+                    } else {
+                        ((index - count/2), sign)
+                    }
+                } else if g==2 && n==2 {
+                    (index, self.positive())
                 } else {
-                    self.unchecked_fast_mul(e_n).get_index_in_dim_grade(n-1, g-1)
+                    (index, sign)
                 }
+
             } else {
-                self.get_index_in_dim_grade(n-1, g) + binom(n-1, n-g)
+                let (index, sign) = self.get_index_sign_in(n-1, g);
+                (index + binom(n-1, n-g), sign)
             }
         }
 
     }
 
-    pub const fn get_index_in_dim(&self, n: usize) -> usize {
+    pub const fn get_index_sign(&self, n: usize) -> (usize, bool) {
         let n = if n > Self::MAX_DIM { Self::MAX_DIM } else { n };
-        self.get_index_in_dim_grade(n, self.grade())
+        self.get_index_sign_in(n, self.grade())
     }
 
 }
@@ -964,13 +992,14 @@ mod tests {
 
     #[test]
     fn blade_index() {
-        for n in 1..16 {
+        for n in 1..=6 {
             // println!("\nn = {}:", n);
             for g in 0..=n {
                 for i in 0..binom(n,g) {
                     let blade = BasisBlade::basis_blade(n,g,i);
-                    // print!("{}={} ", i, blade.get_index_in_dim(n))
-                    assert_eq!(i, blade.get_index_in_dim(n));
+                    // print!("{:?} ", blade.get_index_sign(n));
+                    assert_eq!((i, true), blade.get_index_sign(n));
+                    assert_eq!((i, false), (-blade).get_index_sign(n));
                 }
                 // println!();
             }
