@@ -12,7 +12,6 @@ pub use self::aliases::*;
 
 mod aliases;
 
-#[derive(Clone)]
 pub struct Blade<T:Alloc<N,G>, N:Dim, G:Dim> {
     pub data: Allocate<T,N,G>
 }
@@ -24,6 +23,11 @@ impl<T:Alloc<N,G>, N:Dim, G:Dim> Blade<T,N,G> {
 
     pub fn dim(&self) -> usize { self.dim_generic().value() }
     pub fn grade(&self) -> usize { self.dim_generic().value() }
+}
+
+impl<T:Alloc<N,G>, N:Dim, G:Dim> Clone for Blade<T,N,G> where Allocate<T,N,G>: Clone {
+    fn clone(&self) -> Self { Blade { data: self.data.clone() } }
+    fn clone_from(&mut self, src: &Self) { self.data.clone_from(&src.data) }
 }
 
 impl<T:Alloc<N,G>, N:Dim, G:Dim> Copy for Blade<T,N,G> where Allocate<T,N,G>: Copy {}
