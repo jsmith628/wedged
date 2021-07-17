@@ -8,7 +8,7 @@ pub mod basis_blade;
 pub mod blade;
 
 ///
-/// Computes the [binomial coefficient](1) of n terms at position k.
+/// Computes the [binomial coefficient][1] of n terms at position k.
 ///
 /// Said differently, finds the number of combinations of k objects from a set of n things.
 /// This is icredibly important for geometric algebra since this is how we compute the number of
