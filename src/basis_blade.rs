@@ -148,22 +148,22 @@ impl BasisBlade {
         //compute the sign of the result by computing the number of swaps
         //required to align all the basis vectors
 
-        const fn compute_swaps(a: Bits, b: Bits) -> Bits {
+        const fn compute_swaps(a: Bits, b: Bits) -> usize {
             if a==0 {
                 0
             } else {
-                (a&b).count_ones() as Bits + compute_swaps(a>>1, b)
+                (a&b).count_ones() as usize + compute_swaps(a>>1, b)
             }
         }
         let swaps = compute_swaps(a >> 1, b);
 
         //if swaps is even, this is 0, if it is odd, it is Bits::MIN
-        let sign = (swaps & 1) << Self::MAX_DIM;
+        let sign = Self::neg_one_pow(swaps);
 
         //xor everything together
         //self.bits ^ rhs.bits selects out all basis vectors not in common
         //^ sign flips the sign according to the swaps we had to do
-        BasisBlade { bits: self.bits ^ rhs.bits ^ sign }
+        self.unchecked_fast_mul(rhs).unchecked_fast_mul(sign)
     }
 
     pub const fn const_inv(self) -> Self {
