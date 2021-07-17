@@ -62,9 +62,13 @@ pub const fn binom(n:usize, k:usize) -> usize {
     (n-k+1) * binom(n, k-1) / k
 }
 
+#[derive(Clone)]
 pub struct Blade<T:Alloc<N,G>, N: Dim, G: Dim> {
     pub data: Allocate<T,N,G>
 }
+
+impl<T:Alloc<N,G>, N: Dim, G: Dim> Copy for Blade<T,N,G> where Allocate<T,N,G>: Copy {}
+
 
 impl<T,N:Dim,G1:Dim,G2:Dim> BitXor<Blade<T,N,G2>> for Blade<T,N,G1> where
     T: Mul<T,Output=T> + Alloc<N,G1> + Alloc<N,G2> + Alloc<N,DimSum<G1,G2>>,
