@@ -3,11 +3,14 @@ use std::borrow::Borrow;
 use std::hash::{Hash, Hasher};
 use std::ops::{BitXor, Mul};
 
-use na::base::dimension::*;
+use na::base::dimension::{ Dim, DimAdd, DimSum };
 
 use crate::storage::Storage;
 use crate::alloc::{Alloc, Allocate};
 
+pub use self::aliases::*;
+
+mod aliases;
 
 #[derive(Clone)]
 pub struct Blade<T:Alloc<N,G>, N:Dim, G:Dim> {
