@@ -1,7 +1,7 @@
 
 use std::borrow::{Borrow, BorrowMut};
 use std::ops::{Index, IndexMut};
-use nalgebra::base::dimension::{Dim, DimName};
+use na::base::dimension::{Dim, DimName};
 
 pub unsafe trait Storage<T:Clone, N:Dim, G:Dim>:
     Clone + Index<usize, Output=T> + IndexMut<usize> + Borrow<[T]> + BorrowMut<[T]>

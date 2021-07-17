@@ -1,11 +1,9 @@
 
-
-
 use std::borrow::Borrow;
 use std::hash::{Hash, Hasher};
 use std::ops::{BitXor, Mul};
 
-use nalgebra::base::dimension::*;
+use na::base::dimension::*;
 
 use crate::storage::Storage;
 use crate::alloc::{Alloc, Allocate};

@@ -1,5 +1,5 @@
 
-use nalgebra::base::dimension::{Dim, Const, Dynamic};
+use na::base::dimension::{Dim, Const, Dynamic};
 
 use crate::binom;
 use crate::storage::{Storage, DynStorage};
