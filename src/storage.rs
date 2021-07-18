@@ -1,32 +1,74 @@
 
 use std::borrow::{Borrow, BorrowMut};
 use std::ops::{Index, IndexMut};
-use std::mem::MaybeUninit;
+use std::mem::{MaybeUninit, transmute, transmute_copy};
 
 use na::base::dimension::{Dim, DimName};
+
+use crate::binom;
 
 pub unsafe trait Storage<T, N:Dim, G:Dim>:
     Index<usize, Output=T> + IndexMut<usize> + Borrow<[T]> + BorrowMut<[T]>
 {
-    // type Uninit: UninitStorage<T,N,G,Init=Self>;
+    type Uninit: UninitStorage<T,N,G,Init=Self>;
 
     fn dim(&self) -> N;
     fn grade(&self) -> G;
+
+    fn uninit(n:N, g:G) -> Self::Uninit;
+
 }
 
-// pub unsafe trait UninitStorage<T, N:Dim, G:Dim>: Storage<MaybeUninit<T>,N,G> {
-//     type Init: Storage<T,N,G,Uninit=Self>;
-//     fn assume_init(self) -> Self::Init;
-// }
+pub unsafe trait UninitStorage<T, N:Dim, G:Dim>: Storage<MaybeUninit<T>,N,G> {
+    type Init: Storage<T,N,G,Uninit=Self>;
+    unsafe fn assume_init(self) -> Self::Init;
+}
 
 unsafe impl<T, N:DimName, G:DimName, const L: usize> Storage<T, N, G> for [T;L] {
+    type Uninit = [MaybeUninit<T>; L];
+
     fn dim(&self) -> N { N::name() }
     fn grade(&self) -> G { G::name() }
+
+    fn uninit(_:N, _:G) -> Self::Uninit {
+        //TODO: use `MaybeUninit::uninit_array()` when stabilized
+        unsafe {
+            //the outer MaybeUninit wraps the [MaybeUninit<T>; L] array
+            MaybeUninit::uninit().assume_init()
+        }
+    }
+
+}
+
+unsafe impl<T, N:DimName, G:DimName, const L: usize> UninitStorage<T, N, G> for [MaybeUninit<T>;L] {
+    type Init = [T; L];
+    unsafe fn assume_init(self) -> Self::Init {
+        //TODO: use `MaybeUninit::assume_init_array(self)` when stabilized
+        //This _probably_ optimizes to zero-cost, but who knows!
+        transmute_copy::<Self, Self::Init>(&self)
+    }
 }
 
 unsafe impl<T, N:DimName, G:DimName> Storage<T, N, G> for Vec<T> {
+    type Uninit = Vec<MaybeUninit<T>>;
+
     fn dim(&self) -> N { N::name() }
     fn grade(&self) -> G { G::name() }
+
+    fn uninit(n:N, g:G) -> Self::Uninit {
+        let l = binom(n.value(), g.value());
+        let mut vec = Vec::with_capacity(l);
+        unsafe { vec.set_len(l) };
+        vec
+    }
+}
+
+unsafe impl<T, N:DimName, G:DimName> UninitStorage<T, N, G> for Vec<MaybeUninit<T>> {
+    type Init = Vec<T>;
+    unsafe fn assume_init(self) -> Self::Init {
+        //TODO: maybe find something less ugly?
+        transmute(self)
+    }
 }
 
 #[derive(Clone)]
@@ -54,6 +96,33 @@ impl<T,N:Dim,G:Dim> BorrowMut<[T]> for DynStorage<T,N,G> {
 }
 
 unsafe impl<T,N:Dim,G:Dim> Storage<T,N,G> for DynStorage<T,N,G> {
+    type Uninit = DynStorage<MaybeUninit<T>, N, G>;
+
     fn dim(&self) -> N { self.dim }
     fn grade(&self) -> G { self.grade }
+
+    fn uninit(n:N, g:G) -> Self::Uninit {
+
+        //make the vec the right size
+        let l = binom(n.value(), g.value());
+        let mut vec = Vec::with_capacity(l);
+        unsafe { vec.set_len(l) };
+
+        //make the storage
+        DynStorage {
+            data: vec,
+            dim: n,
+            grade: g
+        }
+    }
+}
+
+unsafe impl<T,N:Dim,G:Dim> UninitStorage<T,N,G> for DynStorage<MaybeUninit<T>,N,G> {
+    type Init = DynStorage<T, N, G>;
+
+    unsafe fn assume_init(self) -> Self::Init {
+        //TODO: maybe make less ugly
+        DynStorage { data: transmute(self.data), dim: self.dim, grade: self.grade }
+    }
+
 }
