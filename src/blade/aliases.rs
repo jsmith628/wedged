@@ -7,6 +7,56 @@ use na::dimension::{
     U0, U1, U2, U3, U4, U5, U6
 };
 
+
+macro_rules! impl_constructors {
+    ($($ty:ident::new($($arg:ident),*);)*) => {
+        $(
+            impl<T> $ty<T> {
+                pub fn new($($arg: T),*) -> $ty<T> {
+                    $ty { data: [ $($arg),* ] }
+                }
+            }
+        )*
+    }
+}
+
+impl_constructors!{
+
+    Vec1::new(x);
+    Vec2::new(x,y);
+    Vec3::new(x,y,z);
+    Vec4::new(x,y,z,w);
+    Vec5::new(x,y,z,w,a);
+    Vec6::new(x,y,z,w,a,b);
+
+    BiVec2::new(x);
+    BiVec3::new(x,y,z);
+    BiVec4::new(e23,e31,e12,e14,e24,e34);
+    BiVec5::new(e23,e31,e12,e14,e24,e34,e15,e25,e35,e45);
+    BiVec6::new(e23,e31,e12,e14,e24,e34,e15,e25,e35,e45,e16,e26,e36,e46,e56);
+
+    TriVec3::new(x);
+    TriVec4::new(x,y,z,w);
+    TriVec5::new(e145, e245, e345, e235, e315, e125, e324, e134, e214, e123);
+    TriVec6::new(
+        e145, e245, e345, e235, e315, e125, e324, e134, e214, e123,
+        e326, e136, e216, e416, e426, e436, e516, e526, e536, e546
+    );
+
+    QuadVec4::new(x);
+    QuadVec5::new(x,y,z,w,a);
+    QuadVec6::new(
+        e4156, e4256, e4356, e3256, e1356, e2156, e2346, e3146, e1246, e2136, e3245, e1345, e2145, e1235, e2134
+    );
+
+    PentVec5::new(x);
+    PentVec6::new(x,y,z,w,a,b);
+
+    HexVec6::new(x);
+
+}
+
+
 pub type Scalar<T,N> = Blade<T,N,U0>;
 pub type Scalar0<T> = Scalar<T,U0>;
 pub type Scalar1<T> = Scalar<T,U1>;
