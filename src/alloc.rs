@@ -4,21 +4,23 @@ use na::base::dimension::{Dim, Const, Dynamic};
 use crate::binom;
 use crate::storage::{Storage, DynStorage};
 
+use std::mem::MaybeUninit;
+
 pub type Allocate<T,N,G> = <T as Alloc<N,G>>::Buffer;
 
-pub unsafe trait Alloc<N:Dim,G:Dim>: Clone {
+pub unsafe trait Alloc<N:Dim,G:Dim>: Sized {
     type Buffer: Storage<Self,N,G>;
 }
 
-unsafe impl<T: Clone, const N: usize> Alloc<Const<N>, Dynamic> for T {
+unsafe impl<T, const N: usize> Alloc<Const<N>, Dynamic> for T {
     type Buffer = DynStorage<T, Const<N>, Dynamic>;
 }
 
-unsafe impl<T: Clone, const G: usize> Alloc<Dynamic, Const<G>> for T {
+unsafe impl<T, const G: usize> Alloc<Dynamic, Const<G>> for T {
     type Buffer = DynStorage<T, Dynamic, Const<G>>;
 }
 
-unsafe impl<T: Clone> Alloc<Dynamic, Dynamic> for T {
+unsafe impl<T> Alloc<Dynamic, Dynamic> for T {
     type Buffer = DynStorage<T, Dynamic, Dynamic>;
 }
 
@@ -30,7 +32,7 @@ macro_rules! impl_Alloc {
 
     (; $($_G:literal)*; @impl $(($N:literal, $G:literal))*) => {
         $(
-            unsafe impl<T: Clone> Alloc<Const<$N>, Const<$G>> for T {
+            unsafe impl<T> Alloc<Const<$N>, Const<$G>> for T {
                 type Buffer = [T; binom($N, $G)];
             }
         )*
