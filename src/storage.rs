@@ -12,6 +12,8 @@ pub unsafe trait Storage<T, N:Dim, G:Dim>:
 {
     type Uninit: UninitStorage<T,N,G,Init=Self>;
 
+    fn elements(&self) -> usize;
+
     fn dim(&self) -> N;
     fn grade(&self) -> G;
 
@@ -26,6 +28,8 @@ pub unsafe trait UninitStorage<T, N:Dim, G:Dim>: Storage<MaybeUninit<T>,N,G> {
 
 unsafe impl<T, N:DimName, G:DimName, const L: usize> Storage<T, N, G> for [T;L] {
     type Uninit = [MaybeUninit<T>; L];
+
+    fn elements(&self) -> usize { L }
 
     fn dim(&self) -> N { N::name() }
     fn grade(&self) -> G { G::name() }
@@ -51,6 +55,8 @@ unsafe impl<T, N:DimName, G:DimName, const L: usize> UninitStorage<T, N, G> for 
 
 unsafe impl<T, N:DimName, G:DimName> Storage<T, N, G> for Vec<T> {
     type Uninit = Vec<MaybeUninit<T>>;
+
+    fn elements(&self) -> usize { self.len() }
 
     fn dim(&self) -> N { N::name() }
     fn grade(&self) -> G { G::name() }
@@ -97,6 +103,8 @@ impl<T,N:Dim,G:Dim> BorrowMut<[T]> for DynStorage<T,N,G> {
 
 unsafe impl<T,N:Dim,G:Dim> Storage<T,N,G> for DynStorage<T,N,G> {
     type Uninit = DynStorage<MaybeUninit<T>, N, G>;
+
+    fn elements(&self) -> usize { self.data.len() }
 
     fn dim(&self) -> N { self.dim }
     fn grade(&self) -> G { self.grade }
