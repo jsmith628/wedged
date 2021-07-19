@@ -58,7 +58,7 @@ unsafe impl<T, N:DimName, G:DimName, const L: usize> Storage<T, N, G> for [T;L] 
             count = i;
         }
 
-        if count!=L {
+        if count+1!=L {
             panic!("Not enough elements to fill blade");
         }
 
@@ -93,8 +93,9 @@ unsafe impl<T, N:DimName, G:DimName> Storage<T, N, G> for Vec<T> {
     }
 
     fn from_iterator<I:IntoIterator<Item=T>>(n:N, g:G, iter: I) -> Self {
-        let vec: Vec<T> = FromIterator::from_iter(iter);
-        if vec.len() != binom(n.value(), g.value()) {
+        let count = binom(n.value(), g.value());
+        let vec: Vec<T> = FromIterator::from_iter(iter.into_iter().take(count));
+        if vec.len() != count {
             panic!("Not enough elements to fill blade");
         }
         vec
@@ -165,8 +166,9 @@ unsafe impl<T,N:Dim,G:Dim> Storage<T,N,G> for DynStorage<T,N,G> {
     }
 
     fn from_iterator<I:IntoIterator<Item=T>>(n:N, g:G, iter: I) -> Self {
-        let vec: Vec<T> = FromIterator::from_iter(iter);
-        if vec.len() != binom(n.value(), g.value()) {
+        let count = binom(n.value(), g.value());
+        let vec: Vec<T> = FromIterator::from_iter(iter.into_iter().take(count));
+        if vec.len() != count {
             panic!("Not enough elements to fill blade");
         }
         DynStorage {

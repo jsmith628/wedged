@@ -28,25 +28,114 @@ macro_rules! impl_general_constructors {
 
         $(
             ///
-            ///Constructs a blade with elements from an iterator
+            /// Constructs a blade with elements from an iterator
             ///
-            ///Panics if the iterator has too few elements to fill in the blade
+            /// Panics if the iterator has too few elements to fill in the blade
+            ///
+            /// # Examples
+            /// ```
+            /// # use galgebra::blade::*;
+            ///
+            /// let array = [0, 1, 2, 3, 4, 5];
+            ///
+            /// let v1 = Vec6::from_iterator(0..); //static dim, static grade
+            /// let v2 = VecD::from_iterator(6, 0..); //dynamic dim, static grade
+            /// let v3 = Blade6::from_iterator(1, 0..); //static dim, dynamic grade
+            /// let v4 = BladeD::from_iterator(6, 1, 0..); //dynamic dim, dynamic grade
+            ///
+            /// assert_eq!(v1.as_slice(), &array);
+            /// assert_eq!(v2.as_slice(), &array);
+            /// assert_eq!(v3.as_slice(), &array);
+            /// assert_eq!(v4.as_slice(), &array);
+            ///
+            /// ```
             ///
             pub fn from_iterator<I:IntoIterator<Item=T>>($($args)* iter: I) -> Self {
                 Self::from_iter_generic($($call)*, iter)
             }
 
-            ///Constructs a blade from a function mapping an index to an element
+            ///
+            /// Constructs a blade from a function mapping an index to an element
+            ///
+            /// # Examples
+            /// ```
+            /// # use galgebra::blade::*;
+            ///
+            /// //computes the nth fibonnacci number
+            /// fn fib(n: usize) -> usize {
+            ///     if n <= 1 {
+            ///         1
+            ///     } else {
+            ///         fib(n-1) + fib(n-2)
+            ///     }
+            /// }
+            ///
+            /// //5D bivector, so 10 elements
+            /// let array = [1, 1, 2, 3, 5, 8, 13, 21, 34, 55];
+            ///
+            /// let b1 = BiVec5::from_index_fn(fib); //static dim, static grade
+            /// let b2 = BiVecD::from_index_fn(5, fib); //dynamic dim, static grade
+            /// let b3 = Blade5::from_index_fn(2, fib); //static dim, dynamic grade
+            /// let b4 = BladeD::from_index_fn(5, 2, fib); //dynamic dim, dynamic grade
+            ///
+            /// assert_eq!(b1.as_slice(), &array);
+            /// assert_eq!(b2.as_slice(), &array);
+            /// assert_eq!(b3.as_slice(), &array);
+            /// assert_eq!(b4.as_slice(), &array);
+            ///
+            ///```
+            ///
             pub fn from_index_fn<F: FnMut(usize)->T>($($args)* f: F) -> Self {
                 Self::from_index_fn_generic($($call)*, f)
             }
 
-            ///Constructs a blade where every component is the given element
+            ///
+            /// Constructs a blade where every component is the given element
+            ///
+            /// # Examples
+            /// ```
+            /// # use galgebra::blade::*;
+            ///
+            /// //4D Trivector, so 4 elements
+            /// let array = [6.28; 4];
+            ///
+            /// let t1 = TriVec4::from_element(6.28); //static dim, static grade
+            /// let t2 = TriVecD::from_element(4, 6.28); //dynamic dim, static grade
+            /// let t3 = Blade4::from_element(3, 6.28); //static dim, dynamic grade
+            /// let t4 = BladeD::from_element(4, 3, 6.28); //dynamic dim, dynamic grade
+            ///
+            /// assert_eq!(t1.as_slice(), &array);
+            /// assert_eq!(t2.as_slice(), &array);
+            /// assert_eq!(t3.as_slice(), &array);
+            /// assert_eq!(t4.as_slice(), &array);
+            ///
+            ///```
+            ///
             pub fn from_element($($args)* x:T) -> Self where T:Clone {
                 Self::from_element_generic($($call)*, x)
             }
 
+            ///
             ///Constructs a blade with all components set to [zero](Zero::zero)
+            ///
+            /// # Examples
+            /// ```
+            /// # use galgebra::blade::*;
+            ///
+            /// let array = [0.0; 4];
+            ///
+            /// let v1 = Vec4::<f64>::zeroed(); //static dim, static grade
+            /// let v2 = VecD::<f64>::zeroed(4); //dynamic dim, static grade
+            /// let v3 = Blade4::<f64>::zeroed(1); //static dim, dynamic grade
+            /// let v4 = BladeD::<f64>::zeroed(4, 1); //dynamic dim, dynamic grade
+            ///
+            /// assert_eq!(v1.as_slice(), &array);
+            /// assert_eq!(v2.as_slice(), &array);
+            /// assert_eq!(v3.as_slice(), &array);
+            /// assert_eq!(v4.as_slice(), &array);
+            ///
+            ///```
+            ///
             pub fn zeroed($($args)*) -> Self where T:Zero {
                 Self::zeroed_generic($($call)*)
             }
@@ -79,7 +168,7 @@ impl<T:Alloc<Dynamic,G>, G:DimName> Blade<T,Dynamic,G> {
 }
 
 ///Constructors for blades with dynamic grade
-impl<T:Alloc<N,Dynamic>, N:DimName> NBlade<T,N> {
+impl<T:Alloc<N,Dynamic>, N:DimName> BladeN<T,N> {
 
     impl_general_constructors!(
         pub fn new(g:usize,) -> Self {
@@ -90,7 +179,7 @@ impl<T:Alloc<N,Dynamic>, N:DimName> NBlade<T,N> {
 }
 
 ///Constructors for blades with dynamic dimension and grade
-impl<T:Alloc<Dynamic,Dynamic>> DBlade<T> {
+impl<T:Alloc<Dynamic,Dynamic>> BladeD<T> {
 
     impl_general_constructors!(
         pub fn new(n:usize,g:usize,) -> Self {
