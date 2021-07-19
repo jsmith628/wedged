@@ -3,18 +3,22 @@ use super::*;
 
 impl<T:Alloc<N,G>, N:Dim, G:Dim> Blade<T,N,G> {
 
+    /// Constructs a blade with elements from an iterator using a generic dimension and grade
     pub fn from_iter_generic<I:IntoIterator<Item=T>>(n:N, g:G, iter: I) -> Self {
         Blade { data: Allocate::<T,N,G>::from_iterator(n, g, iter) }
     }
 
+    /// Constructs a blade from an index function using a generic dimension and grade
     pub fn from_index_fn_generic<F: FnMut(usize)->T>(n:N, g:G, f: F) -> Self {
         Self::from_iter_generic(n, g, (0..).into_iter().map(f))
     }
 
+    /// Constructs a blade filled with given element using a generic dimension and grade
     pub fn from_element_generic(n:N, g:G, x:T) -> Self where T:Clone {
         Self::from_iter_generic(n, g, repeat(x))
     }
 
+    ///Constructs a blade with all components set to [zero](Zero::zero) using a generic dimension and grade
     pub fn zeroed_generic(n:N, g:G) -> Self where T:Zero {
         Self::from_iter_generic(n, g, repeat_with(|| T::zero()))
     }
