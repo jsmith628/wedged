@@ -1,4 +1,5 @@
 
+use std::convert::{AsRef, AsMut};
 use std::borrow::{Borrow, BorrowMut};
 use std::ops::{Index, IndexMut};
 use std::mem::{MaybeUninit, transmute, transmute_copy};
@@ -9,7 +10,9 @@ use na::base::dimension::{Dim, DimName};
 use crate::binom;
 
 pub unsafe trait Storage<T, N:Dim, G:Dim>:
-    Index<usize, Output=T> + IndexMut<usize> + Borrow<[T]> + BorrowMut<[T]>
+    Index<usize, Output=T> + IndexMut<usize> +
+    AsRef<[T]> + AsMut<[T]> +
+    Borrow<[T]> + BorrowMut<[T]>
 {
     type Uninit: UninitStorage<T,N,G,Init=Self>;
 
@@ -120,6 +123,14 @@ impl<T,N:Dim,G:Dim> Index<usize> for DynStorage<T,N,G> {
 
 impl<T,N:Dim,G:Dim> IndexMut<usize> for DynStorage<T,N,G> {
     fn index_mut(&mut self, i: usize) -> &mut T { &mut self.data[i] }
+}
+
+impl<T,N:Dim,G:Dim> AsRef<[T]> for DynStorage<T,N,G> {
+    fn as_ref(&self) -> &[T] { self.data.as_ref() }
+}
+
+impl<T,N:Dim,G:Dim> AsMut<[T]> for DynStorage<T,N,G> {
+    fn as_mut(&mut self) -> &mut [T] { self.data.as_mut() }
 }
 
 impl<T,N:Dim,G:Dim> Borrow<[T]> for DynStorage<T,N,G> {

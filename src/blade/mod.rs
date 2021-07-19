@@ -1,5 +1,6 @@
 
-use std::borrow::{Borrow};
+use std::convert::{AsRef, AsMut};
+use std::borrow::{Borrow, BorrowMut};
 use std::hash::{Hash, Hasher};
 use std::ops::{BitXor, Mul};
 use std::iter::{repeat, repeat_with};
@@ -33,6 +34,9 @@ impl<T:Alloc<N,G>, N:Dim, G:Dim> Blade<T,N,G> {
     pub fn dim(&self) -> usize { self.dim_generic().value() }
     pub fn grade(&self) -> usize { self.dim_generic().value() }
 
+    pub fn as_slice(&self) -> &[T] { self.data.borrow() }
+    pub fn as_mut_slice(&mut self) -> &mut [T] { self.data.borrow_mut() }
+
 }
 
 impl<T:Alloc<N,G>, N:Dim, G:Dim> Clone for Blade<T,N,G> where Allocate<T,N,G>: Clone {
@@ -42,6 +46,23 @@ impl<T:Alloc<N,G>, N:Dim, G:Dim> Clone for Blade<T,N,G> where Allocate<T,N,G>: C
 
 impl<T:Alloc<N,G>, N:Dim, G:Dim> Copy for Blade<T,N,G> where Allocate<T,N,G>: Copy {}
 
+impl<T:Alloc<N,G>, N:Dim, G:Dim> AsRef<[T]> for Blade<T,N,G> {
+    fn as_ref(&self) -> &[T] { self.data.as_ref() }
+}
+
+impl<T:Alloc<N,G>, N:Dim, G:Dim> AsMut<[T]> for Blade<T,N,G> {
+    fn as_mut(&mut self) -> &mut [T] { self.data.as_mut() }
+}
+
+impl<T:Alloc<N,G>, N:Dim, G:Dim> Borrow<[T]> for Blade<T,N,G> {
+    fn borrow(&self) -> &[T] { self.data.borrow() }
+}
+
+impl<T:Alloc<N,G>, N:Dim, G:Dim> BorrowMut<[T]> for Blade<T,N,G> {
+    fn borrow_mut(&mut self) -> &mut [T] { self.data.borrow_mut() }
+}
+
+
 impl<T:Alloc<N,G>+Eq, N:Dim, G:Dim> Eq for Blade<T,N,G> {}
 
 impl<T, U, N1:Dim, N2:Dim, G1:Dim, G2:Dim> PartialEq<Blade<U,N2,G2>> for Blade<T,N1,G1>
@@ -50,19 +71,17 @@ where
     U: Alloc<N2,G2>
 {
     fn eq(&self, rhs:&Blade<U,N2,G2>) -> bool {
-        self.dim() == rhs.dim() && self.grade() == rhs.grade() &&
-        self.data.borrow() == rhs.data.borrow()
+        self.dim() == rhs.dim() && self.grade() == rhs.grade() && self.as_slice() == rhs.as_slice()
     }
 
     fn ne(&self, rhs:&Blade<U,N2,G2>) -> bool {
-        self.dim() != rhs.dim() || self.grade() != rhs.grade() ||
-        self.data.borrow() != rhs.data.borrow()
+        self.dim() != rhs.dim() || self.grade() != rhs.grade() || self.as_slice() != rhs.as_slice()
     }
 }
 
 impl<T:Alloc<N,G>+Hash, N:Dim, G:Dim> Hash for Blade<T,N,G> {
     fn hash<H:Hasher>(&self, h: &mut H) {
-        T::hash_slice(self.data.borrow(), h)
+        T::hash_slice(self.borrow(), h)
     }
 }
 
