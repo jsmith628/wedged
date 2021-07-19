@@ -21,87 +21,86 @@ impl<T:Alloc<N,G>, N:Dim, G:Dim> Blade<T,N,G> {
 
 }
 
+macro_rules! impl_general_constructors {
+    ($(
+        pub fn new($($args:tt)*) -> Self { Self::new_generic($($call:tt)*) }
+    )*) => {
+
+        $(
+            ///
+            ///Constructs a blade with elements from an iterator
+            ///
+            ///Panics if the iterator has too few elements to fill in the blade
+            ///
+            pub fn from_iterator<I:IntoIterator<Item=T>>($($args)* iter: I) -> Self {
+                Self::from_iter_generic($($call)*, iter)
+            }
+
+            ///Constructs a blade from a function mapping an index to an element
+            pub fn from_index_fn<F: FnMut(usize)->T>($($args)* f: F) -> Self {
+                Self::from_index_fn_generic($($call)*, f)
+            }
+
+            ///Constructs a blade where every component is the given element
+            pub fn from_element($($args)* x:T) -> Self where T:Clone {
+                Self::from_element_generic($($call)*, x)
+            }
+
+            ///Constructs a blade with all components set to [zero](Zero::zero)
+            pub fn zeroed($($args)*) -> Self where T:Zero {
+                Self::zeroed_generic($($call)*)
+            }
+
+        )*
+
+    };
+}
+
+///Constructors for statically sized blades
 impl<T:Alloc<N,G>, N:DimName, G:DimName> Blade<T,N,G> {
 
-    pub fn from_iterator<I:IntoIterator<Item=T>>(iter: I) -> Self {
-        Self::from_iter_generic(N::name(), G::name(), iter)
-    }
-
-    pub fn from_index_fn<F: FnMut(usize)->T>(f: F) -> Self {
-        Self::from_index_fn_generic(N::name(), G::name(), f)
-    }
-
-    pub fn from_element(x:T) -> Self where T:Clone {
-        Self::from_element_generic(N::name(), G::name(), x)
-    }
-
-    pub fn zeroed() -> Self where T:Zero {
-        Self::zeroed_generic(N::name(), G::name())
-    }
+    impl_general_constructors!(
+        pub fn new() -> Self {
+            Self::new_generic(N::name(), G::name())
+        }
+    );
 
 }
 
+///Constructors for blades with dynamic dimension
 impl<T:Alloc<Dynamic,G>, G:DimName> Blade<T,Dynamic,G> {
 
-    pub fn from_iterator<I:IntoIterator<Item=T>>(n:usize, iter: I) -> Self {
-        Self::from_iter_generic(Dynamic::new(n), G::name(), iter)
-    }
-
-    pub fn from_index_fn<F: FnMut(usize)->T>(n:usize, f: F) -> Self {
-        Self::from_index_fn_generic(Dynamic::new(n), G::name(), f)
-    }
-
-    pub fn from_element(n:usize, x:T) -> Self where T:Clone {
-        Self::from_element_generic(Dynamic::new(n), G::name(), x)
-    }
-
-    pub fn zeroed(n:usize) -> Self where T:Zero {
-        Self::zeroed_generic(Dynamic::new(n), G::name())
-    }
+    impl_general_constructors!(
+        pub fn new(n:usize,) -> Self {
+            Self::new_generic(Dynamic::new(n), G::name())
+        }
+    );
 
 }
 
-impl<T:Alloc<N,Dynamic>, N:DimName> Blade<T,N,Dynamic> {
+///Constructors for blades with dynamic grade
+impl<T:Alloc<N,Dynamic>, N:DimName> NBlade<T,N> {
 
-    pub fn from_iterator<I:IntoIterator<Item=T>>(g:usize, iter: I) -> Self {
-        Self::from_iter_generic(N::name(), Dynamic::new(g), iter)
-    }
-
-    pub fn from_index_fn<F: FnMut(usize)->T>(g:usize, f: F) -> Self {
-        Self::from_index_fn_generic(N::name(), Dynamic::new(g), f)
-    }
-
-    pub fn from_element(g:usize, x:T) -> Self where T:Clone {
-        Self::from_element_generic(N::name(), Dynamic::new(g), x)
-    }
-
-    pub fn zeroed(g:usize) -> Self where T:Zero {
-        Self::zeroed_generic(N::name(), Dynamic::new(g))
-    }
+    impl_general_constructors!(
+        pub fn new(g:usize,) -> Self {
+            Self::new_generic(N::name(), Dynamic::new(g))
+        }
+    );
 
 }
 
-impl<T:Alloc<Dynamic,Dynamic>> Blade<T,Dynamic,Dynamic> {
+///Constructors for blades with dynamic dimension and grade
+impl<T:Alloc<Dynamic,Dynamic>> DBlade<T> {
 
-    pub fn from_iterator<I:IntoIterator<Item=T>>(n:usize, g:usize, iter: I) -> Self {
-        Self::from_iter_generic(Dynamic::new(n), Dynamic::new(g), iter)
-    }
-
-    pub fn from_index_fn<F: FnMut(usize)->T>(n:usize, g:usize, f: F) -> Self {
-        Self::from_index_fn_generic(Dynamic::new(n), Dynamic::new(g), f)
-    }
-
-    pub fn from_element(n:usize, g:usize, x:T) -> Self where T:Clone {
-        Self::from_element_generic(Dynamic::new(n), Dynamic::new(g), x)
-    }
-
-    pub fn zeroed(n:usize, g:usize) -> Self where T:Zero {
-        Self::zeroed_generic(Dynamic::new(n), Dynamic::new(g))
-    }
+    impl_general_constructors!(
+        pub fn new(n:usize,g:usize,) -> Self {
+            Self::new_generic(Dynamic::new(n), Dynamic::new(g))
+        }
+    );
 
 }
 
-macro_rules! impl_static_constructors {
+macro_rules! impl_specific_constructors {
     ($($ty:ident::new($($arg:ident),*);)*) => {
         $(
             impl<T> $ty<T> {
@@ -116,7 +115,7 @@ macro_rules! impl_static_constructors {
     }
 }
 
-impl_static_constructors!{
+impl_specific_constructors!{
 
     Vec1::new(x);
     Vec2::new(x,y);

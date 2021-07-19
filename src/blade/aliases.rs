@@ -1,6 +1,9 @@
 
 use super::*;
 
+pub type NBlade<T,N> = Blade<T,N,Dynamic>;
+pub type DBlade<T> = Blade<T,Dynamic,Dynamic>;
+
 pub type Scalar<T,N> = Blade<T,N,U0>;
 pub type Scalar0<T> = Scalar<T,U0>;
 pub type Scalar1<T> = Scalar<T,U1>;
