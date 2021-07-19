@@ -2,6 +2,7 @@
 use std::borrow::{Borrow, BorrowMut};
 use std::ops::{Index, IndexMut};
 use std::mem::{MaybeUninit, transmute, transmute_copy};
+use std::iter::{IntoIterator, FromIterator};
 
 use na::base::dimension::{Dim, DimName};
 
@@ -18,6 +19,8 @@ pub unsafe trait Storage<T, N:Dim, G:Dim>:
     fn grade(&self) -> G;
 
     fn uninit(n:N, g:G) -> Self::Uninit;
+
+    fn from_iterator<I:IntoIterator<Item=T>>(n:N, g:G, iter: I) -> Self;
 
 }
 
@@ -40,6 +43,24 @@ unsafe impl<T, N:DimName, G:DimName, const L: usize> Storage<T, N, G> for [T;L] 
             //the outer MaybeUninit wraps the [MaybeUninit<T>; L] array
             MaybeUninit::uninit().assume_init()
         }
+    }
+
+    fn from_iterator<I:IntoIterator<Item=T>>(n:N, g:G, iter: I) -> Self {
+
+        let mut uninit = Self::uninit(n,g);
+
+        let mut count = 0;
+        for (x, i) in iter.into_iter().zip(0..L) {
+            uninit[i] = MaybeUninit::new(x);
+            count = i;
+        }
+
+        if count!=L {
+            panic!("Not enough elements to fill blade");
+        }
+
+        unsafe { <Self::Uninit as UninitStorage<T,N,G>>::assume_init(uninit) }
+
     }
 
 }
@@ -65,6 +86,14 @@ unsafe impl<T, N:DimName, G:DimName> Storage<T, N, G> for Vec<T> {
         let l = binom(n.value(), g.value());
         let mut vec = Vec::with_capacity(l);
         unsafe { vec.set_len(l) };
+        vec
+    }
+
+    fn from_iterator<I:IntoIterator<Item=T>>(n:N, g:G, iter: I) -> Self {
+        let vec: Vec<T> = FromIterator::from_iter(iter);
+        if vec.len() != binom(n.value(), g.value()) {
+            panic!("Not enough elements to fill blade");
+        }
         vec
     }
 }
@@ -123,6 +152,19 @@ unsafe impl<T,N:Dim,G:Dim> Storage<T,N,G> for DynStorage<T,N,G> {
             grade: g
         }
     }
+
+    fn from_iterator<I:IntoIterator<Item=T>>(n:N, g:G, iter: I) -> Self {
+        let vec: Vec<T> = FromIterator::from_iter(iter);
+        if vec.len() != binom(n.value(), g.value()) {
+            panic!("Not enough elements to fill blade");
+        }
+        DynStorage {
+            data: vec,
+            dim: n,
+            grade: g
+        }
+    }
+
 }
 
 unsafe impl<T,N:Dim,G:Dim> UninitStorage<T,N,G> for DynStorage<MaybeUninit<T>,N,G> {

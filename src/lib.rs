@@ -57,3 +57,6 @@ pub const fn binom(n:usize, k:usize) -> usize {
     //compute the numerator and denominator in this order
     (n-k+1) * binom(n, k-1) / k
 }
+
+pub trait DimName: na::dimension::DimName {}
+impl<const N: usize> DimName for na::dimension::Const<N> {}

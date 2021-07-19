@@ -4,8 +4,6 @@ use na::base::dimension::{Dim, Const, Dynamic};
 use crate::binom;
 use crate::storage::{Storage, DynStorage};
 
-use std::mem::MaybeUninit;
-
 pub type Allocate<T,N,G> = <T as Alloc<N,G>>::Buffer;
 
 pub unsafe trait Alloc<N:Dim,G:Dim>: Sized {
