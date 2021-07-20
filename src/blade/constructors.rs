@@ -10,7 +10,7 @@ impl<T:Alloc<N,G>, N:Dim, G:Dim> Blade<T,N,G> {
 
     /// Constructs a blade from an index function using a generic dimension and grade
     pub fn from_index_fn_generic<F: FnMut(usize)->T>(n:N, g:G, f: F) -> Self {
-        Self::from_iter_generic(n, g, (0..).into_iter().map(f))
+        Self::from_iter_generic(n, g, (0..).map(f))
     }
 
     /// Constructs a blade filled with given element using a generic dimension and grade

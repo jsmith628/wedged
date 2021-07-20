@@ -22,6 +22,9 @@ pub use self::constructors::*;
 mod aliases;
 mod constructors;
 
+pub type Iter<'a, T> = std::slice::Iter<'a, T>;
+pub type IterMut<'a, T> = std::slice::IterMut<'a, T>;
+
 pub struct Blade<T:Alloc<N,G>, N:Dim, G:Dim> {
     pub data: Allocate<T,N,G>
 }
@@ -36,6 +39,9 @@ impl<T:Alloc<N,G>, N:Dim, G:Dim> Blade<T,N,G> {
 
     pub fn as_slice(&self) -> &[T] { self.data.borrow() }
     pub fn as_mut_slice(&mut self) -> &mut [T] { self.data.borrow_mut() }
+
+    pub fn iter(&self) -> Iter<T> { self.as_slice().iter() }
+    pub fn iter_mut(&mut self) -> IterMut<T> { self.as_mut_slice().iter_mut() }
 
 }
 
@@ -83,6 +89,26 @@ impl<T:Alloc<N,G>+Hash, N:Dim, G:Dim> Hash for Blade<T,N,G> {
     fn hash<H:Hasher>(&self, h: &mut H) {
         T::hash_slice(self.borrow(), h)
     }
+}
+
+impl<T:Alloc<N,G>, N:Dim, G:Dim> IntoIterator for Blade<T,N,G> {
+    type Item = T;
+    type IntoIter = <Allocate<T,N,G> as Storage<T,N,G>>::Iter;
+    fn into_iter(self) -> Self::IntoIter {
+        self.data.into_iter()
+    }
+}
+
+impl<'a, T:Alloc<N,G>, N:Dim, G:Dim> IntoIterator for &'a Blade<T,N,G> {
+    type Item = &'a T;
+    type IntoIter = Iter<'a, T>;
+    fn into_iter(self) -> Self::IntoIter { self.iter() }
+}
+
+impl<'a, T:Alloc<N,G>, N:Dim, G:Dim> IntoIterator for &'a mut Blade<T,N,G> {
+    type Item = &'a mut T;
+    type IntoIter = IterMut<'a, T>;
+    fn into_iter(self) -> Self::IntoIter { self.iter_mut() }
 }
 
 impl<T,N:Dim,G1:Dim,G2:Dim> BitXor<Blade<T,N,G2>> for Blade<T,N,G1> where

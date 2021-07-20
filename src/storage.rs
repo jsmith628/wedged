@@ -3,7 +3,11 @@ use std::convert::{AsRef, AsMut};
 use std::borrow::{Borrow, BorrowMut};
 use std::ops::{Index, IndexMut};
 use std::mem::{MaybeUninit, transmute, transmute_copy};
-use std::iter::{IntoIterator, FromIterator};
+use std::iter::{
+    IntoIterator, FromIterator,
+    DoubleEndedIterator, ExactSizeIterator, FusedIterator,
+    //TrustedLen
+};
 
 use na::base::dimension::{Dim, DimName};
 
@@ -12,9 +16,13 @@ use crate::binom;
 pub unsafe trait Storage<T, N:Dim, G:Dim>:
     Index<usize, Output=T> + IndexMut<usize> +
     AsRef<[T]> + AsMut<[T]> +
-    Borrow<[T]> + BorrowMut<[T]>
+    Borrow<[T]> + BorrowMut<[T]> +
+    IntoIterator<Item=T, IntoIter=Self::Iter>
 {
     type Uninit: UninitStorage<T,N,G,Init=Self>;
+
+    //Add TrustedLen when stabilized
+    type Iter: Iterator<Item=T> + DoubleEndedIterator + ExactSizeIterator + FusedIterator;
 
     fn elements(&self) -> usize;
 
@@ -34,6 +42,7 @@ pub unsafe trait UninitStorage<T, N:Dim, G:Dim>: Storage<MaybeUninit<T>,N,G> {
 
 unsafe impl<T, N:DimName, G:DimName, const L: usize> Storage<T, N, G> for [T;L] {
     type Uninit = [MaybeUninit<T>; L];
+    type Iter = <Self as IntoIterator>::IntoIter;
 
     fn elements(&self) -> usize { L }
 
@@ -53,7 +62,7 @@ unsafe impl<T, N:DimName, G:DimName, const L: usize> Storage<T, N, G> for [T;L] 
         let mut uninit = Self::uninit(n,g);
 
         let mut count = 0;
-        for (x, i) in iter.into_iter().zip(0..L) {
+        for (i, x) in (0..L).zip(iter) {
             uninit[i] = MaybeUninit::new(x);
             count = i;
         }
@@ -79,6 +88,7 @@ unsafe impl<T, N:DimName, G:DimName, const L: usize> UninitStorage<T, N, G> for 
 
 unsafe impl<T, N:DimName, G:DimName> Storage<T, N, G> for Vec<T> {
     type Uninit = Vec<MaybeUninit<T>>;
+    type Iter = <Self as IntoIterator>::IntoIter;
 
     fn elements(&self) -> usize { self.len() }
 
@@ -142,8 +152,17 @@ impl<T,N:Dim,G:Dim> BorrowMut<[T]> for DynStorage<T,N,G> {
     fn borrow_mut(&mut self) -> &mut [T] { self.data.borrow_mut() }
 }
 
+impl<T,N:Dim,G:Dim> IntoIterator for DynStorage<T,N,G> {
+    type Item = T;
+    type IntoIter = std::vec::IntoIter<T>;
+    fn into_iter(self) -> Self::IntoIter {
+        self.data.into_iter()
+    }
+}
+
 unsafe impl<T,N:Dim,G:Dim> Storage<T,N,G> for DynStorage<T,N,G> {
     type Uninit = DynStorage<MaybeUninit<T>, N, G>;
+    type Iter = <Self as IntoIterator>::IntoIter;
 
     fn elements(&self) -> usize { self.data.len() }
 
