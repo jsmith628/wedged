@@ -16,12 +16,6 @@ use crate::storage::Storage;
 use crate::alloc::{Alloc, Allocate};
 use crate::DimName;
 
-pub use self::aliases::*;
-pub use self::constructors::*;
-
-mod aliases;
-mod constructors;
-
 pub type Iter<'a, T> = std::slice::Iter<'a, T>;
 pub type IterMut<'a, T> = std::slice::IterMut<'a, T>;
 
@@ -146,6 +140,14 @@ impl<T:Alloc<N,G>, N:Dim, G:Dim> Blade<T,N,G> {
     pub fn iter_mut(&mut self) -> IterMut<T> { self.as_mut_slice().iter_mut() }
 
 }
+
+pub use self::aliases::*;
+pub use self::constructors::*;
+pub use self::fmt::*;
+
+mod aliases;
+mod constructors;
+mod fmt;
 
 impl<T:Alloc<N,G>, N:Dim, G:Dim> Clone for Blade<T,N,G> where Allocate<T,N,G>: Clone {
     fn clone(&self) -> Self { Blade { data: self.data.clone() } }
