@@ -11,7 +11,7 @@ pub mod blade;
 /// Computes the [binomial coefficient][1] of n terms at position k.
 ///
 /// Said differently, finds the number of combinations of k objects from a set of n things.
-/// This is icredibly important for geometric algebra since this is how we compute the number of
+/// This is incredibly important for geometric algebra since this is how we compute the number of
 /// bases for an n-dimensional blade of grade g.
 ///
 /// [1]: https://en.wikipedia.org/wiki/Binomial_coefficient

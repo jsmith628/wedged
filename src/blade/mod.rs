@@ -34,8 +34,110 @@ impl<T:Alloc<N,G>, N:Dim, G:Dim> Blade<T,N,G> {
     pub fn dim_generic(&self) -> N { self.data.dim() }
     pub fn grade_generic(&self) -> G { self.data.grade() }
 
+    ///
+    /// The number of dimensions this blade resides in
+    ///
+    /// Note that this differs from both the [grade](Blade::grade) and number of
+    /// [elements](Blade::elements). Instead, this describes the dimension of the vector space
+    /// generating the algebra this blade resides in.
+    ///
+    /// # Examples
+    /// ```
+    /// # use galgebra::blade::*;
+    ///
+    /// //A static and dynamic 3D vector
+    /// let v1 = Vec3::new(6, 2, 8);
+    /// let v2 = VecD::from_element(3, 0.0);
+    ///
+    /// assert_eq!(v1.dim(), 3);
+    /// assert_eq!(v2.dim(), 3);
+    ///
+    /// //Two 4D bivectors
+    /// let b1 = BiVec4::new(6, 2, 8, 3, 1, 8);
+    /// let b2 = BiVecD::from_element(4, 0.0);
+    ///
+    /// assert_eq!(b1.dim(), 4);
+    /// assert_eq!(b2.dim(), 4);
+    ///
+    /// ```
+    ///
     pub fn dim(&self) -> usize { self.dim_generic().value() }
-    pub fn grade(&self) -> usize { self.dim_generic().value() }
+
+    ///
+    /// The grade of this blade
+    ///
+    /// This describes the "dimension" of the vector space this blade represents. Note that this
+    /// is completely different that the [dimension](Blade::dim) of the blade which describes the
+    /// the dimension of the surrounding space the blade lives in.
+    ///
+    /// More concretely, the grade is the number of vector basis elements multiplied together
+    /// to get the basis of this blade.
+    ///
+    /// # Examples
+    /// ```
+    /// # use galgebra::blade::*;
+    ///
+    /// //All vectors are grade 1
+    /// let v1 = Vec3::new(6, 2, 8);
+    /// let v2 = Vec6::new(6, 2, 8, 3, 1, 8);
+    /// let v3 = VecD::from_element(2, 0.0);
+    ///
+    /// assert_eq!(v1.grade(), 1);
+    /// assert_eq!(v2.grade(), 1);
+    /// assert_eq!(v3.grade(), 1);
+    ///
+    /// //All Bivectors are grade 2
+    /// let b1 = BiVec4::new(6, 2, 8, 3, 1, 8);
+    /// let b2 = BiVecD::from_element(3, 0.0);
+    ///
+    /// assert_eq!(b1.grade(), 2);
+    /// assert_eq!(b2.grade(), 2);
+    ///
+    /// //Dynamic blades
+    /// let blade1 = Blade6::from_element(5, 0.0);
+    /// let blade2 = BladeD::from_element(4, 3, 0.0);
+    ///
+    /// assert_eq!(blade1.grade(), 5);
+    /// assert_eq!(blade2.grade(), 3);
+    ///
+    /// ```
+    ///
+    pub fn grade(&self) -> usize { self.grade_generic().value() }
+
+    ///
+    /// The number of elements in this blade
+    ///
+    /// Note that this is _not_ equal to either the [dimension](Blade::dim) and
+    /// [grade](Blade::grade) of this blade. Rather, the number of elements should instead be
+    /// equal to [`binom(self.dim(), self.grade())`](crate::binom) (though the value is cached
+    /// and one should not worry about unnecessary computation)
+    ///
+    /// # Examples
+    /// ```
+    /// # use galgebra::blade::*;
+    ///
+    /// let v1 = Vec6::new(6, 2, 8, 3, 1, 8);
+    /// let v2 = VecD::from_element(2, 0.0);
+    /// let b1 = BiVec3::new(6, 2, 8);
+    /// let b2 = BiVecD::from_element(4, 0.0);
+    ///
+    /// assert_eq!(v1.elements(), 6);
+    /// assert_eq!(v2.elements(), 2);
+    /// assert_eq!(b1.elements(), 3);
+    /// assert_eq!(b2.elements(), 6);
+    ///
+    /// //In general, the number of elemets is equal to `binom(b.dim(), b.grade())`
+    /// use galgebra::binom;
+    /// for n in 0..16 {
+    ///     for g in 0..=n {
+    ///         let b = BladeD::from_element(n, g, 0.0);
+    ///         assert_eq!(b.elements(), binom(n, g))
+    ///     }
+    /// }
+    ///
+    /// ```
+    ///
+    pub fn elements(&self) -> usize { self.data.elements() }
 
     pub fn as_slice(&self) -> &[T] { self.data.borrow() }
     pub fn as_mut_slice(&mut self) -> &mut [T] { self.data.borrow_mut() }
