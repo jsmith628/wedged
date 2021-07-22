@@ -2,8 +2,13 @@
 use std::convert::{AsRef, AsMut};
 use std::borrow::{Borrow, BorrowMut};
 use std::hash::{Hash, Hasher};
-use std::ops::{BitXor, Mul};
 use std::iter::{repeat, repeat_with};
+use std::mem::MaybeUninit;
+use std::ops::{
+    Index, IndexMut,
+    Add, AddAssign, Sub, SubAssign, Neg,
+    Mul, Div, BitXor
+};
 
 use num_traits::Zero;
 
@@ -12,7 +17,7 @@ use na::dimension::{
     Dynamic, U0, U1, U2, U3, U4, U5, U6
 };
 
-use crate::storage::Storage;
+use crate::storage::{Storage, UninitStorage};
 use crate::alloc::{Alloc, Allocate};
 use crate::DimName;
 
@@ -141,12 +146,14 @@ impl<T:Alloc<N,G>, N:Dim, G:Dim> Blade<T,N,G> {
 
 }
 
-pub use self::aliases::*;
+pub use self::ops::*;
 pub use self::constructors::*;
+pub use self::aliases::*;
 pub use self::fmt::*;
 
-mod aliases;
+mod ops;
 mod constructors;
+mod aliases;
 mod fmt;
 
 impl<T:Alloc<N,G>, N:Dim, G:Dim> Clone for Blade<T,N,G> where Allocate<T,N,G>: Clone {
