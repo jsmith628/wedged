@@ -17,7 +17,7 @@ use na::dimension::{
     Dynamic, U0, U1, U2, U3, U4, U5, U6
 };
 
-use crate::storage::{Storage, UninitStorage};
+use crate::storage::{Storage, UninitStorage, BladeStorage};
 use crate::alloc::{Alloc, Allocate};
 use crate::DimName;
 
@@ -206,7 +206,7 @@ impl<T:Alloc<N,G>+Hash, N:Dim, G:Dim> Hash for Blade<T,N,G> {
 
 impl<T:Alloc<N,G>, N:Dim, G:Dim> IntoIterator for Blade<T,N,G> {
     type Item = T;
-    type IntoIter = <Allocate<T,N,G> as Storage<T,N,G>>::Iter;
+    type IntoIter = <Allocate<T,N,G> as Storage<T>>::Iter;
     fn into_iter(self) -> Self::IntoIter {
         self.data.into_iter()
     }
