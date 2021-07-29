@@ -24,7 +24,7 @@ trait MultivectorSrc {
     fn basis_blade(&self, i:usize) -> BasisBlade;
 }
 
-impl<T:Alloc<N,G>, N:Dim, G:Dim> MultivectorSrc for Blade<T,N,G> {
+impl<T:AllocBlade<N,G>, N:Dim, G:Dim> MultivectorSrc for Blade<T,N,G> {
     type Scalar = T;
     type Dim = N;
 
@@ -37,7 +37,7 @@ impl<T:Alloc<N,G>, N:Dim, G:Dim> MultivectorSrc for Blade<T,N,G> {
 
 }
 
-impl<'a, T:Alloc<N,G>, N:Dim, G:Dim> MultivectorSrc for &'a Blade<T,N,G> {
+impl<'a, T:AllocBlade<N,G>, N:Dim, G:Dim> MultivectorSrc for &'a Blade<T,N,G> {
 
     type Scalar = T;
     type Dim = N;
@@ -57,7 +57,7 @@ where
     B1: MultivectorSrc<Dim=N>,
     B2: MultivectorSrc<Dim=N>,
     B1::Scalar: RefMul<B2::Scalar, Output=U>,
-    U: Alloc<N, G> + Add<Output=U> + AddAssign + Sub<Output=U> + SubAssign + Neg<Output=U>,
+    U: AllocBlade<N, G> + Add<Output=U> + AddAssign + Sub<Output=U> + SubAssign + Neg<Output=U>,
 {
     //To save further headache with generics, we don't allow multiplying two blades of
     //different dimension
@@ -75,7 +75,7 @@ where
     //The *slow* method
     //
 
-    let mut dest = Allocate::<U,N,G>::uninit(b1.dim(), g);
+    let mut dest = AllocateBlade::<U,N,G>::uninit(b1.dim(), g);
     let mut written_to = vec![false; dest.elements()];
 
     //do the FOILiest of FOILs
@@ -119,13 +119,13 @@ where
 }
 
 
-impl<T1:Alloc<N,G1>, N:Dim, G1:Dim> Blade<T1,N,G1> {
+impl<T1:AllocBlade<N,G1>, N:Dim, G1:Dim> Blade<T1,N,G1> {
 
     pub fn mul_grade_generic<T2, U, G2:Dim, G:Dim>(self, rhs: Blade<T2,N,G2>, g: G) -> Blade<U,N,G>
     where
         T1: RefMul<T2, Output=U>,
-        T2: Alloc<N, G2> + Clone,
-        U: Alloc<N, G> + Add<Output=U> + AddAssign + Sub<Output=U> + SubAssign + Neg<Output=U>,
+        T2: AllocBlade<N, G2> + Clone,
+        U: AllocBlade<N, G> + Add<Output=U> + AddAssign + Sub<Output=U> + SubAssign + Neg<Output=U>,
     {
         unsafe { _mul_grade(self, rhs, g) }
     }

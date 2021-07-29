@@ -9,12 +9,12 @@ use super::*;
 //unlike with Matrices or slices, ranges don't really make much sense, and while indexing wrt
 //basis blades _may_ make sense, it's slow *and* we have to deal with a potential minus sign.
 
-impl<T:Alloc<N,G>, N:Dim, G:Dim> Index<usize> for Blade<T,N,G> {
+impl<T:AllocBlade<N,G>, N:Dim, G:Dim> Index<usize> for Blade<T,N,G> {
     type Output = T;
     fn index(&self, i: usize) -> &T { &self.data[i] }
 }
 
-impl<T:Alloc<N,G>, N:Dim, G:Dim> IndexMut<usize> for Blade<T,N,G> {
+impl<T:AllocBlade<N,G>, N:Dim, G:Dim> IndexMut<usize> for Blade<T,N,G> {
     fn index_mut(&mut self, i: usize) -> &mut T { &mut self.data[i] }
 }
 
@@ -48,9 +48,9 @@ macro_rules! impl_binops {
 
         impl<$($a,)? $($b,)? T1,T2,U,N:Dim,G:Dim> $Op<$(&$b)? Blade<T2,N,G>> for $(&$a)? Blade<T1,N,G>
         where
-            T1: Alloc<N,G>,
-            T2: Alloc<N,G>,
-            U: Alloc<N,G>,
+            T1: AllocBlade<N,G>,
+            T2: AllocBlade<N,G>,
+            U: AllocBlade<N,G>,
             $(&$a)? T1: $Op<$(&$b)? T2, Output=U>
         {
 
@@ -63,7 +63,7 @@ macro_rules! impl_binops {
                 //TODO: if either T1 or T2 has the same size as U, reuse the storage
                 //Theoretically, the compiler _should_ optimize this allocation away if it is
                 //unnecessary, but we won't know until some benchmarking
-                let mut dest = Allocate::<U,N,G>::uninit(self.dim_generic(), self.grade_generic());
+                let mut dest = AllocateBlade::<U,N,G>::uninit(self.dim_generic(), self.grade_generic());
                 for ((t1, t2), u) in self.into_iter().zip(rhs).zip(dest.borrow_mut()) {
                     *u = MaybeUninit::new(t1.$op(t2));
                 }
@@ -95,8 +95,8 @@ macro_rules! impl_assign_binops {
 
         impl<$($a,)? T1,T2,N:Dim,G:Dim> $Op<$(&$a)? Blade<T2,N,G>> for Blade<T1,N,G>
         where
-            T1: Alloc<N,G> + $Op<$(&$a)? T2>,
-            T2: Alloc<N,G>
+            T1: AllocBlade<N,G> + $Op<$(&$a)? T2>,
+            T2: AllocBlade<N,G>
         {
 
             fn $op(&mut self, rhs: $(&$a)? Blade<T2,N,G>) {
@@ -135,7 +135,7 @@ impl_assign_binops!(AddAssign.add_assign(), SubAssign.sub_assign());
 
 //currently, this only works with static allocation, but once we have specialization and
 //can implement addition between dynamics with different dimensions, we can change that
-impl<T:Alloc<N,G>+Zero, N:DimName, G:DimName> Zero for Blade<T,N,G> {
+impl<T:AllocBlade<N,G>+Zero, N:DimName, G:DimName> Zero for Blade<T,N,G> {
     fn zero() -> Self { Self::zeroed() }
     fn is_zero(&self) -> bool { self.iter().all(|e| e.is_zero()) }
 }
@@ -148,15 +148,15 @@ macro_rules! impl_unary_ops {
     ($Op:ident.$op:ident(); $($a:lifetime)?) => {
         impl<$($a,)? T,U,N:Dim,G:Dim> $Op for $(&$a)? Blade<T,N,G>
         where
-            T: Alloc<N,G>,
-            U: Alloc<N,G>,
+            T: AllocBlade<N,G>,
+            U: AllocBlade<N,G>,
             $(& $a)? T: $Op<Output=U>
         {
 
             type Output = Blade<U,N,G>;
 
             fn $op(self) -> Blade<U,N,G> {
-                let mut dest = Allocate::<U,N,G>::uninit(self.dim_generic(), self.grade_generic());
+                let mut dest = AllocateBlade::<U,N,G>::uninit(self.dim_generic(), self.grade_generic());
                 for (t, u) in self.into_iter().zip(dest.borrow_mut()) {
                     *u = MaybeUninit::new(t.$op());
                 }
@@ -189,8 +189,8 @@ macro_rules! impl_scalar_ops {
 
         impl<$($a,)? $($b,)? T,U,N:Dim,G:Dim> $Op<$(&$b)? T> for $(&$a)? Blade<T,N,G>
         where
-            T: Alloc<N,G>,
-            U: Alloc<N,G>,
+            T: AllocBlade<N,G>,
+            U: AllocBlade<N,G>,
             $(&$a)? T: $Op<$(&$b)? T, Output=U>,
             $(&$b)? T: Clone
         {
@@ -199,7 +199,7 @@ macro_rules! impl_scalar_ops {
 
             fn $op(self, t2: $(&$b)? T) -> Blade<U,N,G> {
 
-                let mut dest = Allocate::<U,N,G>::uninit(self.dim_generic(), self.grade_generic());
+                let mut dest = AllocateBlade::<U,N,G>::uninit(self.dim_generic(), self.grade_generic());
                 for (t1, u) in self.into_iter().zip(dest.borrow_mut()) {
                     *u = MaybeUninit::new(t1.$op(<$(&$b)? T as Clone>::clone(&t2)));
                 }

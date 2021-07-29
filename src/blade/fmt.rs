@@ -7,7 +7,7 @@ use std::fmt::{
 use num_traits::One;
 use na::dimension::Dim;
 
-use crate::alloc::Alloc;
+use crate::alloc::AllocBlade;
 use crate::basis_blade::BasisBlade;
 use crate::blade::Blade;
 
@@ -146,7 +146,7 @@ where
     }
 }
 
-impl<T:Alloc<N,G>+Debug, N:Dim, G:Dim> Debug for Blade<T,N,G> {
+impl<T:AllocBlade<N,G>+Debug, N:Dim, G:Dim> Debug for Blade<T,N,G> {
     fn fmt(&self, f: &mut Formatter) -> FmtResult {
         Debug::fmt(self.as_slice(), f)
     }
@@ -156,7 +156,7 @@ impl<T:Alloc<N,G>+Debug, N:Dim, G:Dim> Debug for Blade<T,N,G> {
 macro_rules! impl_fmt {
     ($($Fmt:ident $symbol:literal),*) => {
         $(
-            impl<T:Alloc<N,G>+$Fmt, N:Dim, G:Dim> $Fmt for Blade<T,N,G> {
+            impl<T:AllocBlade<N,G>+$Fmt, N:Dim, G:Dim> $Fmt for Blade<T,N,G> {
                 fn fmt(&self, f: &mut Formatter) -> FmtResult {
 
                     let (alt, prec) = (f.alternate(), f.precision());

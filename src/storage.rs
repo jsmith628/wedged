@@ -58,38 +58,7 @@ pub unsafe trait MultivectorStorage<T,N:Dim>: Storage<T> {
 unsafe impl<T, const L: usize> Storage<T> for [T;L] {
     type Uninit = [MaybeUninit<T>; L];
     type Iter = <Self as IntoIterator>::IntoIter;
-
     fn elements(&self) -> usize { L }
-
-    // fn dim(&self) -> N { N::name() }
-    // fn grade(&self) -> G { G::name() }
-    //
-    // fn uninit(_:N, _:G) -> Self::Uninit {
-    //     //TODO: use `MaybeUninit::uninit_array()` when stabilized
-    //     unsafe {
-    //         //the outer MaybeUninit wraps the [MaybeUninit<T>; L] array
-    //         MaybeUninit::uninit().assume_init()
-    //     }
-    // }
-    //
-    // fn from_iterator<I:IntoIterator<Item=T>>(n:N, g:G, iter: I) -> Self {
-    //
-    //     let mut uninit = Self::uninit(n,g);
-    //
-    //     let mut count = 0;
-    //     for (i, x) in (0..L).zip(iter) {
-    //         uninit[i] = MaybeUninit::new(x);
-    //         count = i;
-    //     }
-    //
-    //     if count+1!=L {
-    //         panic!("Not enough elements to fill blade");
-    //     }
-    //
-    //     unsafe { <Self::Uninit as UninitStorage<T,N,G>>::assume_init(uninit) }
-    //
-    // }
-
 }
 
 unsafe impl<T, const L: usize> UninitStorage<T> for [MaybeUninit<T>;L] {

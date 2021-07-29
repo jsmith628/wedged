@@ -1,11 +1,11 @@
 
 use super::*;
 
-impl<T:Alloc<N,G>, N:Dim, G:Dim> Blade<T,N,G> {
+impl<T:AllocBlade<N,G>, N:Dim, G:Dim> Blade<T,N,G> {
 
     /// Constructs a blade with elements from an iterator using a generic dimension and grade
     pub fn from_iter_generic<I:IntoIterator<Item=T>>(n:N, g:G, iter: I) -> Self {
-        Blade { data: Allocate::<T,N,G>::from_iterator(n, g, iter) }
+        Blade { data: AllocateBlade::<T,N,G>::from_iterator(n, g, iter) }
     }
 
     /// Constructs a blade from an index function using a generic dimension and grade
@@ -150,7 +150,7 @@ macro_rules! impl_general_constructors {
 }
 
 ///Constructors for statically sized blades
-impl<T:Alloc<N,G>, N:DimName, G:DimName> Blade<T,N,G> {
+impl<T:AllocBlade<N,G>, N:DimName, G:DimName> Blade<T,N,G> {
 
     impl_general_constructors!(
         pub fn new() -> Self {
@@ -161,7 +161,7 @@ impl<T:Alloc<N,G>, N:DimName, G:DimName> Blade<T,N,G> {
 }
 
 ///Constructors for blades with dynamic dimension
-impl<T:Alloc<Dynamic,G>, G:DimName> Blade<T,Dynamic,G> {
+impl<T:AllocBlade<Dynamic,G>, G:DimName> Blade<T,Dynamic,G> {
 
     impl_general_constructors!(
         pub fn new(n:usize,) -> Self {
@@ -172,7 +172,7 @@ impl<T:Alloc<Dynamic,G>, G:DimName> Blade<T,Dynamic,G> {
 }
 
 ///Constructors for blades with dynamic grade
-impl<T:Alloc<N,Dynamic>, N:DimName> BladeN<T,N> {
+impl<T:AllocBlade<N,Dynamic>, N:DimName> BladeN<T,N> {
 
     impl_general_constructors!(
         pub fn new(g:usize,) -> Self {
@@ -183,7 +183,7 @@ impl<T:Alloc<N,Dynamic>, N:DimName> BladeN<T,N> {
 }
 
 ///Constructors for blades with dynamic dimension and grade
-impl<T:Alloc<Dynamic,Dynamic>> BladeD<T> {
+impl<T:AllocBlade<Dynamic,Dynamic>> BladeD<T> {
 
     impl_general_constructors!(
         pub fn new(n:usize,g:usize,) -> Self {
