@@ -147,11 +147,13 @@ impl<T:Alloc<N,G>, N:Dim, G:Dim> Blade<T,N,G> {
 }
 
 pub use self::ops::*;
+pub use self::mul::*;
 pub use self::constructors::*;
 pub use self::aliases::*;
 pub use self::fmt::*;
 
 mod ops;
+mod mul;
 mod constructors;
 mod aliases;
 mod fmt;
