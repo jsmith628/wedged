@@ -85,6 +85,19 @@ macro_rules! impl_alloc{
 
     };
 
+    ($N:literal @tests) => {
+        assert_eq!(
+            std::mem::size_of::<AllocateRotor<f32, Const<$N>>>(),
+            //this has some weird behavior
+            std::mem::size_of::<f32>() * if $N==0 {0} else {2usize.pow(($N as u32).saturating_sub(1u32))}
+        );
+
+        assert_eq!(
+            std::mem::size_of::<AllocateMultivector<f32, Const<$N>>>(),
+            std::mem::size_of::<f32>() * 2usize.pow($N)
+        );
+    };
+
     ($N:literal @impl) => {
         unsafe impl<T> AllocRotor<Const<$N>> for T {
             type Buffer = [T; if $N==0 {0} else {2usize.pow($N-1)} ];
