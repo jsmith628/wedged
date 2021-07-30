@@ -65,11 +65,11 @@ fn array_from_iter<T, I: IntoIterator<Item=T>, const L: usize>(iter:I, kind:&str
     let mut count = 0;
     for (i, x) in (0..L).zip(iter) {
         uninit[i] = MaybeUninit::new(x);
-        count = i;
+        count = i+1;
     }
 
     //panic if not enough elements
-    if count+1!=L {
+    if count!=L {
         panic!("Not enough elements to fill {}", kind);
     }
 
