@@ -25,6 +25,7 @@ trait MultivectorSrc {
 }
 
 impl<T:AllocBlade<N,G>, N:Dim, G:Dim> MultivectorSrc for Blade<T,N,G> {
+
     type Scalar = T;
     type Dim = N;
 
@@ -63,7 +64,7 @@ where
     //different dimension
     if b1.dim().value() != b2.dim().value() {
         panic!(
-            "Cannot multiply two blades of different dimensions: {}!={}",
+            "Cannot multiply two values of different dimensions: {}!={}",
             b1.dim().value(), b2.dim().value()
         )
     }
@@ -121,13 +122,40 @@ where
 
 impl<T1:AllocBlade<N,G1>, N:Dim, G1:Dim> Blade<T1,N,G1> {
 
-    pub fn mul_grade_generic<T2, U, G2:Dim, G:Dim>(self, rhs: Blade<T2,N,G2>, g: G) -> Blade<U,N,G>
-    where
-        T1: RefMul<T2, Output=U>,
-        T2: AllocBlade<N, G2> + Clone,
-        U: AllocBlade<N, G> + Add<Output=U> + AddAssign + Sub<Output=U> + SubAssign + Neg<Output=U>,
-    {
+    // pub fn mul_grade_generic<T2, U, G2:Dim, G:Dim>(self, rhs: Blade<T2,N,G2>, g: G) -> Blade<U,N,G>
+    // where
+    //     T1: RefMul<T2, Output=U>,
+    //     T2: AllocBlade<N, G2>,
+    //     U: AllocBlade<N, G> + Add<Output=U> + AddAssign + Sub<Output=U> + SubAssign + Neg<Output=U>,
+    // {
+    //     //TODO: fix when the
+    //     unsafe { _mul_grade(self, rhs, g) }
+    // }
+
+}
+
+impl<T1,T2,U,N:Dim,G1:Dim,G2:Dim> BitXor<Blade<T2,N,G2>> for Blade<T1,N,G1> where
+    T1: AllocBlade<N,G1> + RefMul<T2,Output=U>,
+    T2: AllocBlade<N,G2>,
+    G1: DimAdd<G2>,
+    U: AllocBlade<N, DimSum<G1, G2>> + Add<Output=U> + AddAssign + Sub<Output=U> + SubAssign + Neg<Output=U>,
+{
+    type Output = Blade<U,N,DimSum<G1, G2>>;
+    fn bitxor(self, rhs: Blade<T2,N,G2>) -> Self::Output {
+        let g = self.grade_generic().add(rhs.grade_generic());
         unsafe { _mul_grade(self, rhs, g) }
     }
+}
 
+impl<T1,T2,U,N:Dim,G1:Dim,G2:Dim> Rem<Blade<T2,N,G2>> for Blade<T1,N,G1> where
+    T1: AllocBlade<N,G1> + RefMul<T2,Output=U>,
+    T2: AllocBlade<N,G2>,
+    G2: DimSub<G1>,
+    U: AllocBlade<N, DimDiff<G2, G1>> + Add<Output=U> + AddAssign + Sub<Output=U> + SubAssign + Neg<Output=U>,
+{
+    type Output = Blade<U,N,DimDiff<G2, G1>>;
+    fn rem(self, rhs: Blade<T2,N,G2>) -> Self::Output {
+        let g = rhs.grade_generic().sub(self.grade_generic());
+        unsafe { _mul_grade(self, rhs, g) }
+    }
 }

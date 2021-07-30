@@ -7,13 +7,13 @@ use std::mem::MaybeUninit;
 use std::ops::{
     Index, IndexMut,
     Add, AddAssign, Sub, SubAssign, Neg,
-    Mul, Div, BitXor
+    Mul, Div, BitXor, Rem
 };
 
 use num_traits::Zero;
 
 use na::dimension::{
-    Dim, DimAdd, DimSum, DimNameDiff,
+    Dim, DimAdd, DimSum, DimSub, DimDiff, DimNameDiff,
     Dynamic, U0, U1, U2, U3, U4, U5, U6
 };
 
@@ -222,12 +222,4 @@ impl<'a, T:AllocBlade<N,G>, N:Dim, G:Dim> IntoIterator for &'a mut Blade<T,N,G> 
     type Item = &'a mut T;
     type IntoIter = IterMut<'a, T>;
     fn into_iter(self) -> Self::IntoIter { self.iter_mut() }
-}
-
-impl<T,N:Dim,G1:Dim,G2:Dim> BitXor<Blade<T,N,G2>> for Blade<T,N,G1> where
-    T: Mul<T,Output=T> + AllocBlade<N,G1> + AllocBlade<N,G2> + AllocBlade<N,DimSum<G1,G2>>,
-    G1: DimAdd<G2>,
-{
-    type Output = Blade<T,N,DimSum<G1, G2>>;
-    fn bitxor(self, rhs: Blade<T,N,G2>) -> Self::Output { unimplemented!() }
 }
