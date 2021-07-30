@@ -20,6 +20,36 @@ pub type Blade6<T> = Blade<T,U6,Dynamic>;
 ///A blade with a dynamic dimension and grade
 pub type BladeD<T> = Blade<T,Dynamic,Dynamic>;
 
+///A 0-dimensional rotor
+pub type Rotor0<T> = Rotor<T,U0>;
+///A 1-dimensional rotor
+pub type Rotor1<T> = Rotor<T,U1>;
+///A 2-dimensional rotor
+pub type Rotor2<T> = Rotor<T,U2>;
+///A 3-dimensional rotor
+pub type Rotor3<T> = Rotor<T,U3>;
+///A 4-dimensional rotor
+pub type Rotor4<T> = Rotor<T,U4>;
+///A 5-dimensional rotor
+pub type Rotor5<T> = Rotor<T,U5>;
+///A 6-dimensional rotor
+pub type Rotor6<T> = Rotor<T,U6>;
+
+///A 0-dimensional multivector
+pub type Multivector0<T> = Multivector<T,U0>;
+///A 1-dimensional multivector
+pub type Multivector1<T> = Multivector<T,U1>;
+///A 2-dimensional multivector
+pub type Multivector2<T> = Multivector<T,U2>;
+///A 3-dimensional multivector
+pub type Multivector3<T> = Multivector<T,U3>;
+///A 4-dimensional multivector
+pub type Multivector4<T> = Multivector<T,U4>;
+///A 5-dimensional multivector
+pub type Multivector5<T> = Multivector<T,U5>;
+///A 6-dimensional multivector
+pub type Multivector6<T> = Multivector<T,U6>;
+
 ///A scalar in N-dimensions
 pub type Scalar<T,N> = Blade<T,N,U0>;
 ///A scalar in 0-dimensions

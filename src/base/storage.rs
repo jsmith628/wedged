@@ -1,17 +1,5 @@
 
-use std::convert::{AsRef, AsMut, TryInto};
-use std::borrow::{Borrow, BorrowMut};
-use std::ops::{Index, IndexMut};
-use std::mem::{MaybeUninit, transmute, transmute_copy};
-use std::iter::{
-    IntoIterator, FromIterator,
-    DoubleEndedIterator, ExactSizeIterator, FusedIterator,
-    //TrustedLen
-};
-
-use na::base::dimension::{Dim};
-
-use crate::binom;
+use super::*;
 
 pub unsafe trait Storage<T>:
     Index<usize, Output=T> + IndexMut<usize> +
@@ -190,7 +178,7 @@ unsafe impl<T,N:Dim,G:Dim> BladeStorage<T,N,G> for DynBladeStorage<T,N,G> {
 
 #[inline(always)]
 fn rotor_elements(n:usize) -> usize {
-    if n==0 { 0 } else { 2_usize.pow((n-1).try_into().unwrap()) }
+    crate::rotor_elements(n.try_into().unwrap())
 }
 
 unsafe impl<T,N:Dim> UninitStorage<T> for DynRotorStorage<MaybeUninit<T>,N> {

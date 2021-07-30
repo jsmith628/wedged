@@ -1,9 +1,9 @@
 
-use std::convert::{AsRef, AsMut};
+use std::convert::{AsRef, AsMut, TryInto};
 use std::borrow::{Borrow, BorrowMut};
 use std::hash::{Hash, Hasher};
 use std::iter::{repeat, repeat_with};
-use std::mem::MaybeUninit;
+use std::mem::{MaybeUninit, transmute, transmute_copy};
 use std::fmt::{
     Debug, Display, Binary, Octal, LowerHex, UpperHex, LowerExp, UpperExp,
     Formatter, Result as FmtResult
@@ -13,24 +13,35 @@ use std::ops::{
     Add, AddAssign, Sub, SubAssign, Neg,
     Mul, Div, BitXor, Rem
 };
+use std::iter::{
+    IntoIterator, FromIterator,
+    DoubleEndedIterator, ExactSizeIterator, FusedIterator,
+    //TrustedLen
+};
 
 use num_traits::{Zero, One};
 
 use na::dimension::{
     Dim, DimAdd, DimSum, DimSub, DimDiff, DimNameDiff,
-    Dynamic, U0, U1, U2, U3, U4, U5, U6
+    Dynamic, Const, U0, U1, U2, U3, U4, U5, U6
 };
 
-use crate::DimName;
 use crate::basis_blade::BasisBlade;
-use self::storage::{Storage, UninitStorage, BladeStorage};
-use self::alloc::{AllocBlade, AllocateBlade};
+use crate::{DimName, binom, rotor_elements};
 
 pub type Iter<'a, T> = std::slice::Iter<'a, T>;
 pub type IterMut<'a, T> = std::slice::IterMut<'a, T>;
 
 pub struct Blade<T:AllocBlade<N,G>, N:Dim, G:Dim> {
     pub data: AllocateBlade<T,N,G>
+}
+
+pub struct Rotor<T:AllocRotor<N>, N:Dim> {
+    pub data: AllocateRotor<T,N>
+}
+
+pub struct Multivector<T:AllocMultivector<N>, N:Dim> {
+    pub data: AllocateMultivector<T,N>
 }
 
 impl<T:AllocBlade<N,G>, N:Dim, G:Dim> Blade<T,N,G> {
@@ -151,6 +162,39 @@ impl<T:AllocBlade<N,G>, N:Dim, G:Dim> Blade<T,N,G> {
 
 }
 
+impl<T:AllocRotor<N>,N:Dim> Rotor<T,N> {
+
+    pub fn dim_generic(&self) -> N { self.data.dim() }
+
+    pub fn dim(&self) -> usize { self.dim_generic().value() }
+    pub fn elements(&self) -> usize { self.data.elements() }
+
+    pub fn as_slice(&self) -> &[T] { self.data.borrow() }
+    pub fn as_mut_slice(&mut self) -> &mut [T] { self.data.borrow_mut() }
+
+    pub fn iter(&self) -> Iter<T> { self.as_slice().iter() }
+    pub fn iter_mut(&mut self) -> IterMut<T> { self.as_mut_slice().iter_mut() }
+
+}
+
+impl<T:AllocMultivector<N>,N:Dim> Multivector<T,N> {
+
+    pub fn dim_generic(&self) -> N { self.data.dim() }
+
+    pub fn dim(&self) -> usize { self.dim_generic().value() }
+    pub fn elements(&self) -> usize { self.data.elements() }
+
+    pub fn as_slice(&self) -> &[T] { self.data.borrow() }
+    pub fn as_mut_slice(&mut self) -> &mut [T] { self.data.borrow_mut() }
+
+    pub fn iter(&self) -> Iter<T> { self.as_slice().iter() }
+    pub fn iter_mut(&mut self) -> IterMut<T> { self.as_mut_slice().iter_mut() }
+
+}
+
+use self::storage::*;
+use self::alloc::*;
+
 pub mod storage;
 pub mod alloc;
 
@@ -166,31 +210,67 @@ mod constructors;
 mod aliases;
 mod fmt;
 
-impl<T:AllocBlade<N,G>, N:Dim, G:Dim> Clone for Blade<T,N,G> where AllocateBlade<T,N,G>: Clone {
-    fn clone(&self) -> Self { Blade { data: self.data.clone() } }
-    fn clone_from(&mut self, src: &Self) { self.data.clone_from(&src.data) }
+macro_rules! impl_basic_traits {
+    (impl<T:$Alloc:ident, $($N:ident),*> $Ty:ident where $Allocate:ident {}) => {
+
+        impl<T:$Alloc<$($N),*>, $($N:Dim),*> Clone for $Ty<T,$($N),*> where $Allocate<T,$($N),*>: Clone {
+            fn clone(&self) -> Self { $Ty { data: self.data.clone() } }
+            fn clone_from(&mut self, src: &Self) { self.data.clone_from(&src.data) }
+        }
+
+        impl<T:$Alloc<$($N),*>, $($N:Dim),*> Copy for $Ty<T,$($N),*> where $Allocate<T,$($N),*>: Copy {}
+
+
+        impl<T:$Alloc<$($N),*>, $($N:Dim),*> AsRef<[T]> for $Ty<T,$($N),*> {
+            fn as_ref(&self) -> &[T] { self.data.as_ref() }
+        }
+
+        impl<T:$Alloc<$($N),*>, $($N:Dim),*> AsMut<[T]> for $Ty<T,$($N),*> {
+            fn as_mut(&mut self) -> &mut [T] { self.data.as_mut() }
+        }
+
+        impl<T:$Alloc<$($N),*>, $($N:Dim),*> Borrow<[T]> for $Ty<T,$($N),*> {
+            fn borrow(&self) -> &[T] { self.data.borrow() }
+        }
+
+        impl<T:$Alloc<$($N),*>, $($N:Dim),*> BorrowMut<[T]> for $Ty<T,$($N),*> {
+            fn borrow_mut(&mut self) -> &mut [T] { self.data.borrow_mut() }
+        }
+
+        impl<T:$Alloc<$($N),*>+Eq, $($N:Dim),*> Eq for $Ty<T,$($N),*> {}
+
+        impl<T:$Alloc<$($N),*>+Hash, $($N:Dim),*> Hash for $Ty<T,$($N),*> {
+            fn hash<H:Hasher>(&self, h: &mut H) {
+                T::hash_slice(self.borrow(), h)
+            }
+        }
+
+        impl<T:$Alloc<$($N),*>, $($N:Dim),*> IntoIterator for $Ty<T,$($N),*> {
+            type Item = T;
+            type IntoIter = <$Allocate<T,$($N),*> as Storage<T>>::Iter;
+            fn into_iter(self) -> Self::IntoIter {
+                self.data.into_iter()
+            }
+        }
+
+        impl<'a, T:$Alloc<$($N),*>, $($N:Dim),*> IntoIterator for &'a $Ty<T,$($N),*> {
+            type Item = &'a T;
+            type IntoIter = Iter<'a, T>;
+            fn into_iter(self) -> Self::IntoIter { self.iter() }
+        }
+
+        impl<'a, T:$Alloc<$($N),*>, $($N:Dim),*> IntoIterator for &'a mut $Ty<T,$($N),*> {
+            type Item = &'a mut T;
+            type IntoIter = IterMut<'a, T>;
+            fn into_iter(self) -> Self::IntoIter { self.iter_mut() }
+        }
+
+    }
 }
 
-impl<T:AllocBlade<N,G>, N:Dim, G:Dim> Copy for Blade<T,N,G> where AllocateBlade<T,N,G>: Copy {}
-
-impl<T:AllocBlade<N,G>, N:Dim, G:Dim> AsRef<[T]> for Blade<T,N,G> {
-    fn as_ref(&self) -> &[T] { self.data.as_ref() }
-}
-
-impl<T:AllocBlade<N,G>, N:Dim, G:Dim> AsMut<[T]> for Blade<T,N,G> {
-    fn as_mut(&mut self) -> &mut [T] { self.data.as_mut() }
-}
-
-impl<T:AllocBlade<N,G>, N:Dim, G:Dim> Borrow<[T]> for Blade<T,N,G> {
-    fn borrow(&self) -> &[T] { self.data.borrow() }
-}
-
-impl<T:AllocBlade<N,G>, N:Dim, G:Dim> BorrowMut<[T]> for Blade<T,N,G> {
-    fn borrow_mut(&mut self) -> &mut [T] { self.data.borrow_mut() }
-}
-
-
-impl<T:AllocBlade<N,G>+Eq, N:Dim, G:Dim> Eq for Blade<T,N,G> {}
+impl_basic_traits!(impl<T:AllocBlade, N, G> Blade where AllocateBlade {});
+impl_basic_traits!(impl<T:AllocRotor, N> Rotor where AllocateRotor {});
+impl_basic_traits!(impl<T:AllocMultivector, N> Multivector where AllocateMultivector {});
 
 impl<T, U, N1:Dim, N2:Dim, G1:Dim, G2:Dim> PartialEq<Blade<U,N2,G2>> for Blade<T,N1,G1>
 where
@@ -206,28 +286,30 @@ where
     }
 }
 
-impl<T:AllocBlade<N,G>+Hash, N:Dim, G:Dim> Hash for Blade<T,N,G> {
-    fn hash<H:Hasher>(&self, h: &mut H) {
-        T::hash_slice(self.borrow(), h)
+impl<T, U, N1:Dim, N2:Dim> PartialEq<Rotor<U,N2>> for Rotor<T,N1>
+where
+    T: AllocRotor<N1> + PartialEq<U>,
+    U: AllocRotor<N2>
+{
+    fn eq(&self, rhs:&Rotor<U,N2>) -> bool {
+        self.dim() == rhs.dim() && self.as_slice() == rhs.as_slice()
+    }
+
+    fn ne(&self, rhs:&Rotor<U,N2>) -> bool {
+        self.dim() != rhs.dim() || self.as_slice() != rhs.as_slice()
     }
 }
 
-impl<T:AllocBlade<N,G>, N:Dim, G:Dim> IntoIterator for Blade<T,N,G> {
-    type Item = T;
-    type IntoIter = <AllocateBlade<T,N,G> as Storage<T>>::Iter;
-    fn into_iter(self) -> Self::IntoIter {
-        self.data.into_iter()
+impl<T, U, N1:Dim, N2:Dim> PartialEq<Multivector<U,N2>> for Multivector<T,N1>
+where
+    T: AllocMultivector<N1> + PartialEq<U>,
+    U: AllocMultivector<N2>
+{
+    fn eq(&self, rhs:&Multivector<U,N2>) -> bool {
+        self.dim() == rhs.dim() && self.as_slice() == rhs.as_slice()
     }
-}
 
-impl<'a, T:AllocBlade<N,G>, N:Dim, G:Dim> IntoIterator for &'a Blade<T,N,G> {
-    type Item = &'a T;
-    type IntoIter = Iter<'a, T>;
-    fn into_iter(self) -> Self::IntoIter { self.iter() }
-}
-
-impl<'a, T:AllocBlade<N,G>, N:Dim, G:Dim> IntoIterator for &'a mut Blade<T,N,G> {
-    type Item = &'a mut T;
-    type IntoIter = IterMut<'a, T>;
-    fn into_iter(self) -> Self::IntoIter { self.iter_mut() }
+    fn ne(&self, rhs:&Multivector<U,N2>) -> bool {
+        self.dim() != rhs.dim() || self.as_slice() != rhs.as_slice()
+    }
 }

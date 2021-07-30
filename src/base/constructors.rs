@@ -240,6 +240,17 @@ impl_specific_constructors!{
 
     HexVec6::new(x);
 
+    Rotor0::new(r);
+    Rotor1::new(r);
+    Rotor2::new(x,y);
+    Rotor3::new(w,x,y,z);
+    Rotor4::new(r, yz,zx,xy,xw,yw,zw, i);
+
+    Multivector0::new(r);
+    Multivector1::new(r,x);
+    Multivector2::new(r, x,y, i);
+    Multivector3::new(r, x,y,z, yz,zx,xy, i);
+
 }
 
 impl<T:AllocBlade<N,U0>, N:DimName> Scalar<T,N> {

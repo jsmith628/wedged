@@ -1,14 +1,5 @@
 
-use std::mem::MaybeUninit;
-
-use na::base::dimension::{Dim, Const, Dynamic};
-
-use crate::binom;
-use crate::base::storage::{
-    BladeStorage, RotorStorage, MultivectorStorage,
-    DynBladeStorage, DynRotorStorage, DynMultivectorStorage,
-    UninitStorage
-};
+use super::*;
 
 pub type AllocateBlade<T,N,G> = <T as AllocBlade<N,G>>::Buffer;
 pub type AllocateRotor<T,N> = <T as AllocRotor<N>>::Buffer;
@@ -89,7 +80,7 @@ macro_rules! impl_alloc{
         assert_eq!(
             std::mem::size_of::<AllocateRotor<f32, Const<$N>>>(),
             //this has some weird behavior
-            std::mem::size_of::<f32>() * if $N==0 {0} else {2usize.pow(($N as u32).saturating_sub(1u32))}
+            std::mem::size_of::<f32>() * rotor_elements($N)
         );
 
         assert_eq!(
@@ -100,10 +91,10 @@ macro_rules! impl_alloc{
 
     ($N:literal @impl) => {
         unsafe impl<T> AllocRotor<Const<$N>> for T {
-            type Buffer = [T; if $N==0 {0} else {2usize.pow($N-1)} ];
+            type Buffer = [T; rotor_elements($N)];
         }
 
-        unsafe impl<T> RotorStorage<T, Const<$N>> for [T; if $N==0 {0} else {2usize.pow($N-1)} ] {
+        unsafe impl<T> RotorStorage<T, Const<$N>> for [T; rotor_elements($N) ] {
             fn dim(&self) -> Const<$N> { Const::<$N> }
             fn uninit(_: Const<$N>,) -> Self::Uninit { uninit_array() }
             fn from_iterator<I:IntoIterator<Item=T>>(_: Const<$N>, iter: I) -> Self {
