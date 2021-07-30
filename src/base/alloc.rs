@@ -4,7 +4,7 @@ use std::mem::MaybeUninit;
 use na::base::dimension::{Dim, Const, Dynamic};
 
 use crate::binom;
-use crate::storage::{
+use crate::base::storage::{
     BladeStorage, RotorStorage, MultivectorStorage,
     DynBladeStorage, DynRotorStorage, DynMultivectorStorage,
     UninitStorage

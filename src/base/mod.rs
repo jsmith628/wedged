@@ -23,8 +23,8 @@ use na::dimension::{
 
 use crate::DimName;
 use crate::basis_blade::BasisBlade;
-use crate::storage::{Storage, UninitStorage, BladeStorage};
-use crate::alloc::{AllocBlade, AllocateBlade};
+use self::storage::{Storage, UninitStorage, BladeStorage};
+use self::alloc::{AllocBlade, AllocateBlade};
 
 pub type Iter<'a, T> = std::slice::Iter<'a, T>;
 pub type IterMut<'a, T> = std::slice::IterMut<'a, T>;
@@ -150,6 +150,9 @@ impl<T:AllocBlade<N,G>, N:Dim, G:Dim> Blade<T,N,G> {
     pub fn iter_mut(&mut self) -> IterMut<T> { self.as_mut_slice().iter_mut() }
 
 }
+
+pub mod storage;
+pub mod alloc;
 
 pub use self::ops::*;
 pub use self::mul::*;
