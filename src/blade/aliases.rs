@@ -121,7 +121,7 @@ pub type HexVecD<T> = HexVecN<T,Dynamic>;
 /// Psuedoscalars are useful as they can be used to compute the dual of a blade and represent
 /// (hyper)volume elements in N-dimensions.
 ///
-pub type PsuedoScalarN<T,N> = Blade<T,N,N>;
+pub type PsuedoScalar<T,N> = Blade<T,N,N>;
 
 ///
 /// An N-dimensional psuedovector

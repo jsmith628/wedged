@@ -83,7 +83,7 @@ where
     for i in 0..b1.elements() {
         let basis1 = b1.basis_blade(i);
         for j in 0..b2.elements() {
-            let basis2 = b1.basis_blade(j);
+            let basis2 = b2.basis_blade(j);
 
             //mul the bases at i and j
             let basis3 = basis1 * basis2;
@@ -91,22 +91,21 @@ where
             //if the result is at the selected grade
             if basis3.grade() == g.value() {
                 //get the index and sign of the result
-                let (k, neg) = basis3.get_index_sign(n.value());
+                let (k, pos) = basis3.get_index_sign(n.value());
 
                 //multiply the two terms
                 let term = b1.get(i).ref_mul(b2.get(j));
-                let term = if neg { -term } else { term };
 
                 //write or add the result to the destination blade
                 if written_to[k] {
                     //TODO: change once assume_init_ref() is stable
-                    if neg {
-                        *dest[k].as_mut_ptr() -= term;
-                    } else {
+                    if pos {
                         *dest[k].as_mut_ptr() += term;
+                    } else {
+                        *dest[k].as_mut_ptr() -= term;
                     }
                 } else {
-                    dest[k] = MaybeUninit::new(if neg {-term} else {term});
+                    dest[k] = MaybeUninit::new(if pos {term} else {-term});
                     written_to[k] = true;
                 }
 
@@ -158,4 +157,114 @@ impl<T1,T2,U,N:Dim,G1:Dim,G2:Dim> Rem<Blade<T2,N,G2>> for Blade<T1,N,G1> where
         let g = rhs.grade_generic().sub(self.grade_generic());
         unsafe { _mul_grade(self, rhs, g) }
     }
+}
+
+#[cfg(test)]
+mod tests {
+
+    use super::*;
+
+    macro_rules! test_mul {
+        ($b1:ident $op:tt $b2:ident == $b3:expr; $commutative:literal) => {
+
+            assert_eq!( $b1 $op $b2,  $b3);
+            assert_eq!(-$b1 $op $b2, -$b3);
+            assert_eq!( $b1 $op-$b2, -$b3);
+            assert_eq!(-$b1 $op-$b2,  $b3);
+
+            if $commutative {
+                assert_eq!( $b2 $op $b1,  $b3);
+                assert_eq!(-$b2 $op $b1, -$b3);
+                assert_eq!( $b2 $op-$b1, -$b3);
+                assert_eq!(-$b2 $op-$b1,  $b3);
+            } else {
+                assert_eq!( $b2 $op $b1, -$b3);
+                assert_eq!(-$b2 $op $b1,  $b3);
+                assert_eq!( $b2 $op-$b1,  $b3);
+                assert_eq!(-$b2 $op-$b1, -$b3);
+            }
+
+        }
+    }
+
+    #[test]
+    fn basis() {
+
+        let e = Scalar3::new(1);
+
+        let e1 = Vec3::new(1, 0, 0);
+        let e2 = Vec3::new(0, 1, 0);
+        let e3 = Vec3::new(0, 0, 1);
+
+        let e23 = BiVec3::new(1, 0, 0);
+        let e31 = BiVec3::new(0, 1, 0);
+        let e12 = BiVec3::new(0, 0, 1);
+
+        let e123 = TriVec3::new(1);
+
+        let zero = Scalar3::new(0);
+        let zerov = Vec3::zero();
+        let zerob = BiVec3::zero();
+        let zeroq = Blade::<_,U3,U4>::zero();
+
+        test_mul!(e^e == e; true);
+        test_mul!(e^e1 == e1; true);
+        test_mul!(e^e2 == e2; true);
+        test_mul!(e^e3 == e3; true);
+        test_mul!(e^e23 == e23; true);
+        test_mul!(e^e31 == e31; true);
+        test_mul!(e^e23 == e23; true);
+        test_mul!(e^e123 == e123; true);
+
+        test_mul!(e1^e1 == zerob; false);
+        test_mul!(e2^e2 == zerob; false);
+        test_mul!(e3^e3 == zerob; false);
+
+        test_mul!(e23^e23 == zeroq; false);
+        test_mul!(e31^e31 == zeroq; false);
+        test_mul!(e12^e12 == zeroq; false);
+
+        test_mul!(e1^e2 == e12; false);
+        test_mul!(e3^e1 == e31; false);
+        test_mul!(e2^e3 == e23; false);
+
+        test_mul!(e1^e23 == e123; true);
+        test_mul!(e2^e31 == e123; true);
+        test_mul!(e3^e12 == e123; true);
+
+        assert_eq!(e%e, e);
+        assert_eq!(e%e1, e1);
+        assert_eq!(e%e2, e2);
+        assert_eq!(e%e3, e3);
+        assert_eq!(e%e23, e23);
+        assert_eq!(e%e31, e31);
+        assert_eq!(e%e12, e12);
+        assert_eq!(e%e123, e123);
+
+        test_mul!(e1%e1 == e; true);
+        test_mul!(e1%e2 == zero; true);
+        test_mul!(e1%e3 == zero; true);
+        test_mul!(e2%e2 == e; true);
+        test_mul!(e2%e3 == zero; true);
+        test_mul!(e3%e3 == e; true);
+
+        assert_eq!(e1%e23, zerov);
+        assert_eq!(e1%e31, -e3);
+        assert_eq!(e1%e12, e2);
+        assert_eq!(e2%e23, e3);
+        assert_eq!(e2%e31, zerov);
+        assert_eq!(e2%e12, -e1);
+        assert_eq!(e3%e23, -e2);
+        assert_eq!(e3%e31, e1);
+        assert_eq!(e3%e12, zerov);
+
+        assert_eq!(e1%e123, e23);
+        assert_eq!(e2%e123, e31);
+        assert_eq!(e3%e123, e12);
+        assert_eq!(e23%e123, -e1);
+        assert_eq!(e31%e123, -e2);
+        assert_eq!(e12%e123, -e3);
+
+    }
+
 }
