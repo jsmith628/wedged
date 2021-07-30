@@ -1,15 +1,5 @@
 
-use std::fmt::{
-    Debug, Display, Binary, Octal, LowerHex, UpperHex, LowerExp, UpperExp,
-    Formatter, Result as FmtResult
-};
-
-use num_traits::One;
-use na::dimension::Dim;
-
-use crate::alloc::AllocBlade;
-use crate::basis_blade::BasisBlade;
-use crate::base::Blade;
+use super::*;
 
 struct FmtElement<'a, T, F>(&'a T, F) where F: Fn(&T, &mut Formatter) -> FmtResult;
 
@@ -188,7 +178,6 @@ impl_fmt!(Display "", Binary "b", Octal "o", LowerHex "x", UpperHex "X", LowerEx
 mod tests {
 
     use super::*;
-    use crate::base::BladeD;
 
     #[test]
     fn print() {

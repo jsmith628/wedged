@@ -1,6 +1,5 @@
 
 use super::*;
-use crate::basis_blade::BasisBlade;
 
 pub trait RefMul<Rhs:?Sized> {
     type Output;

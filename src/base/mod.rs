@@ -4,22 +4,27 @@ use std::borrow::{Borrow, BorrowMut};
 use std::hash::{Hash, Hasher};
 use std::iter::{repeat, repeat_with};
 use std::mem::MaybeUninit;
+use std::fmt::{
+    Debug, Display, Binary, Octal, LowerHex, UpperHex, LowerExp, UpperExp,
+    Formatter, Result as FmtResult
+};
 use std::ops::{
     Index, IndexMut,
     Add, AddAssign, Sub, SubAssign, Neg,
     Mul, Div, BitXor, Rem
 };
 
-use num_traits::Zero;
+use num_traits::{Zero, One};
 
 use na::dimension::{
     Dim, DimAdd, DimSum, DimSub, DimDiff, DimNameDiff,
     Dynamic, U0, U1, U2, U3, U4, U5, U6
 };
 
+use crate::DimName;
+use crate::basis_blade::BasisBlade;
 use crate::storage::{Storage, UninitStorage, BladeStorage};
 use crate::alloc::{AllocBlade, AllocateBlade};
-use crate::DimName;
 
 pub type Iter<'a, T> = std::slice::Iter<'a, T>;
 pub type IterMut<'a, T> = std::slice::IterMut<'a, T>;
