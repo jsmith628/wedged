@@ -38,7 +38,7 @@ macro_rules! impl_general_constructors {
             ///
             /// # Examples
             /// ```
-            /// # use galgebra::blade::*;
+            /// # use galgebra::base::*;
             ///
             /// let array = [0, 1, 2, 3, 4, 5];
             ///
@@ -63,7 +63,7 @@ macro_rules! impl_general_constructors {
             ///
             /// # Examples
             /// ```
-            /// # use galgebra::blade::*;
+            /// # use galgebra::base::*;
             ///
             /// //computes the nth fibonnacci number
             /// fn fib(n: usize) -> usize {
@@ -98,7 +98,7 @@ macro_rules! impl_general_constructors {
             ///
             /// # Examples
             /// ```
-            /// # use galgebra::blade::*;
+            /// # use galgebra::base::*;
             ///
             /// //4D Trivector, so 4 elements
             /// let array = [6.28; 4];
@@ -124,7 +124,7 @@ macro_rules! impl_general_constructors {
             ///
             /// # Examples
             /// ```
-            /// # use galgebra::blade::*;
+            /// # use galgebra::base::*;
             ///
             /// let array = [0.0; 4];
             ///

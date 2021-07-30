@@ -42,7 +42,7 @@ impl<T:AllocBlade<N,G>, N:Dim, G:Dim> Blade<T,N,G> {
     ///
     /// # Examples
     /// ```
-    /// # use galgebra::blade::*;
+    /// # use galgebra::base::*;
     ///
     /// //A static and dynamic 3D vector
     /// let v1 = Vec3::new(6, 2, 8);
@@ -74,7 +74,7 @@ impl<T:AllocBlade<N,G>, N:Dim, G:Dim> Blade<T,N,G> {
     ///
     /// # Examples
     /// ```
-    /// # use galgebra::blade::*;
+    /// # use galgebra::base::*;
     ///
     /// //All vectors are grade 1
     /// let v1 = Vec3::new(6, 2, 8);
@@ -113,7 +113,7 @@ impl<T:AllocBlade<N,G>, N:Dim, G:Dim> Blade<T,N,G> {
     ///
     /// # Examples
     /// ```
-    /// # use galgebra::blade::*;
+    /// # use galgebra::base::*;
     ///
     /// let v1 = Vec6::new(6, 2, 8, 3, 1, 8);
     /// let v2 = VecD::from_element(2, 0.0);

@@ -9,7 +9,7 @@ use na::dimension::Dim;
 
 use crate::alloc::AllocBlade;
 use crate::basis_blade::BasisBlade;
-use crate::blade::Blade;
+use crate::base::Blade;
 
 struct FmtElement<'a, T, F>(&'a T, F) where F: Fn(&T, &mut Formatter) -> FmtResult;
 
@@ -188,28 +188,28 @@ impl_fmt!(Display "", Binary "b", Octal "o", LowerHex "x", UpperHex "X", LowerEx
 mod tests {
 
     use super::*;
-    use crate::blade::BladeD;
+    use crate::base::BladeD;
 
     #[test]
     fn print() {
 
-        // for n in 0..=6 {
-        //     println!("n={}", n);
-        //     for g in 0..=n {
-        //         println!("{}", BladeD::from_iterator(n, g, 1..));
-        //     }
-        //     println!();
-        // }
-        //
-        // println!();
-        //
-        // for n in 0..=6 {
-        //     println!("n={}", n);
-        //     for g in 0..=n {
-        //         println!("{:+}", BladeD::from_iterator(n, g, -3..));
-        //     }
-        //     println!();
-        // }
+        for n in 0..=6 {
+            println!("n={}", n);
+            for g in 0..=n {
+                println!("{}", BladeD::from_iterator(n, g, 1..));
+            }
+            println!();
+        }
+
+        println!();
+
+        for n in 0..=6 {
+            println!("n={}", n);
+            for g in 0..=n {
+                println!("{:+}", BladeD::from_iterator(n, g, -3..));
+            }
+            println!();
+        }
 
     }
 
