@@ -241,3 +241,11 @@ impl_specific_constructors!{
     HexVec6::new(x);
 
 }
+
+impl<T:AllocBlade<N,U0>, N:DimName> Scalar<T,N> {
+
+    pub fn new(x:T) -> Scalar<T,N> {
+        Self::from_iterator(std::iter::once(x))
+    }
+
+}

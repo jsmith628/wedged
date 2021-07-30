@@ -193,23 +193,23 @@ mod tests {
     #[test]
     fn print() {
 
-        for n in 0..=6 {
-            println!("n={}", n);
-            for g in 0..=n {
-                println!("{}", BladeD::from_iterator(n, g, 1..));
-            }
-            println!();
-        }
-
-        println!();
-
-        for n in 0..=6 {
-            println!("n={}", n);
-            for g in 0..=n {
-                println!("{:+}", BladeD::from_iterator(n, g, -3..));
-            }
-            println!();
-        }
+        // for n in 0..=6 {
+        //     println!("n={}", n);
+        //     for g in 0..=n {
+        //         println!("{}", BladeD::from_iterator(n, g, 1..));
+        //     }
+        //     println!();
+        // }
+        //
+        // println!();
+        //
+        // for n in 0..=6 {
+        //     println!("n={}", n);
+        //     for g in 0..=n {
+        //         println!("{:+}", BladeD::from_iterator(n, g, -3..));
+        //     }
+        //     println!();
+        // }
 
     }
 
