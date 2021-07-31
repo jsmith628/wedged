@@ -236,29 +236,126 @@ impl_unary_ops!(impl<T:AllocMultivector,N> Neg.neg() for Multivector with Alloca
 //Scalar Multiplication and Division
 //
 
+macro_rules! impl_scale {
+
+    (
+        $(
+            $(#[$meta:meta])*
+            fn $fun:ident<U:$Alloc:ident,$($N:ident),*>() -> $(&$a:lifetime)? $Ty:ident with
+                $Op:ident.$op:ident, $Allocate:ident {}
+        )*
+    ) => {
+
+        $(
+            $(#[$meta])*
+            pub fn $fun<$($a,)? T2:Clone,U>($(&$a)? self, rhs:T2) -> $Ty<U,$($N),*> where
+                $(&$a)? T1: $Op<T2,Output=U>,
+                U: $Alloc<$($N),*>
+            {
+                let mut dest = uninit!(self, $Allocate<U,$($N),*>);
+                for (t1, u) in self.into_iter().zip(dest.borrow_mut()) {
+                    *u = MaybeUninit::new(t1.$op(rhs.clone()));
+                }
+
+                $Ty { data: unsafe { dest.assume_init() } }
+            }
+        )*
+
+    };
+}
+
+//TODO: scale doc tests
+
+macro_rules! scale_docs {
+    ($kind:literal, $op:literal, $operate:literal, $operation:literal) => {
+        concat!(
+            $operate, " this ", $kind, " by a scalar\n",
+            "\n",
+            "Unlike with the `", $op, "` operator, this allows for ", $operation, "by scalars other",
+            "than `T`, which is necessary to use some libraries (such as `dimensioned`)"
+        )
+    }
+}
+
+impl<T1:AllocBlade<N,G>, N:Dim, G:Dim> Blade<T1,N,G> {
+
+    impl_scale!(
+
+        #[doc = scale_docs!("blade", "*", "Multiplies", "multiplication")]
+        fn scale<U:AllocBlade,N,G>() -> Blade with Mul.mul, AllocateBlade {}
+
+        #[doc = scale_docs!("blade", "*", "Multiplies", "multiplication")]
+        fn scale_ref<U:AllocBlade,N,G>() -> &'a Blade with Mul.mul, AllocateBlade {}
+
+        #[doc = scale_docs!("blade", "/", "Divides", "division")]
+        fn inv_scale<U:AllocBlade,N,G>() -> Blade with Div.div, AllocateBlade {}
+
+        #[doc = scale_docs!("blade", "/", "Divides", "division")]
+        fn inv_scale_ref<U:AllocBlade,N,G>() -> &'a Blade with Div.div, AllocateBlade {}
+
+    );
+
+}
+
+impl<T1:AllocRotor<N>, N:Dim> Rotor<T1,N> {
+
+    impl_scale!(
+
+        #[doc = scale_docs!("rotor", "*", "Multiplies", "multiplication")]
+        fn scale<U:AllocRotor,N>() -> Rotor with Mul.mul, AllocateRotor {}
+
+        #[doc = scale_docs!("rotor", "*", "Multiplies", "multiplication")]
+        fn scale_ref<U:AllocRotor,N>() -> &'a Rotor with Mul.mul, AllocateRotor {}
+
+        #[doc = scale_docs!("rotor", "/", "Divides", "division")]
+        fn inv_scale<U:AllocRotor,N>() -> Rotor with Div.div, AllocateRotor {}
+
+        #[doc = scale_docs!("rotor", "/", "Divides", "division")]
+        fn inv_scale_ref<U:AllocRotor,N>() -> &'a Rotor with Div.div, AllocateRotor {}
+
+    );
+
+}
+
+impl<T1:AllocMultivector<N>, N:Dim> Multivector<T1,N> {
+
+    impl_scale!(
+
+        #[doc = scale_docs!("multivector", "*", "Multiplies", "multiplication")]
+        fn scale<U:AllocMultivector,N>() -> Multivector with Mul.mul, AllocateMultivector {}
+
+        #[doc = scale_docs!("multivector", "*", "Multiplies", "multiplication")]
+        fn scale_ref<U:AllocMultivector,N>() -> &'a Multivector with Mul.mul, AllocateMultivector {}
+
+        #[doc = scale_docs!("multivector", "/", "Divides", "division")]
+        fn inv_scale<U:AllocMultivector,N>() -> Multivector with Div.div, AllocateMultivector {}
+
+        #[doc = scale_docs!("multivector", "/", "Divides", "division")]
+        fn inv_scale_ref<U:AllocMultivector,N>() -> &'a Multivector with Div.div, AllocateMultivector {}
+
+    );
+
+}
+
 macro_rules! impl_scalar_ops {
 
-    ($Op:ident.$op:ident(); $($a:lifetime)?; $($b:lifetime)?) => {
+    (
+        impl<T:$Alloc:ident, $($N:ident),*> $Op:ident.$op:ident() for $Ty:ident with $scale:ident;
+        $($a:lifetime)?; $($b:lifetime)?
+    ) => {
 
-        impl<$($a,)? $($b,)? T,U,N:Dim,G:Dim> $Op<$(&$b)? T> for $(&$a)? Blade<T,N,G>
+        impl<$($a,)? $($b,)? T,U,$($N:Dim),*> $Op<$(&$b)? T> for $(&$a)? $Ty<T,$($N),*>
         where
-            T: AllocBlade<N,G>,
-            U: AllocBlade<N,G>,
+            T: $Alloc<$($N),*>,
+            U: $Alloc<$($N),*>,
             $(&$a)? T: $Op<$(&$b)? T, Output=U>,
             $(&$b)? T: Clone
         {
 
-            type Output = Blade<U,N,G>;
+            type Output = $Ty<U,$($N),*>;
 
-            fn $op(self, t2: $(&$b)? T) -> Blade<U,N,G> {
-
-                let mut dest = AllocateBlade::<U,N,G>::uninit(self.dim_generic(), self.grade_generic());
-                for (t1, u) in self.into_iter().zip(dest.borrow_mut()) {
-                    *u = MaybeUninit::new(t1.$op(<$(&$b)? T as Clone>::clone(&t2)));
-                }
-
-                Blade { data: unsafe { dest.assume_init() } }
-
+            fn $op(self, t2: $(&$b)? T) -> $Ty<U,$($N),*> {
+                self.$scale(t2)
             }
 
         }
@@ -266,15 +363,43 @@ macro_rules! impl_scalar_ops {
     };
 
     //do every combination of reference and value
-    ($($Op:ident.$op:ident()),*) => {
-        $(
-            impl_scalar_ops!($Op.$op();   ;   );
-            impl_scalar_ops!($Op.$op(); 'a;   );
-            impl_scalar_ops!($Op.$op();   ; 'b);
-            impl_scalar_ops!($Op.$op(); 'a; 'b);
-        )*
+    (
+        impl<T:$Alloc:ident, $($N:ident),*> $Op:ident.$op:ident() for $Ty:ident
+        with $scale:ident, $scale_ref:ident
+    ) => {
+        impl_scalar_ops!(impl<T:$Alloc, $($N),*> $Op.$op() for $Ty with $scale    ;   ;   );
+        impl_scalar_ops!(impl<T:$Alloc, $($N),*> $Op.$op() for $Ty with $scale_ref; 'a;   );
+        impl_scalar_ops!(impl<T:$Alloc, $($N),*> $Op.$op() for $Ty with $scale    ;   ; 'b);
+        impl_scalar_ops!(impl<T:$Alloc, $($N),*> $Op.$op() for $Ty with $scale_ref; 'a; 'b);
     };
 
 }
 
-impl_scalar_ops!(Mul.mul(), Div.div());
+impl_scalar_ops!(impl<T:AllocBlade,N,G> Mul.mul() for Blade with scale, scale_ref);
+impl_scalar_ops!(impl<T:AllocBlade,N,G> Div.div() for Blade with inv_scale, inv_scale_ref);
+impl_scalar_ops!(impl<T:AllocRotor,N> Mul.mul() for Rotor with scale, scale_ref);
+impl_scalar_ops!(impl<T:AllocRotor,N> Div.div() for Rotor with inv_scale, inv_scale_ref);
+impl_scalar_ops!(impl<T:AllocMultivector,N> Mul.mul() for Multivector with scale, scale_ref);
+impl_scalar_ops!(impl<T:AllocMultivector,N> Div.div() for Multivector with inv_scale, inv_scale_ref);
+
+macro_rules! impl_scalar_assign_binops {
+    (impl<T:$Alloc:ident, $($N:ident),*> $Op:ident.$op:ident() for $Ty:ident) => {
+
+        impl<T1:$Alloc<$($N),*>+$Op<T2>, T2:Clone, $($N:Dim),*> $Op<T2> for $Ty<T1, $($N),*> {
+            fn $op(&mut self, rhs: T2) {
+                //simple enough...
+                for t1 in self {
+                    t1.$op(rhs.clone());
+                }
+            }
+        }
+
+    }
+}
+
+impl_scalar_assign_binops!(impl<T:AllocBlade,N,G> MulAssign.mul_assign() for Blade);
+impl_scalar_assign_binops!(impl<T:AllocBlade,N,G> DivAssign.div_assign() for Blade);
+impl_scalar_assign_binops!(impl<T:AllocRotor,N> MulAssign.mul_assign() for Rotor);
+impl_scalar_assign_binops!(impl<T:AllocRotor,N> DivAssign.div_assign() for Rotor);
+impl_scalar_assign_binops!(impl<T:AllocMultivector,N> MulAssign.mul_assign() for Multivector);
+impl_scalar_assign_binops!(impl<T:AllocMultivector,N> DivAssign.div_assign() for Multivector);

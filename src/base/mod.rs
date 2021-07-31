@@ -11,7 +11,7 @@ use std::fmt::{
 use std::ops::{
     Index, IndexMut,
     Add, AddAssign, Sub, SubAssign, Neg,
-    Mul, Div, BitXor, Rem
+    Mul, MulAssign, Div, DivAssign, BitXor, Rem
 };
 use std::iter::{
     IntoIterator, FromIterator,
