@@ -251,7 +251,7 @@ macro_rules! impl_specific_constructors {
                 #[doc = concat!(
                     "Constructs a [`", stringify!($ty), "`] directly from components"
                 )]
-                pub fn new($($arg: T),*) -> $ty<T> {
+                pub const fn new($($arg: T),*) -> $ty<T> {
                     $ty { data: [ $($arg),* ] }
                 }
             }

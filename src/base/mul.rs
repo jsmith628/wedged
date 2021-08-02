@@ -11,6 +11,23 @@ impl<T1:?Sized,T2:?Sized,U> RefMul<T2> for T1 where for<'a,'b> &'a T1: Mul<&'b T
     fn ref_mul<'a,'b>(&'a self, rhs:&'b T2) -> U { self * rhs }
 }
 
+#[derive(Clone, Copy, Debug)]
+enum Subspace {
+    Blade(usize, usize),
+    Even(usize),
+    Full(usize)
+}
+
+impl Subspace {
+    fn dim(&self) -> usize {
+        match self {
+            Self::Blade(n,_) => *n,
+            Self::Even(n) => *n,
+            Self::Full(n) => *n
+        }
+    }
+}
+
 trait MultivectorSrc:IntoIterator {
 
     type Scalar;
@@ -18,6 +35,7 @@ trait MultivectorSrc:IntoIterator {
 
     fn dim(&self) -> Self::Dim;
     fn elements(&self) -> usize;
+    fn subspace(&self) -> Subspace;
 
     fn get(&self, i:usize) -> &Self::Scalar;
     fn basis_blade(&self, i:usize) -> BasisBlade;
@@ -27,6 +45,8 @@ trait MultivectorDst: MultivectorSrc {
 
     type Shape: Copy;
     type Uninit: UninitStorage<Self::Scalar>;
+
+    fn subspace_of(shape: Self::Shape) -> Subspace;
 
     fn uninit(shape: Self::Shape) -> Self::Uninit;
     unsafe fn assume_init(uninit:Self::Uninit) -> Self;
@@ -41,7 +61,9 @@ impl<T:AllocBlade<N,G>, N:Dim, G:Dim> MultivectorSrc for Blade<T,N,G> {
     type Dim = N;
 
     fn dim(&self) -> N { self.dim_generic() }
+    fn subspace(&self) -> Subspace { Subspace::Blade(Blade::dim(self), self.grade()) }
     fn elements(&self) -> usize { Blade::elements(self) }
+
     fn get(&self, i:usize) -> &T { &self[i] }
     fn basis_blade(&self, i:usize) -> BasisBlade {
         BasisBlade::basis_blade(Blade::dim(self), self.grade(), i)
@@ -56,6 +78,7 @@ impl<'a, T:AllocBlade<N,G>, N:Dim, G:Dim> MultivectorSrc for &'a Blade<T,N,G> {
 
     fn dim(&self) -> N { self.dim_generic() }
     fn elements(&self) -> usize { Blade::elements(self) }
+    fn subspace(&self) -> Subspace { Subspace::Blade(Blade::dim(self), self.grade()) }
 
     fn get(&self, i:usize) -> &T { &self[i] }
     fn basis_blade(&self, i:usize) -> BasisBlade {
@@ -68,6 +91,10 @@ impl<T:AllocBlade<N,G>, N:Dim, G:Dim> MultivectorDst for Blade<T,N,G> {
 
     type Shape = (N, G);
     type Uninit = <AllocateBlade<T,N,G> as Storage<T>>::Uninit;
+
+    fn subspace_of((n,g): (N,G)) -> Subspace {
+        Subspace::Blade(n.value(), g.value())
+    }
 
     fn uninit((n,g): (N,G)) -> Self::Uninit {
         AllocateBlade::<T,N,G>::uninit(n,g)
@@ -87,7 +114,7 @@ impl<T:AllocBlade<N,G>, N:Dim, G:Dim> MultivectorDst for Blade<T,N,G> {
 
 }
 
-unsafe fn _mul_selected<B1,B2,B3,N:Dim>(b1:B1, b2:B2, shape:B3::Shape) -> B3
+fn _mul_selected<B1,B2,B3,N:Dim>(b1:B1, b2:B2, shape:B3::Shape) -> B3
 where
     B1: MultivectorSrc<Dim=N>,
     B2: MultivectorSrc<Dim=N>,
@@ -105,28 +132,22 @@ where
         )
     }
 
+
     //
     //The *slow* method
     //
 
-
-
+    //create an unitialized value
     let mut dest = B3::uninit(shape);
 
-    //if we can do the dot product
-    //TODO: fix this to give the right sign
-    // if b1.elements() == b2.elements() && dest.elements()==1 {
-    //
-    //     dest[0] = MaybeUninit::new(
-    //         b1.into_iter().zip(b2).map(|(x1,x2)| x1*x2).fold(<B3::Scalar as Zero>::zero(), |c,x| c+x)
-    //     );
-    //
-    //     return B3::assume_init(dest);
-    //
-    // }
+    //TODO: optimize a little. We don't always need to initialize beforehand
+    for i in 0..dest.elements() {
+        dest[i] = MaybeUninit::new(B3::Scalar::zero());
+    }
 
-    //TODO: fillin missing zeroes
-    let mut written_to = vec![false; dest.elements()];
+    //this is irrelevant now
+    // let mut written_to = vec![true; dest.elements()];
+
 
     //do the FOILiest of FOILs
     for i in 0..b1.elements() {
@@ -143,32 +164,25 @@ where
                 let term = b1.get(i).ref_mul(b2.get(j));
 
                 //write or add the result to the destination blade
-                if written_to[k] {
-                    //TODO: change once assume_init_ref() is stable
-                    if pos {
-                        *dest[k].as_mut_ptr() += term;
-                    } else {
-                        *dest[k].as_mut_ptr() -= term;
+                // if written_to[k] {
+                    unsafe {
+                        //TODO: change once assume_init_ref() is stable
+                        if pos {
+                            *dest[k].as_mut_ptr() += term;
+                        } else {
+                            *dest[k].as_mut_ptr() -= term;
+                        }
                     }
-                } else {
-                    dest[k] = MaybeUninit::new(if pos {term} else {-term});
-                    written_to[k] = true;
-                }
+                // } else {
+                    // dest[k] = MaybeUninit::new(if pos {term} else {-term});
+                    // written_to[k] = true;
+                // }
             }
 
         }
     }
 
-    let res = B3::assume_init(dest);
-
-    if b1.dim().value() != res.dim().value() {
-        panic!(
-            "Cannot multiply into value of different dimension: {}!={}",
-            b1.dim().value(), res.dim().value()
-        )
-    } else {
-        res
-    }
+    unsafe { B3::assume_init(dest) }
 }
 
 
@@ -195,7 +209,7 @@ impl<T1,T2,U,N:Dim,G1:Dim,G2:Dim> BitXor<Blade<T2,N,G2>> for Blade<T1,N,G1> wher
     type Output = Blade<U,N,DimSum<G1, G2>>;
     fn bitxor(self, rhs: Blade<T2,N,G2>) -> Self::Output {
         let (n, g) = (self.dim_generic(), self.grade_generic().add(rhs.grade_generic()));
-        unsafe { _mul_selected(self, rhs, (n, g)) }
+        _mul_selected(self, rhs, (n, g))
     }
 }
 
@@ -208,14 +222,25 @@ impl<T1,T2,U,N:Dim,G1:Dim,G2:Dim> Rem<Blade<T2,N,G2>> for Blade<T1,N,G1> where
     type Output = Blade<U,N,DimDiff<G2, G1>>;
     fn rem(self, rhs: Blade<T2,N,G2>) -> Self::Output {
         let (n, g) = (self.dim_generic(), rhs.grade_generic().sub(self.grade_generic()));
-        unsafe { _mul_selected(self, rhs, (n, g)) }
+        _mul_selected(self, rhs, (n, g))
     }
 }
 
 #[cfg(test)]
+#[allow(non_upper_case_globals)]
 mod tests {
 
     use super::*;
+
+    const e1: Vec3<i32> = Vec3::new(1, 0, 0);
+    const e2: Vec3<i32> = Vec3::new(0, 1, 0);
+    const e3: Vec3<i32> = Vec3::new(0, 0, 1);
+
+    const e23: BiVec3<i32> = BiVec3::new(1, 0, 0);
+    const e31: BiVec3<i32> = BiVec3::new(0, 1, 0);
+    const e12: BiVec3<i32> = BiVec3::new(0, 0, 1);
+
+    const e123: TriVec3<i32> = TriVec3::new(1);
 
     macro_rules! test_mul {
         ($b1:ident $op:tt $b2:ident == $b3:expr; $commutative:literal) => {
@@ -241,19 +266,9 @@ mod tests {
     }
 
     #[test]
-    fn basis() {
+    fn basis3d() {
 
         let e = Scalar3::new(1);
-
-        let e1 = Vec3::new(1, 0, 0);
-        let e2 = Vec3::new(0, 1, 0);
-        let e3 = Vec3::new(0, 0, 1);
-
-        let e23 = BiVec3::new(1, 0, 0);
-        let e31 = BiVec3::new(0, 1, 0);
-        let e12 = BiVec3::new(0, 0, 1);
-
-        let e123 = TriVec3::new(1);
 
         let zero = Scalar3::new(0);
         let zerov = Vec3::zero();
@@ -317,6 +332,29 @@ mod tests {
         assert_eq!(e23%e123, -e1);
         assert_eq!(e31%e123, -e2);
         assert_eq!(e12%e123, -e3);
+
+    }
+
+    #[test]
+    fn zero_from_degenerate() {
+
+        //a degenerate blade
+        let zeroq = Blade::<i32,U3,U4>::zero();
+
+        let zerov = Vec3::zero();
+        let zerob = BiVec3::zero();
+        let zerot = TriVec3::zero();
+
+        assert_eq!(e1%zeroq, zerot);
+        assert_eq!(e2%zeroq, zerot);
+        assert_eq!(e3%zeroq, zerot);
+
+        assert_eq!(e23%zeroq, zerob);
+        assert_eq!(e31%zeroq, zerob);
+        assert_eq!(e12%zeroq, zerob);
+
+        assert_eq!(e123%zeroq, zerov);
+
 
     }
 
