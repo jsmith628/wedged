@@ -23,6 +23,18 @@ trait MultivectorSrc {
     fn basis_blade(&self, i:usize) -> BasisBlade;
 }
 
+trait MultivectorDst: MultivectorSrc {
+
+    type Shape: Copy;
+    type Uninit: UninitStorage<Self::Scalar>;
+
+    fn uninit(shape: Self::Shape) -> Self::Uninit;
+    unsafe fn assume_init(uninit:Self::Uninit) -> Self;
+
+    fn index_of(basis:BasisBlade, shape:Self::Shape) -> Option<(usize, bool)>;
+
+}
+
 impl<T:AllocBlade<N,G>, N:Dim, G:Dim> MultivectorSrc for Blade<T,N,G> {
 
     type Scalar = T;
@@ -52,12 +64,36 @@ impl<'a, T:AllocBlade<N,G>, N:Dim, G:Dim> MultivectorSrc for &'a Blade<T,N,G> {
 
 }
 
-unsafe fn _mul_grade<B1,B2,U,N:Dim,G:Dim>(b1:B1, b2:B2, g:G) -> Blade<U,N,G>
+impl<T:AllocBlade<N,G>, N:Dim, G:Dim> MultivectorDst for Blade<T,N,G> {
+
+    type Shape = (N, G);
+    type Uninit = <AllocateBlade<T,N,G> as Storage<T>>::Uninit;
+
+    fn uninit((n,g): (N,G)) -> Self::Uninit {
+        AllocateBlade::<T,N,G>::uninit(n,g)
+    }
+
+    unsafe fn assume_init(uninit: Self::Uninit) -> Self {
+        Blade { data: uninit.assume_init() }
+    }
+
+    fn index_of(basis:BasisBlade, (n,g): (N,G)) -> Option<(usize, bool)> {
+        if basis.grade() == g.value() {
+            Some(basis.get_index_sign(n.value()))
+        } else {
+            None
+        }
+    }
+
+}
+
+unsafe fn _mul_grade<B1,B2,B3,N:Dim>(b1:B1, b2:B2, shape:B3::Shape) -> B3
 where
     B1: MultivectorSrc<Dim=N>,
     B2: MultivectorSrc<Dim=N>,
-    B1::Scalar: RefMul<B2::Scalar, Output=U>,
-    U: AllocBlade<N, G> + Add<Output=U> + AddAssign + Sub<Output=U> + SubAssign + Neg<Output=U>,
+    B3: MultivectorDst<Dim=N>,
+    B1::Scalar: RefMul<B2::Scalar, Output=B3::Scalar>,
+    B3::Scalar: ClosedAdd + ClosedSub + Neg<Output=B3::Scalar>,
 {
     //To save further headache with generics, we don't allow multiplying two blades of
     //different dimension
@@ -68,14 +104,13 @@ where
         )
     }
 
-    //for convenience
-    let n = b1.dim();
-
     //
     //The *slow* method
     //
 
-    let mut dest = AllocateBlade::<U,N,G>::uninit(b1.dim(), g);
+    //TODO: fillin missing zeroes
+
+    let mut dest = B3::uninit(shape);
     let mut written_to = vec![false; dest.elements()];
 
     //do the FOILiest of FOILs
@@ -87,11 +122,8 @@ where
             //mul the bases at i and j
             let basis3 = basis1 * basis2;
 
-            //if the result is at the selected grade
-            if basis3.grade() == g.value() {
-                //get the index and sign of the result
-                let (k, pos) = basis3.get_index_sign(n.value());
-
+            //get the index and sign of the result
+            if let Some((k, pos)) = B3::index_of(basis3, shape) {
                 //multiply the two terms
                 let term = b1.get(i).ref_mul(b2.get(j));
 
@@ -107,14 +139,21 @@ where
                     dest[k] = MaybeUninit::new(if pos {term} else {-term});
                     written_to[k] = true;
                 }
-
             }
-
 
         }
     }
 
-    Blade { data: dest.assume_init() }
+    let res = B3::assume_init(dest);
+
+    if b1.dim().value() != res.dim().value() {
+        panic!(
+            "Cannot multiply into value of different dimension: {}!={}",
+            b1.dim().value(), res.dim().value()
+        )
+    } else {
+        res
+    }
 }
 
 
@@ -140,8 +179,8 @@ impl<T1,T2,U,N:Dim,G1:Dim,G2:Dim> BitXor<Blade<T2,N,G2>> for Blade<T1,N,G1> wher
 {
     type Output = Blade<U,N,DimSum<G1, G2>>;
     fn bitxor(self, rhs: Blade<T2,N,G2>) -> Self::Output {
-        let g = self.grade_generic().add(rhs.grade_generic());
-        unsafe { _mul_grade(self, rhs, g) }
+        let (n, g) = (self.dim_generic(), self.grade_generic().add(rhs.grade_generic()));
+        unsafe { _mul_grade(self, rhs, (n, g)) }
     }
 }
 
@@ -153,8 +192,8 @@ impl<T1,T2,U,N:Dim,G1:Dim,G2:Dim> Rem<Blade<T2,N,G2>> for Blade<T1,N,G1> where
 {
     type Output = Blade<U,N,DimDiff<G2, G1>>;
     fn rem(self, rhs: Blade<T2,N,G2>) -> Self::Output {
-        let g = rhs.grade_generic().sub(self.grade_generic());
-        unsafe { _mul_grade(self, rhs, g) }
+        let (n, g) = (self.dim_generic(), rhs.grade_generic().sub(self.grade_generic()));
+        unsafe { _mul_grade(self, rhs, (n, g)) }
     }
 }
 

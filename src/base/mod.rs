@@ -21,6 +21,7 @@ use std::iter::{
 
 use num_traits::{Zero, One};
 
+use na::{ClosedAdd, ClosedSub};
 use na::dimension::{
     Dim, DimAdd, DimSum, DimSub, DimDiff, DimNameDiff,
     Dynamic, Const, U0, U1, U2, U3, U4, U5, U6
