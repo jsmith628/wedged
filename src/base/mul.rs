@@ -11,7 +11,7 @@ impl<T1:?Sized,T2:?Sized,U> RefMul<T2> for T1 where for<'a,'b> &'a T1: Mul<&'b T
     fn ref_mul<'a,'b>(&'a self, rhs:&'b T2) -> U { self * rhs }
 }
 
-trait MultivectorSrc {
+trait MultivectorSrc:IntoIterator {
 
     type Scalar;
     type Dim: Dim;
@@ -87,13 +87,14 @@ impl<T:AllocBlade<N,G>, N:Dim, G:Dim> MultivectorDst for Blade<T,N,G> {
 
 }
 
-unsafe fn _mul_grade<B1,B2,B3,N:Dim>(b1:B1, b2:B2, shape:B3::Shape) -> B3
+unsafe fn _mul_selected<B1,B2,B3,N:Dim>(b1:B1, b2:B2, shape:B3::Shape) -> B3
 where
     B1: MultivectorSrc<Dim=N>,
     B2: MultivectorSrc<Dim=N>,
     B3: MultivectorDst<Dim=N>,
     B1::Scalar: RefMul<B2::Scalar, Output=B3::Scalar>,
-    B3::Scalar: ClosedAdd + ClosedSub + Neg<Output=B3::Scalar>,
+    B1::Item: Mul<B2::Item, Output=B3::Scalar>,
+    B3::Scalar: ClosedAdd + ClosedSub + Neg<Output=B3::Scalar> + Zero,
 {
     //To save further headache with generics, we don't allow multiplying two blades of
     //different dimension
@@ -108,9 +109,23 @@ where
     //The *slow* method
     //
 
-    //TODO: fillin missing zeroes
+
 
     let mut dest = B3::uninit(shape);
+
+    //if we can do the dot product
+    //TODO: fix this to give the right sign
+    // if b1.elements() == b2.elements() && dest.elements()==1 {
+    //
+    //     dest[0] = MaybeUninit::new(
+    //         b1.into_iter().zip(b2).map(|(x1,x2)| x1*x2).fold(<B3::Scalar as Zero>::zero(), |c,x| c+x)
+    //     );
+    //
+    //     return B3::assume_init(dest);
+    //
+    // }
+
+    //TODO: fillin missing zeroes
     let mut written_to = vec![false; dest.elements()];
 
     //do the FOILiest of FOILs
@@ -166,34 +181,34 @@ impl<T1:AllocBlade<N,G1>, N:Dim, G1:Dim> Blade<T1,N,G1> {
     //     U: AllocBlade<N, G> + Add<Output=U> + AddAssign + Sub<Output=U> + SubAssign + Neg<Output=U>,
     // {
     //     //TODO: fix when the
-    //     unsafe { _mul_grade(self, rhs, g) }
+    //     unsafe { _mul_selected(self, rhs, g) }
     // }
 
 }
 
 impl<T1,T2,U,N:Dim,G1:Dim,G2:Dim> BitXor<Blade<T2,N,G2>> for Blade<T1,N,G1> where
-    T1: AllocBlade<N,G1> + RefMul<T2,Output=U>,
+    T1: AllocBlade<N,G1> + Mul<T2,Output=U> + RefMul<T2,Output=U>,
     T2: AllocBlade<N,G2>,
     G1: DimAdd<G2>,
-    U: AllocBlade<N, DimSum<G1, G2>> + Add<Output=U> + AddAssign + Sub<Output=U> + SubAssign + Neg<Output=U>,
+    U: AllocBlade<N, DimSum<G1, G2>> + ClosedAdd + ClosedSub + Neg<Output=U> + Zero,
 {
     type Output = Blade<U,N,DimSum<G1, G2>>;
     fn bitxor(self, rhs: Blade<T2,N,G2>) -> Self::Output {
         let (n, g) = (self.dim_generic(), self.grade_generic().add(rhs.grade_generic()));
-        unsafe { _mul_grade(self, rhs, (n, g)) }
+        unsafe { _mul_selected(self, rhs, (n, g)) }
     }
 }
 
 impl<T1,T2,U,N:Dim,G1:Dim,G2:Dim> Rem<Blade<T2,N,G2>> for Blade<T1,N,G1> where
-    T1: AllocBlade<N,G1> + RefMul<T2,Output=U>,
+    T1: AllocBlade<N,G1> + Mul<T2,Output=U> + RefMul<T2,Output=U>,
     T2: AllocBlade<N,G2>,
     G2: DimSub<G1>,
-    U: AllocBlade<N, DimDiff<G2, G1>> + Add<Output=U> + AddAssign + Sub<Output=U> + SubAssign + Neg<Output=U>,
+    U: AllocBlade<N, DimDiff<G2, G1>> + ClosedAdd + ClosedSub + Neg<Output=U> + Zero,
 {
     type Output = Blade<U,N,DimDiff<G2, G1>>;
     fn rem(self, rhs: Blade<T2,N,G2>) -> Self::Output {
         let (n, g) = (self.dim_generic(), rhs.grade_generic().sub(self.grade_generic()));
-        unsafe { _mul_grade(self, rhs, (n, g)) }
+        unsafe { _mul_selected(self, rhs, (n, g)) }
     }
 }
 
