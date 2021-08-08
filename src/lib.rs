@@ -1,3 +1,7 @@
+#![cfg_attr(test, allow(soft_unstable))]
+#![cfg_attr(test, feature(test))]
+
+#[cfg(test)] extern crate test;
 
 extern crate num_traits;
 extern crate nalgebra as na;
