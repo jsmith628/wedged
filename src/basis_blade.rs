@@ -6,12 +6,12 @@ use std::fmt::{Formatter, Debug, Display, Binary, Result as FmtResult, Alignment
 use super::binom;
 
 //So we can maybe change it later though there really is no reason it needs any more bits than this
-type Bits = i32;
+pub type Bits = i32;
 
 #[repr(transparent)]
 #[derive(Clone, Copy, PartialEq, Eq, Hash)]
 pub struct BasisBlade {
-    bits: Bits
+    pub bits: Bits
 }
 
 impl BasisBlade {
@@ -43,6 +43,8 @@ impl BasisBlade {
     const fn unchecked_fast_mul(self, rhs: BasisBlade) -> BasisBlade {
         BasisBlade { bits: self.bits ^ rhs.bits }
     }
+
+    pub const fn from_bits(bits:Bits) -> BasisBlade { BasisBlade { bits } }
 
     ///
     /// Computes the minimum dimension this `BasisBlade` is contained in

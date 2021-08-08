@@ -123,15 +123,20 @@ where
     B1::Item: Mul<B2::Item, Output=B3::Scalar>,
     B3::Scalar: ClosedAdd + ClosedSub + Neg<Output=B3::Scalar> + Zero,
 {
+
+    let (n1, n2, n3) = (b1.dim().value(), b2.dim().value(), B3::subspace_of(shape).dim());
+
     //To save further headache with generics, we don't allow multiplying two blades of
     //different dimension
-    if b1.dim().value() != b2.dim().value() {
-        panic!(
-            "Cannot multiply two values of different dimensions: {}!={}",
-            b1.dim().value(), b2.dim().value()
-        )
+    if n1 != n2 {
+        panic!("Cannot multiply two values of different dimensions: {}!={}", n1, n2)
     }
 
+    if n1 != n3 {
+        panic!("Cannot multiply into a value of different dimension: {}!={}", n1, n3)
+    }
+
+    let n = n1;
 
     //
     //The *slow* method
@@ -145,18 +150,33 @@ where
     match (b1.subspace(), b2.subspace(), B3::subspace_of(shape)) {
 
         //the scalar product of two blades
-        // (Blade(_,g), Blade(_,g2), Blade(_,0)) if g==g2 => {
-        //
-        //     let dot = b1.into_iter().zip(b2).map(|(t1,t2)| t1*t2).fold(B3::Scalar::zero(), |d,t| d+t);
-        //
-        //     dest[0] = MaybeUninit::new(
-        //         //do `(-1)^(g*(g-1)/2) * dot`
-        //         if (g&0b10) == 0 { dot } else { -dot }
-        //     );
-        //
-        //     return unsafe { B3::assume_init(dest) };
-        //
-        // },
+        (Blade(_,g), Blade(_,g2), Blade(_,0)) if g==g2 => {
+
+            let dot = b1.into_iter().zip(b2).map(|(t1,t2)| t1*t2).fold(B3::Scalar::zero(), |d,t| d+t);
+
+            dest[0] = MaybeUninit::new(
+                //do `(-1)^(g*(g-1)/2) * dot`
+                if (g&0b10) == 0 { dot } else { -dot }
+            );
+
+            return unsafe { B3::assume_init(dest) };
+
+        },
+
+        //wedging two blades into the psuedoscalar
+        (Blade(_,g1), Blade(_,g2), Blade(_,n2)) if n==n2 && g1+g2==n2 => {
+
+            if g1!=g2 {
+                let dot = b1.into_iter().zip(b2).map(|(t1,t2)| t1*t2).fold(B3::Scalar::zero(), |d,t| d+t);
+                let neg = ((g1&0b10) != 0) ^ (g1>g2 && ((n&0b10) != 0));
+
+                dest[0] = MaybeUninit::new( if neg { -dot } else { dot } );
+                return unsafe { B3::assume_init(dest) };
+            } else {
+
+            }
+
+        },
 
         // (Blade(3,1), Blade(3,1), Blade(3,2)) => {
         //     dest[0] = MaybeUninit::new(b1.get(1).ref_mul(b2.get(2)) - b1.get(2).ref_mul(b2.get(1)));
@@ -532,6 +552,66 @@ mod tests {
             }
 
         }
+    }
+
+    //makes sure that the multiplication agrees with BasisBlade
+    #[test]
+    fn basis() {
+
+        use crate::basis_blade::*;
+        use rayon::prelude::*;
+
+        let count = (1 as Bits) << 8;
+
+        (0..count).into_par_iter().for_each(
+            |bits1| {
+                let b1 = BasisBlade::from_bits(bits1);
+                let (n1, g1) = (b1.dim(), b1.grade());
+
+                (0..count).into_par_iter().for_each(
+                    |bits2| {
+                        let b2 = BasisBlade::from_bits(bits2);
+                        let (n2, g2) = (b2.dim(), b2.grade());
+
+                        //multiply the two basis as BasisBlade's
+                        let b3 = b1*b2;
+                        let g3 = b3.grade();
+
+                        //
+                        //convert the BasisBlade's into BladeD's
+                        //
+
+                        let n = n1.max(n2);
+                        let mut x1 = BladeD::from_element(n, g1, 0);
+                        let mut x2 = BladeD::from_element(n, g2, 0);
+                        let mut x3 = BladeD::from_element(n, g3, 0);
+
+                        let (i, pos1) = b1.get_index_sign(n);
+                        let (j, pos2) = b2.get_index_sign(n);
+                        let (k, pos3) = b3.get_index_sign(n);
+
+                        x1[i] = if pos1 { 1 } else { -1 };
+                        x2[j] = if pos2 { 1 } else { -1 };
+                        x3[k] = if pos3 { 1 } else { -1 };
+
+                        //
+                        //Test for consistency
+                        //
+
+                        let left = _mul_selected::<_,_,BladeD<_>,Dynamic>(
+                            x1.clone(), x2.clone(), (Dynamic::new(n), Dynamic::new(g3))
+                        );
+
+                        let right = x3;
+
+                        // println!("{}*{} = {}, {}", x1, x2, left, right);
+                        assert_eq!(left, right);
+                    }
+                )
+
+            }
+        );
+
     }
 
     #[test]
