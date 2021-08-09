@@ -170,7 +170,7 @@ impl<T:AllocMultivector<N>, N:Dim> MultivectorDst for Multivector<T,N> {
 
 }
 
-fn _mul_selected<B1,B2,B3,N:Dim>(b1:B1, b2:B2, shape:B3::Shape) -> B3
+fn mul_selected<B1,B2,B3,N:Dim>(b1:B1, b2:B2, shape:B3::Shape) -> B3
 where
     B1: MultivectorSrc<Dim=N>,
     B2: MultivectorSrc<Dim=N>,
@@ -288,6 +288,9 @@ where
     unsafe { B3::assume_init(dest) }
 }
 
+//TODO: when we have specialization, we'll use this to impl optimized varients for each
+//statically sized type instead of using if statements in mul_selected
+
 pub trait GeometricMul<Rhs> {
     type OutputScalar;
     type N: Dim;
@@ -318,16 +321,17 @@ macro_rules! impl_geometric_mul {
     (
         @impl
         $(&$a:lifetime)? $Ty1:ident<T:$Alloc1:ident $(, $G1:ident)*> *
-        $(&$b:lifetime)? $Ty2:ident<T:$Alloc2:ident $(, $G2:ident)*>;
+        $(&$b:lifetime)? $Ty2:ident<T:$Alloc2:ident $(, $G2:ident)*> =
+        $Ty3:ident<T:$Alloc3:ident>;
         $($rest:tt)*
     ) => {
 
         impl<$($a, )? $($b, )? T1, T2, U, N:Dim $(, $G1:Dim)* $(, $G2:Dim)*>
         GeometricMul<$(&$b)? $Ty2<T2,N $(,$G2)*>> for $(&$a)? $Ty1<T1,N $(,$G1)*> where
-            T1: $Alloc1<N $(, $G1)*> + RefMul<T2,Output=U>,
+            T1: $Alloc1<N $(, $G1)*> + RefMul<T2, Output=U>,
             T2: $Alloc2<N $(, $G2)*>,
             U: ClosedAdd + ClosedSub + Neg<Output=U> + Zero,
-            $(&$a)? T1: Mul<$(&$b)? T2,Output=U>
+            $(&$a)? T1: Mul<$(&$b)? T2, Output=U>
         {
             type OutputScalar = U;
             type N = N;
@@ -336,7 +340,7 @@ macro_rules! impl_geometric_mul {
             where U: AllocBlade<Self::N, G>
             {
                 let shape = (self.dim_generic(), g);
-                _mul_selected(self, rhs, shape)
+                mul_selected(self, rhs, shape)
             }
 
             fn mul_dyn_grade(self, rhs: $(&$b)? $Ty2<T2,N $(,$G2)*>, g:usize) -> Blade<U, N, Dynamic>
@@ -355,14 +359,38 @@ macro_rules! impl_geometric_mul {
             where U: AllocRotor<N>
             {
                 let n = self.dim_generic();
-                _mul_selected(self, rhs, n)
+                mul_selected(self, rhs, n)
             }
 
             fn mul_full(self, rhs: $(&$b)? $Ty2<T2,N $(,$G2)*>) -> Multivector<U, N>
             where U: AllocMultivector<N>
             {
                 let n = self.dim_generic();
-                _mul_selected(self, rhs, n)
+                mul_selected(self, rhs, n)
+            }
+
+        }
+
+        //
+        //This is only implemented on values with the same scalar type so as to not conflict with
+        //scalar multiplication. Also, most of these output `Multivector` besides the obvious
+        //`Rotor * Rotor` counterexample. Now yes, even blades times Rotors do result in rotors,
+        //but it would mess with the type inference and type checking if we did that even once
+        //we have specialization. Instead, users will need to use mul_even() to get that functionality
+        //
+
+        impl<$($a, )? $($b, )? T, U, N:Dim $(, $G1:Dim)* $(, $G2:Dim)*>
+        Mul<$(&$b)? $Ty2<T,N $(,$G2)*>> for $(&$a)? $Ty1<T,N $(,$G1)*> where
+            T: $Alloc1<N $(, $G1)*> + $Alloc2<N $(, $G2)*> + RefMul<T, Output=U>,
+            U: $Alloc3<N> + ClosedAdd + ClosedSub + Neg<Output=U> + Zero,
+            $(&$a)? T: Mul<$(&$b)? T, Output=U>
+        {
+
+            type Output = $Ty3<U,N>;
+
+            fn mul(self, rhs: $(&$b)? $Ty2<T,N $(,$G2)*>) -> $Ty3<U,N> {
+                let n = self.dim_generic();
+                mul_selected(self, rhs, n)
             }
 
         }
@@ -373,14 +401,15 @@ macro_rules! impl_geometric_mul {
     //implement over every combination of references
     (
         $Ty1:ident<T:$Alloc1:ident $(, $G1:ident)*> *
-        $Ty2:ident<T:$Alloc2:ident $(, $G2:ident)*>;
+        $Ty2:ident<T:$Alloc2:ident $(, $G2:ident)*> =
+        $Ty3:ident<T:$Alloc3:ident>;
         $($rest:tt)*
     ) => {
         impl_geometric_mul!(
-            @impl     $Ty1<T:$Alloc1 $(, $G1)*> *     $Ty2<T:$Alloc2 $(, $G2)*>;
-            @impl &'a $Ty1<T:$Alloc1 $(, $G1)*> *     $Ty2<T:$Alloc2 $(, $G2)*>;
-            @impl     $Ty1<T:$Alloc1 $(, $G1)*> * &'a $Ty2<T:$Alloc2 $(, $G2)*>;
-            @impl &'a $Ty1<T:$Alloc1 $(, $G1)*> * &'b $Ty2<T:$Alloc2 $(, $G2)*>;
+            @impl     $Ty1<T:$Alloc1 $(, $G1)*> *     $Ty2<T:$Alloc2 $(, $G2)*> = $Ty3<T:$Alloc3>;
+            @impl &'a $Ty1<T:$Alloc1 $(, $G1)*> *     $Ty2<T:$Alloc2 $(, $G2)*> = $Ty3<T:$Alloc3>;
+            @impl     $Ty1<T:$Alloc1 $(, $G1)*> * &'a $Ty2<T:$Alloc2 $(, $G2)*> = $Ty3<T:$Alloc3>;
+            @impl &'a $Ty1<T:$Alloc1 $(, $G1)*> * &'b $Ty2<T:$Alloc2 $(, $G2)*> = $Ty3<T:$Alloc3>;
             $($rest)*
         );
     };
@@ -389,17 +418,17 @@ macro_rules! impl_geometric_mul {
 
 impl_geometric_mul!(
 
-    Blade<T:AllocBlade,G1> * Blade<T:AllocBlade,G2>;
-    Blade<T:AllocBlade,G1> * Rotor<T:AllocRotor>;
-    Blade<T:AllocBlade,G1> * Multivector<T:AllocMultivector>;
+    Blade<T:AllocBlade,G1> * Blade<T:AllocBlade,G2>          = Multivector<T:AllocMultivector>;
+    Blade<T:AllocBlade,G1> * Rotor<T:AllocRotor>             = Multivector<T:AllocMultivector>;
+    Blade<T:AllocBlade,G1> * Multivector<T:AllocMultivector> = Multivector<T:AllocMultivector>;
 
-    Rotor<T:AllocRotor> * Blade<T:AllocBlade,G2>;
-    Rotor<T:AllocRotor> * Rotor<T:AllocRotor>;
-    Rotor<T:AllocRotor> * Multivector<T:AllocMultivector>;
+    Rotor<T:AllocRotor> * Blade<T:AllocBlade,G2>          = Multivector<T:AllocMultivector>;
+    Rotor<T:AllocRotor> * Rotor<T:AllocRotor>             = Rotor<T:AllocRotor>;
+    Rotor<T:AllocRotor> * Multivector<T:AllocMultivector> = Multivector<T:AllocMultivector>;
 
-    Multivector<T:AllocMultivector> * Blade<T:AllocBlade,G2>;
-    Multivector<T:AllocMultivector> * Rotor<T:AllocRotor>;
-    Multivector<T:AllocMultivector> * Multivector<T:AllocMultivector>;
+    Multivector<T:AllocMultivector> * Blade<T:AllocBlade,G2>          = Multivector<T:AllocMultivector>;
+    Multivector<T:AllocMultivector> * Rotor<T:AllocRotor>             = Multivector<T:AllocMultivector>;
+    Multivector<T:AllocMultivector> * Multivector<T:AllocMultivector> = Multivector<T:AllocMultivector>;
 
 );
 
@@ -412,7 +441,7 @@ impl<T1,T2,U,N:Dim,G1:Dim,G2:Dim> BitXor<Blade<T2,N,G2>> for Blade<T1,N,G1> wher
     type Output = Blade<U,N,DimSum<G1, G2>>;
     fn bitxor(self, rhs: Blade<T2,N,G2>) -> Self::Output {
         let (n, g) = (self.dim_generic(), self.grade_generic().add(rhs.grade_generic()));
-        _mul_selected(self, rhs, (n, g))
+        mul_selected(self, rhs, (n, g))
     }
 }
 
@@ -425,7 +454,7 @@ impl<T1,T2,U,N:Dim,G1:Dim,G2:Dim> Rem<Blade<T2,N,G2>> for Blade<T1,N,G1> where
     type Output = Blade<U,N,DimDiff<G2, G1>>;
     fn rem(self, rhs: Blade<T2,N,G2>) -> Self::Output {
         let (n, g) = (self.dim_generic(), rhs.grade_generic().sub(self.grade_generic()));
-        _mul_selected(self, rhs, (n, g))
+        mul_selected(self, rhs, (n, g))
     }
 }
 
@@ -754,7 +783,7 @@ mod tests {
                         //Test for consistency
                         //
 
-                        let left = _mul_selected::<_,_,BladeD<_>,Dynamic>(
+                        let left = mul_selected::<_,_,BladeD<_>,Dynamic>(
                             x1.clone(), x2.clone(), (Dynamic::new(n), Dynamic::new(g3))
                         );
 
