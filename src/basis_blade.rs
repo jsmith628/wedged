@@ -375,10 +375,36 @@ impl BasisBlade {
 
     }
 
-    pub const fn get_index(&self, n: usize) -> usize {
-        self.get_index_sign(n).0
+    pub fn basis_rotor(n: usize, i: usize) -> BasisBlade {
+        let (mut g, mut i, mut binom) = (0, i, 1);
+        while binom <= i {
+            i -= binom;
+
+            //compute the amount of elements in the next grade
+            binom *= n-g;
+            g += 1;
+            binom /= g;
+
+            //do it twice since we're in the even subalgebra
+            binom *= n-g;
+            g += 1;
+            binom /= g;
+        }
+        Self::basis_blade(n,g,i)
     }
 
+    pub fn basis(n: usize, i: usize) -> BasisBlade {
+        let (mut g, mut i, mut binom) = (0, i, 1);
+        while binom <= i {
+            i -= binom;
+
+            //compute the amount of elements in the next grade
+            binom *= n-g;
+            g += 1;
+            binom /= g;
+        }
+        Self::basis_blade(n,g,i)
+    }
 
     const fn get_index_sign_in(self, n: usize, g: usize) -> (usize, bool) {
 
@@ -434,9 +460,33 @@ impl BasisBlade {
 
     }
 
-    pub const fn get_index_sign(&self, n: usize) -> (usize, bool) {
+    pub const fn blade_index_sign(&self, n: usize) -> (usize, bool) {
         let n = if n > Self::MAX_DIM { Self::MAX_DIM } else { n };
         self.get_index_sign_in(n, self.grade())
+    }
+
+    pub const fn rotor_index_sign(&self, n: usize) -> (usize, bool) {
+        if self.grade()%2 == 1 { return (0,self.positive()); }
+        let (i, sign) = self.blade_index_sign(n);
+
+        //TODO: optimize by having a progressive value of the binomial coefficient
+        const fn get_start(n:usize, g:usize) -> usize {
+            if g<=1 { return 0; }
+            get_start(n, g-2) + binom(n,g-2)
+        }
+
+        (get_start(n,self.grade()) + i, sign)
+    }
+
+    pub const fn multivector_index_sign(&self, n: usize) -> (usize, bool) {
+        let (i, sign) = self.blade_index_sign(n);
+
+        const fn get_start(n:usize, g:usize) -> usize {
+            if g==0 { return 0; }
+            get_start(n, g-1) + binom(n,g-1)
+        }
+
+        (get_start(n,self.grade()) + i, sign)
     }
 
 }
@@ -926,7 +976,7 @@ mod tests {
 
     #[test]
     fn basis_rule_2_3() {
-        for n in 1..16 {
+        for n in 1..=16 {
             for g in 0..=(n-1) {
                 let count = binom(n,g);
                 if 2*g <= n {
@@ -955,7 +1005,7 @@ mod tests {
 
     #[test]
     fn basis_rule_4_5() {
-        for n in 1..16 {
+        for n in 1..=16 {
             for g in 0..=n {
                 let count = binom(n,g);
                 let ps = BasisBlade::basis_blade(n,n,0);
@@ -994,18 +1044,98 @@ mod tests {
 
     #[test]
     fn blade_index() {
-        for n in 1..=6 {
+        for n in 1..=16 {
             // println!("\nn = {}:", n);
             for g in 0..=n {
                 for i in 0..binom(n,g) {
                     let blade = BasisBlade::basis_blade(n,g,i);
                     // print!("{:?} ", blade.get_index_sign(n));
-                    assert_eq!((i, true), blade.get_index_sign(n));
-                    assert_eq!((i, false), (-blade).get_index_sign(n));
+                    assert_eq!((i, true), blade.blade_index_sign(n));
+                    assert_eq!((i, false), (-blade).blade_index_sign(n));
                 }
                 // println!();
             }
         }
+    }
+
+    #[test]
+    fn rotor_index() {
+        for n in 1..=16 {
+            // println!("\nn = {}:", n);
+            for i in 0..(1<<(n/2)) {
+                let rotor = BasisBlade::basis_rotor(n,i);
+                // print!("{:?} ", rotor.rotor_index_sign(n));
+                assert_eq!((i, true), rotor.rotor_index_sign(n));
+                assert_eq!((i, false), (-rotor).rotor_index_sign(n));
+            }
+        }
+    }
+
+    #[test]
+    fn multivector_index() {
+        for n in 1..=16 {
+            for i in 0..(1<<n) {
+                let mv = BasisBlade::basis(n,i);
+                assert_eq!((i, true), mv.multivector_index_sign(n));
+                assert_eq!((i, false), (-mv).multivector_index_sign(n));
+            }
+        }
+    }
+
+    macro_rules! test_index {
+        ($($e:expr; $n:expr, $blade:expr, $rotor:expr, $mv:expr;)*) => {
+            $(
+                assert_eq!($e.blade_index_sign($n).0, $blade);
+                assert_eq!($e.rotor_index_sign($n).0, $rotor);
+                assert_eq!($e.multivector_index_sign($n).0, $mv);
+            )*
+        }
+    }
+
+    #[test]
+    fn index_2d() {
+        test_index!(
+             e    ; 2, 0, 0, 0;
+             e1   ; 2, 0, 0, 1;
+             e2   ; 2, 1, 0, 2;
+             e12  ; 2, 0, 1, 3;
+        );
+    }
+
+    #[test]
+    fn index_3d() {
+        test_index!(
+             e    ; 3, 0, 0, 0;
+             e1   ; 3, 0, 0, 1;
+             e2   ; 3, 1, 0, 2;
+             e3   ; 3, 2, 0, 3;
+             e23  ; 3, 0, 1, 4;
+            -e13  ; 3, 1, 2, 5;
+             e12  ; 3, 2, 3, 6;
+             e123 ; 3, 0, 0, 7;
+        );
+    }
+
+    #[test]
+    fn index_4d() {
+        test_index!(
+             e     ; 4, 0, 0, 0;
+             e1    ; 4, 0, 0, 1;
+             e2    ; 4, 1, 0, 2;
+             e3    ; 4, 2, 0, 3;
+             e4    ; 4, 3, 0, 4;
+             e23   ; 4, 0, 1, 5;
+            -e13   ; 4, 1, 2, 6;
+             e12   ; 4, 2, 3, 7;
+             e14   ; 4, 3, 4, 8;
+             e24   ; 4, 4, 5, 9;
+             e34   ; 4, 5, 6, 10;
+            -e234  ; 4, 0, 0, 11;
+             e134  ; 4, 1, 0, 12;
+            -e124  ; 4, 2, 0, 13;
+             e123  ; 4, 3, 0, 14;
+            -e1234 ; 4, 0, 7, 15;
+        );
     }
 
 

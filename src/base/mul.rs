@@ -38,7 +38,7 @@ trait MultivectorSrc:IntoIterator {
     fn subspace(&self) -> Subspace;
 
     fn get(&self, i:usize) -> &Self::Scalar;
-    fn basis_blade(&self, i:usize) -> BasisBlade;
+    fn basis(&self, i:usize) -> BasisBlade;
 }
 
 trait MultivectorDst: MultivectorSrc {
@@ -65,51 +65,107 @@ impl<T:AllocBlade<N,G>, N:Dim, G:Dim> MultivectorSrc for Blade<T,N,G> {
     fn elements(&self) -> usize { Blade::elements(self) }
 
     fn get(&self, i:usize) -> &T { &self[i] }
-    fn basis_blade(&self, i:usize) -> BasisBlade {
+    fn basis(&self, i:usize) -> BasisBlade {
         BasisBlade::basis_blade(Blade::dim(self), self.grade(), i)
     }
 
 }
 
-impl<'a, T:AllocBlade<N,G>, N:Dim, G:Dim> MultivectorSrc for &'a Blade<T,N,G> {
+impl<T:AllocRotor<N>, N:Dim> MultivectorSrc for Rotor<T,N> {
 
     type Scalar = T;
     type Dim = N;
 
     fn dim(&self) -> N { self.dim_generic() }
-    fn elements(&self) -> usize { Blade::elements(self) }
-    fn subspace(&self) -> Subspace { Subspace::Blade(Blade::dim(self), self.grade()) }
+    fn subspace(&self) -> Subspace { Subspace::Even(Rotor::dim(self)) }
+    fn elements(&self) -> usize { Rotor::elements(self) }
 
     fn get(&self, i:usize) -> &T { &self[i] }
-    fn basis_blade(&self, i:usize) -> BasisBlade {
-        BasisBlade::basis_blade(Blade::dim(self), self.grade(), i)
+    fn basis(&self, i:usize) -> BasisBlade {
+        BasisBlade::basis_rotor(Rotor::dim(self), i)
     }
 
 }
+
+impl<T:AllocMultivector<N>, N:Dim> MultivectorSrc for Multivector<T,N> {
+
+    type Scalar = T;
+    type Dim = N;
+
+    fn dim(&self) -> N { self.dim_generic() }
+    fn subspace(&self) -> Subspace { Subspace::Full(Multivector::dim(self)) }
+    fn elements(&self) -> usize { Multivector::elements(self) }
+
+    fn get(&self, i:usize) -> &T { &self[i] }
+    fn basis(&self, i:usize) -> BasisBlade {
+        BasisBlade::basis(Multivector::dim(self), i)
+    }
+
+}
+
+macro_rules! impl_src_ref {
+    ($Ty:ident<T:$Alloc:ident,N $(, $G:ident)*>) => {
+        impl<'a, T:$Alloc<N $(, $G),*>, N:Dim $(, $G:Dim)*> MultivectorSrc for &'a $Ty<T,N $(, $G)*> {
+
+            type Scalar = T;
+            type Dim = N;
+
+            fn dim(&self) -> N { MultivectorSrc::dim(*self) }
+            fn elements(&self) -> usize { MultivectorSrc::elements(*self) }
+            fn subspace(&self) -> Subspace { MultivectorSrc::subspace(*self) }
+
+            fn get(&self, i:usize) -> &T { MultivectorSrc::get(*self, i) }
+            fn basis(&self, i:usize) -> BasisBlade { MultivectorSrc::basis(*self, i) }
+
+        }
+    }
+}
+
+impl_src_ref!(Blade<T:AllocBlade,N,G>);
+impl_src_ref!(Rotor<T:AllocRotor,N>);
+impl_src_ref!(Multivector<T:AllocMultivector,N>);
 
 impl<T:AllocBlade<N,G>, N:Dim, G:Dim> MultivectorDst for Blade<T,N,G> {
 
     type Shape = (N, G);
     type Uninit = <AllocateBlade<T,N,G> as Storage<T>>::Uninit;
 
-    fn subspace_of((n,g): (N,G)) -> Subspace {
-        Subspace::Blade(n.value(), g.value())
-    }
-
-    fn uninit((n,g): (N,G)) -> Self::Uninit {
-        AllocateBlade::<T,N,G>::uninit(n,g)
-    }
-
-    unsafe fn assume_init(uninit: Self::Uninit) -> Self {
-        Blade { data: uninit.assume_init() }
-    }
+    fn subspace_of((n,g): (N,G)) -> Subspace { Subspace::Blade(n.value(), g.value()) }
+    fn uninit((n,g): (N,G)) -> Self::Uninit { AllocateBlade::<T,N,G>::uninit(n,g) }
+    unsafe fn assume_init(uninit: Self::Uninit) -> Self { Blade { data: uninit.assume_init() } }
 
     fn index_of(basis:BasisBlade, (n,g): (N,G)) -> Option<(usize, bool)> {
-        if basis.grade() == g.value() {
-            Some(basis.get_index_sign(n.value()))
-        } else {
-            None
-        }
+        if basis.grade() == g.value() { Some(basis.blade_index_sign(n.value())) } else { None }
+    }
+
+}
+
+impl<T:AllocRotor<N>, N:Dim> MultivectorDst for Rotor<T,N> {
+
+    type Shape = N;
+    type Uninit = <AllocateRotor<T,N> as Storage<T>>::Uninit;
+
+    fn subspace_of(n: N) -> Subspace { Subspace::Even(n.value()) }
+    fn uninit(n: N) -> Self::Uninit { AllocateRotor::<T,N>::uninit(n) }
+    unsafe fn assume_init(uninit: Self::Uninit) -> Self { Rotor { data: uninit.assume_init() } }
+
+    fn index_of(basis:BasisBlade, n:N) -> Option<(usize, bool)> {
+        if basis.grade()%2 == 0 { Some(basis.rotor_index_sign(n.value())) } else { None }
+    }
+
+}
+
+impl<T:AllocMultivector<N>, N:Dim> MultivectorDst for Multivector<T,N> {
+
+    type Shape = N;
+    type Uninit = <AllocateMultivector<T,N> as Storage<T>>::Uninit;
+
+    fn subspace_of(n: N) -> Subspace { Subspace::Full(n.value()) }
+    fn uninit(n: N) -> Self::Uninit { AllocateMultivector::<T,N>::uninit(n) }
+    unsafe fn assume_init(uninit: Self::Uninit) -> Self { Multivector { data: uninit.assume_init() } }
+
+    fn index_of(basis:BasisBlade, n:N) -> Option<(usize, bool)> {
+        Some(basis.multivector_index_sign(n.value()))
     }
 
 }
@@ -198,9 +254,9 @@ where
 
     //do the FOILiest of FOILs
     for i in 0..b1.elements() {
-        let basis1 = b1.basis_blade(i);
+        let basis1 = b1.basis(i);
         for j in 0..b2.elements() {
-            let basis2 = b2.basis_blade(j);
+            let basis2 = b2.basis(j);
 
             //mul the bases at i and j
             let basis3 = basis1 * basis2;
@@ -232,20 +288,120 @@ where
     unsafe { B3::assume_init(dest) }
 }
 
+pub trait GeometricMul<Rhs> {
+    type OutputScalar;
+    type N: Dim;
 
-impl<T1:AllocBlade<N,G1>, N:Dim, G1:Dim> Blade<T1,N,G1> {
+    fn mul_grade_generic<G:Dim>(self, rhs: Rhs, g:G) -> Blade<Self::OutputScalar, Self::N, G>
+    where Self::OutputScalar: AllocBlade<Self::N, G>;
 
-    // pub fn mul_grade_generic<T2, U, G2:Dim, G:Dim>(self, rhs: Blade<T2,N,G2>, g: G) -> Blade<U,N,G>
-    // where
-    //     T1: RefMul<T2, Output=U>,
-    //     T2: AllocBlade<N, G2>,
-    //     U: AllocBlade<N, G> + Add<Output=U> + AddAssign + Sub<Output=U> + SubAssign + Neg<Output=U>,
-    // {
-    //     //TODO: fix when the
-    //     unsafe { _mul_selected(self, rhs, g) }
-    // }
+    fn mul_dyn_grade(self, rhs: Rhs, g:usize) -> Blade<Self::OutputScalar, Self::N, Dynamic>
+    where Self::OutputScalar: AllocBlade<Self::N, Dynamic>;
+
+    fn mul_grade<G:DimName>(self, rhs: Rhs) -> Blade<Self::OutputScalar, Self::N, G>
+    where Self::OutputScalar: AllocBlade<Self::N, G>;
+
+    fn mul_even(self, rhs: Rhs) -> Rotor<Self::OutputScalar, Self::N>
+    where Self::OutputScalar: AllocRotor<Self::N>;
+
+    fn mul_full(self, rhs: Rhs) -> Multivector<Self::OutputScalar, Self::N>
+    where Self::OutputScalar: AllocMultivector<Self::N>;
 
 }
+
+macro_rules! impl_geometric_mul {
+
+    //end the loop
+    () => {};
+
+    //implement one pairing
+    (
+        @impl
+        $(&$a:lifetime)? $Ty1:ident<T:$Alloc1:ident $(, $G1:ident)*> *
+        $(&$b:lifetime)? $Ty2:ident<T:$Alloc2:ident $(, $G2:ident)*>;
+        $($rest:tt)*
+    ) => {
+
+        impl<$($a, )? $($b, )? T1, T2, U, N:Dim $(, $G1:Dim)* $(, $G2:Dim)*>
+        GeometricMul<$(&$b)? $Ty2<T2,N $(,$G2)*>> for $(&$a)? $Ty1<T1,N $(,$G1)*> where
+            T1: $Alloc1<N $(, $G1)*> + RefMul<T2,Output=U>,
+            T2: $Alloc2<N $(, $G2)*>,
+            U: ClosedAdd + ClosedSub + Neg<Output=U> + Zero,
+            $(&$a)? T1: Mul<$(&$b)? T2,Output=U>
+        {
+            type OutputScalar = U;
+            type N = N;
+
+            fn mul_grade_generic<G:Dim>(self, rhs: $(&$b)? $Ty2<T2,N $(,$G2)*>, g:G) -> Blade<U, N, G>
+            where U: AllocBlade<Self::N, G>
+            {
+                let shape = (self.dim_generic(), g);
+                _mul_selected(self, rhs, shape)
+            }
+
+            fn mul_dyn_grade(self, rhs: $(&$b)? $Ty2<T2,N $(,$G2)*>, g:usize) -> Blade<U, N, Dynamic>
+            where U: AllocBlade<Self::N, Dynamic>
+            {
+                self.mul_grade_generic(rhs, Dynamic::new(g))
+            }
+
+            fn mul_grade<G:DimName>(self, rhs: $(&$b)? $Ty2<T2,N $(,$G2)*>) -> Blade<U, N, G>
+            where U: AllocBlade<Self::N, G>
+            {
+                self.mul_grade_generic(rhs, G::name())
+            }
+
+            fn mul_even(self, rhs: $(&$b)? $Ty2<T2,N $(,$G2)*>) -> Rotor<U, N>
+            where U: AllocRotor<N>
+            {
+                let n = self.dim_generic();
+                _mul_selected(self, rhs, n)
+            }
+
+            fn mul_full(self, rhs: $(&$b)? $Ty2<T2,N $(,$G2)*>) -> Multivector<U, N>
+            where U: AllocMultivector<N>
+            {
+                let n = self.dim_generic();
+                _mul_selected(self, rhs, n)
+            }
+
+        }
+
+        impl_geometric_mul!($($rest)*);
+    };
+
+    //implement over every combination of references
+    (
+        $Ty1:ident<T:$Alloc1:ident $(, $G1:ident)*> *
+        $Ty2:ident<T:$Alloc2:ident $(, $G2:ident)*>;
+        $($rest:tt)*
+    ) => {
+        impl_geometric_mul!(
+            @impl     $Ty1<T:$Alloc1 $(, $G1)*> *     $Ty2<T:$Alloc2 $(, $G2)*>;
+            @impl &'a $Ty1<T:$Alloc1 $(, $G1)*> *     $Ty2<T:$Alloc2 $(, $G2)*>;
+            @impl     $Ty1<T:$Alloc1 $(, $G1)*> * &'a $Ty2<T:$Alloc2 $(, $G2)*>;
+            @impl &'a $Ty1<T:$Alloc1 $(, $G1)*> * &'b $Ty2<T:$Alloc2 $(, $G2)*>;
+            $($rest)*
+        );
+    };
+
+}
+
+impl_geometric_mul!(
+
+    Blade<T:AllocBlade,G1> * Blade<T:AllocBlade,G2>;
+    Blade<T:AllocBlade,G1> * Rotor<T:AllocRotor>;
+    Blade<T:AllocBlade,G1> * Multivector<T:AllocMultivector>;
+
+    Rotor<T:AllocRotor> * Blade<T:AllocBlade,G2>;
+    Rotor<T:AllocRotor> * Rotor<T:AllocRotor>;
+    Rotor<T:AllocRotor> * Multivector<T:AllocMultivector>;
+
+    Multivector<T:AllocMultivector> * Blade<T:AllocBlade,G2>;
+    Multivector<T:AllocMultivector> * Rotor<T:AllocRotor>;
+    Multivector<T:AllocMultivector> * Multivector<T:AllocMultivector>;
+
+);
 
 impl<T1,T2,U,N:Dim,G1:Dim,G2:Dim> BitXor<Blade<T2,N,G2>> for Blade<T1,N,G1> where
     T1: AllocBlade<N,G1> + Mul<T2,Output=U> + RefMul<T2,Output=U>,
@@ -586,9 +742,9 @@ mod tests {
                         let mut x2 = BladeD::from_element(n, g2, 0);
                         let mut x3 = BladeD::from_element(n, g3, 0);
 
-                        let (i, pos1) = b1.get_index_sign(n);
-                        let (j, pos2) = b2.get_index_sign(n);
-                        let (k, pos3) = b3.get_index_sign(n);
+                        let (i, pos1) = b1.blade_index_sign(n);
+                        let (j, pos2) = b2.blade_index_sign(n);
+                        let (k, pos3) = b3.blade_index_sign(n);
 
                         x1[i] = if pos1 { 1 } else { -1 };
                         x2[j] = if pos2 { 1 } else { -1 };
