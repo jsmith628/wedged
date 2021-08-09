@@ -435,8 +435,8 @@ macro_rules! impl_forward_scalar_binops {
 //TODO: add impls for Wrapping<T> and Saturating<T>
 
 impl_forward_scalar_binops!(impl<T:AllocBlade,N,G> Mul.mul() for Blade);
-impl_forward_scalar_binops!(impl<T:AllocBlade,N,G> Div.div() for Blade);
+// impl_forward_scalar_binops!(impl<T:AllocBlade,N,G> Div.div() for Blade);
 impl_forward_scalar_binops!(impl<T:AllocRotor,N> Mul.mul() for Rotor);
-impl_forward_scalar_binops!(impl<T:AllocRotor,N> Div.div() for Rotor);
+// impl_forward_scalar_binops!(impl<T:AllocRotor,N> Div.div() for Rotor);
 impl_forward_scalar_binops!(impl<T:AllocMultivector,N> Mul.mul() for Multivector);
-impl_forward_scalar_binops!(impl<T:AllocMultivector,N> Div.div() for Multivector);
+// impl_forward_scalar_binops!(impl<T:AllocMultivector,N> Div.div() for Multivector);
