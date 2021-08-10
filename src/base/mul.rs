@@ -767,17 +767,15 @@ mod tests {
                         //
 
                         let n = n1.max(n2);
-                        let mut x1 = BladeD::from_element(n, g1, 0);
-                        let mut x2 = BladeD::from_element(n, g2, 0);
-                        let mut x3 = BladeD::from_element(n, g3, 0);
+                        let sign = |pos| if pos { 1i32 } else { -1i32 };
 
                         let (i, pos1) = b1.blade_index_sign(n);
                         let (j, pos2) = b2.blade_index_sign(n);
                         let (k, pos3) = b3.blade_index_sign(n);
 
-                        x1[i] = if pos1 { 1 } else { -1 };
-                        x2[j] = if pos2 { 1 } else { -1 };
-                        x3[k] = if pos3 { 1 } else { -1 };
+                        let x1 = sign(pos1) * BladeD::basis(n, g1, i);
+                        let x2 = sign(pos2) * BladeD::basis(n, g2, j);
+                        let x3 = sign(pos3) * BladeD::basis(n, g3, k);
 
                         //
                         //Test for consistency

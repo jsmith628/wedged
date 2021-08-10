@@ -3,25 +3,43 @@ use super::*;
 
 macro_rules! impl_generic_constructors {
     (pub fn new($($n:ident:$N:ident),*) -> Self { $Allocate:ident::new() }) => {
-        /// Constructs a vale with elements from an iterator using a generic shape
+        /// Constructs a value with elements from an iterator using a generic shape
         pub fn from_iter_generic<I:IntoIterator<Item=T>>($($n: $N, )* iter: I) -> Self {
             Self { data: $Allocate::<T,$($N),*>::from_iterator($($n, )* iter) }
         }
 
-        /// Constructs a blade from an index function using a generic shape
+        /// Constructs a value from an index function using a generic shape
         pub fn from_index_fn_generic<F: FnMut(usize)->T>($($n: $N, )* f: F) -> Self {
             Self::from_iter_generic($($n, )* (0..).map(f))
         }
 
-        /// Constructs a blade filled with given element using a generic shape
+        /// Constructs a value filled with given element using a generic shape
         pub fn from_element_generic($($n: $N, )* x:T) -> Self where T:Clone {
             Self::from_iter_generic($($n, )* repeat(x))
         }
 
-        ///Constructs a blade with all components set to [zero](Zero::zero) using a generic shape
+        /// Constructs a value cloned from a slice
+        pub fn from_slice_generic($($n: $N, )* data: &[T]) -> Self where T:Clone {
+            Self::from_iter_generic($($n, )* data.iter().cloned())
+        }
+
+        /// Constructs a value from a [`Vec`]
+        pub fn from_vec_generic($($n: $N, )* data: Vec<T>) -> Self where T:Clone {
+            Self::from_iter_generic($($n, )* data)
+        }
+
+        /// Constructs a blade with all components set to [zero](Zero::zero) using a generic shape
         pub fn zeroed_generic($($n: $N),*) -> Self where T:Zero {
             Self::from_iter_generic($($n, )* repeat_with(|| T::zero()))
         }
+
+        /// Returns the `i`th basis element or panics if `i` is out of range
+        pub fn basis_generic($($n: $N, )* i: usize) -> Self where T:Zero+One {
+            let mut basis = Self::zeroed_generic($($n),*);
+            basis[i] = T::one();
+            basis
+        }
+
     }
 }
 
@@ -136,6 +154,14 @@ macro_rules! impl_general_constructors {
             Self::from_element_generic($($call)*, x)
         }
 
+        pub fn from_slice($($args)* data: &[T]) -> Self where T:Clone {
+            Self::from_slice_generic($($call)*, data)
+        }
+
+        pub fn from_vec($($args)* data: Vec<T>) -> Self where T:Clone {
+            Self::from_vec_generic($($call)*, data)
+        }
+
         ///
         ///Constructs a blade with all components set to [zero](Zero::zero)
         ///
@@ -159,6 +185,10 @@ macro_rules! impl_general_constructors {
         ///
         pub fn zeroed($($args)*) -> Self where T:Zero {
             Self::zeroed_generic($($call)*)
+        }
+
+        pub fn basis($($args)* i:usize) -> Self where T:Zero+One {
+            Self::basis_generic($($call)*, i)
         }
 
     };
