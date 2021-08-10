@@ -10,6 +10,7 @@ use std::fmt::{
 };
 use std::ops::{
     Index, IndexMut,
+    Deref, DerefMut,
     Add, AddAssign, Sub, SubAssign, Neg,
     Mul, MulAssign, Div, DivAssign, BitXor, Rem
 };
@@ -33,14 +34,17 @@ use crate::{DimName, binom, rotor_elements};
 pub type Iter<'a, T> = std::slice::Iter<'a, T>;
 pub type IterMut<'a, T> = std::slice::IterMut<'a, T>;
 
+#[repr(transparent)]
 pub struct Blade<T:AllocBlade<N,G>, N:Dim, G:Dim> {
     pub data: AllocateBlade<T,N,G>
 }
 
+#[repr(transparent)]
 pub struct Rotor<T:AllocRotor<N>, N:Dim> {
     pub data: AllocateRotor<T,N>
 }
 
+#[repr(transparent)]
 pub struct Multivector<T:AllocMultivector<N>, N:Dim> {
     pub data: AllocateMultivector<T,N>
 }
@@ -234,6 +238,7 @@ use self::alloc::*;
 
 pub mod storage;
 pub mod alloc;
+pub mod coordinates;
 
 pub use self::ops::*;
 pub use self::mul::*;

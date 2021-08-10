@@ -323,8 +323,8 @@ impl_specific_constructors!{
 
     Rotor0::new(r);
     Rotor1::new(r);
-    Rotor2::new(x,y);
-    Rotor3::new(w,x,y,z);
+    Rotor2::new(r, i);
+    Rotor3::new(w, i,j,k);
     Rotor4::new(r, yz,zx,xy,xw,yw,zw, i);
 
     Multivector0::new(r);
