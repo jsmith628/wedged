@@ -66,5 +66,55 @@ pub const fn rotor_elements(n:u32) -> usize {
     2usize.pow(n.saturating_sub(1))
 }
 
+///
+/// Iterates over the number of elements of each blade in the given dimension
+///
+/// # Examples
+/// ```
+/// # use galgebra::components_in;
+///
+/// assert_eq!(components_in(0).collect::<Vec<_>>(), vec![1]);
+/// assert_eq!(components_in(1).collect::<Vec<_>>(), vec![1, 1]);
+/// assert_eq!(components_in(2).collect::<Vec<_>>(), vec![1, 2, 1]);
+/// assert_eq!(components_in(3).collect::<Vec<_>>(), vec![1, 3, 3, 1]);
+/// assert_eq!(components_in(4).collect::<Vec<_>>(), vec![1, 4, 6, 4, 1]);
+/// assert_eq!(components_in(5).collect::<Vec<_>>(), vec![1, 5, 10, 10, 5, 1]);
+/// assert_eq!(components_in(6).collect::<Vec<_>>(), vec![1, 6, 15, 20, 15, 6, 1]);
+///
+/// ```
+///
+pub fn components_in(n: usize) -> impl std::iter::Iterator<Item=usize> {
+    let mut binom = 1;
+    (0..=n).map(
+        move |g| {
+            let result = binom;
+            binom *= n-g;
+            binom /= g+1;
+            result
+        }
+    )
+}
+
+///
+/// Iterates over the number of elements of each _even_ blade in the given dimension
+///
+/// # Examples
+/// ```
+/// # use galgebra::even_components_in;
+///
+/// assert_eq!(even_components_in(0).collect::<Vec<_>>(), vec![1]);
+/// assert_eq!(even_components_in(1).collect::<Vec<_>>(), vec![1]);
+/// assert_eq!(even_components_in(2).collect::<Vec<_>>(), vec![1, 1]);
+/// assert_eq!(even_components_in(3).collect::<Vec<_>>(), vec![1, 3]);
+/// assert_eq!(even_components_in(4).collect::<Vec<_>>(), vec![1, 6, 1]);
+/// assert_eq!(even_components_in(5).collect::<Vec<_>>(), vec![1, 10, 5]);
+/// assert_eq!(even_components_in(6).collect::<Vec<_>>(), vec![1, 15, 15, 1]);
+///
+/// ```
+///
+pub fn even_components_in(n: usize) -> impl std::iter::Iterator<Item=usize> {
+    components_in(n).step_by(2)
+}
+
 pub trait DimName: na::dimension::DimName {}
 impl<const N: usize> DimName for na::dimension::Const<N> {}

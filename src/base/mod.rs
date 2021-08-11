@@ -22,14 +22,14 @@ use std::iter::{
 
 use num_traits::{Zero, One};
 
-use na::{ClosedAdd, ClosedSub};
+use na::{ClosedAdd, ClosedSub, ComplexField};
 use na::dimension::{
     Dim, DimAdd, DimSum, DimSub, DimDiff, DimNameDiff,
     Dynamic, Const, U0, U1, U2, U3, U4, U5, U6
 };
 
 use crate::basis_blade::BasisBlade;
-use crate::{DimName, binom, rotor_elements};
+use crate::{DimName, binom, rotor_elements, components_in, even_components_in};
 
 pub type Iter<'a, T> = std::slice::Iter<'a, T>;
 pub type IterMut<'a, T> = std::slice::IterMut<'a, T>;
@@ -241,12 +241,14 @@ pub mod alloc;
 pub mod coordinates;
 
 pub use self::ops::*;
+pub use self::involute::*;
 pub use self::mul::*;
 pub use self::constructors::*;
 pub use self::aliases::*;
 pub use self::fmt::*;
 
 mod ops;
+mod involute;
 mod mul;
 mod constructors;
 mod aliases;
