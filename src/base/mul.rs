@@ -1,16 +1,6 @@
 
 use super::*;
 
-pub trait RefMul<Rhs:?Sized> {
-    type Output;
-    fn ref_mul<'a,'b>(&'a self, rhs:&'b Rhs) -> Self::Output;
-}
-
-impl<T1:?Sized,T2:?Sized,U> RefMul<T2> for T1 where for<'a,'b> &'a T1: Mul<&'b T2,Output=U> {
-    type Output = U;
-    fn ref_mul<'a,'b>(&'a self, rhs:&'b T2) -> U { self * rhs }
-}
-
 #[derive(Clone, Copy, Debug)]
 enum Subspace {
     Blade(usize, usize),

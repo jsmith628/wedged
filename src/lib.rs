@@ -118,3 +118,13 @@ pub fn even_components_in(n: usize) -> impl std::iter::Iterator<Item=usize> {
 
 pub trait DimName: na::dimension::DimName {}
 impl<const N: usize> DimName for na::dimension::Const<N> {}
+
+pub trait RefMul<Rhs:?Sized> {
+    type Output;
+    fn ref_mul<'a,'b>(&'a self, rhs:&'b Rhs) -> Self::Output;
+}
+
+impl<T1:?Sized,T2:?Sized,U> RefMul<T2> for T1 where for<'a,'b> &'a T1: std::ops::Mul<&'b T2,Output=U> {
+    type Output = U;
+    fn ref_mul<'a,'b>(&'a self, rhs:&'b T2) -> U { self * rhs }
+}

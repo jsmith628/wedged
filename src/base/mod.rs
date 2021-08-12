@@ -29,7 +29,11 @@ use na::dimension::{
 };
 
 use crate::basis_blade::BasisBlade;
-use crate::{DimName, binom, rotor_elements, components_in, even_components_in};
+use crate::{
+    DimName, RefMul,
+    binom, rotor_elements,
+    components_in, even_components_in
+};
 
 pub type Iter<'a, T> = std::slice::Iter<'a, T>;
 pub type IterMut<'a, T> = std::slice::IterMut<'a, T>;
