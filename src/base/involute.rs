@@ -4,16 +4,19 @@ use super::*;
 macro_rules! norm_methods {
     () => {
 
+        /// The sum of squares of each element
         pub fn norm_sqrd(&self) -> T::Output where
             T: RefMul<T>, T::Output: Zero + Add<Output=T::Output>
         {
             self.iter().map(|t| t.ref_mul(t)).fold(T::Output::zero(), |c,t| c+t)
         }
 
+        /// The Euclidean norm of this `self`
         pub fn norm(&self) -> T where T: RefMul<T,Output=T> + ComplexField {
             self.norm_sqrd().sqrt()
         }
 
+        /// Divides `self` by its Euclidean norm
         pub fn normalize(self) -> Self where
             T: RefMul<T,Output=T> + for<'a> Div<&'a T, Output=T> + ComplexField
         {
@@ -27,10 +30,10 @@ macro_rules! norm_methods {
 impl<T:AllocBlade<N,G>, N:Dim, G:Dim> Blade<T,N,G> {
 
     ///
-    /// Negates this blade if its grade is odd
+    /// Negates this Blade if its grade is odd
     ///
-    /// This is helpful since commuting the wedge of a vector and a blade requires `g` swaps
-    /// implying that both
+    /// This is helpful since commuting the wedge of a vector and a blade requires `g` swaps.
+    /// This means that:
     /// - `v ^ B == B.involute() ^ v` and
     /// - `A ^ B == B.involute() ^ A.involute()`
     ///
@@ -38,10 +41,27 @@ impl<T:AllocBlade<N,G>, N:Dim, G:Dim> Blade<T,N,G> {
         if (self.grade() & 0b01) != 0 { -self } else { self }
     }
 
+    ///
+    /// Effectively swaps the order of the vectors in each basis element
+    ///
+    /// This is the same and multiplying by `(-1)^(g(g-1)/2)` where `g = self.grade()`.
+    ///
+    /// The reverse function is useful as this effectively does the multiplicative inverse of each
+    /// basis element. This way, for simple blades, `b * b.reverse() == b.norm_sqrd()` and for
+    /// unit simple blades, this is the same as computing the [inverse](Blade::inverse())
+    ///
     pub fn reverse(self) -> Self where T: Neg<Output=T> {
         if (self.grade() & 0b10) != 0 { -self } else { self }
     }
 
+    ///
+    /// The multiplicative inverse of this blade
+    ///
+    /// NOTE: this only works for _simple_ blades, ie, those that can be written as the product
+    /// of vectors. For non-simple blades, it only computes the [reverse](Blade::reverse())
+    /// divided by the [square norm](Blade::norm_sqrd). For blades up to 3D, this isn't a worry,
+    /// but bivectors in 4D are a notable exception, as `e₁₂ + e₃₄` cannot be factored.
+    ///
     pub fn inverse(self) -> Self where
         T: Zero + Neg<Output=T> + Add<Output=T> + RefMul<T,Output=T> + for<'a> Div<&'a T, Output=T>
     {
@@ -87,6 +107,19 @@ macro_rules! involution {
 
 impl<T:AllocRotor<N>, N:Dim> Rotor<T,N> {
 
+    ///
+    /// Swaps the order of the vectors in each basis element
+    ///
+    /// This is the same and multiplying by each component `(-1)^(g(g-1)/2)` where `g` is the
+    /// grade of each basis element.
+    ///
+    /// The reverse function is useful as this effectively finds the multiplicative inverse of each
+    /// basis element. This way, for invertible rotors, `r * r.reverse() == r.norm_sqrd()` and for
+    /// unit invertible rotors, this is the same as computing the [inverse](Rotor::inverse())
+    ///
+    /// Furthermore, for invertible rotors, this operation inverts the rotational action of this
+    /// rotor without affecting the scaling action.
+    ///
     pub fn reverse(self) -> Self where T: Neg<Output=T> {
         let n = self.dim();
         involution!(
@@ -96,9 +129,22 @@ impl<T:AllocRotor<N>, N:Dim> Rotor<T,N> {
         )
     }
 
-    //does nothing since all bases in Rotors are even
+    ///
+    /// Negates every odd-grade component of this rotor
+    ///
+    /// However, seeing as rotors are apart of the even subalgebra, this does nothing and is
+    /// only included for completeness and to simplify macros.
+    ///
     pub fn involute(self) -> Self where T: Neg<Output=T> { self }
 
+    ///
+    /// The multiplicative inverse of this rotor
+    ///
+    /// NOTE: this only works for _invertible_ rotors. For non-invertible rotors, it only computes
+    /// the [reverse](Rotor::reverse) divided by the [square norm](Rotor::norm_sqrd()). Up to 4D,
+    /// this is not an issue, as all non-zero rotors in 1-3D are invertible, but starting in four
+    /// dimensions, there will always be values such as `1 + e₁₂₃₄` that cannot be inverted.
+    ///
     pub fn inverse(self) -> Self where
         T: Zero + Neg<Output=T> + Add<Output=T> + RefMul<T,Output=T> + for<'a> Div<&'a T, Output=T>
     {
@@ -112,6 +158,12 @@ impl<T:AllocRotor<N>, N:Dim> Rotor<T,N> {
 
 impl<T:AllocMultivector<N>, N:Dim> Multivector<T,N> {
 
+    ///
+    /// Swaps the order of the vectors in each basis element
+    ///
+    /// This is the same and multiplying by each component `(-1)^(g(g-1)/2)` where `g` is the
+    /// grade of each basis element.
+    ///
     pub fn reverse(self) -> Self where T: Neg<Output=T> {
         let n = self.dim();
         involution!(
@@ -121,6 +173,7 @@ impl<T:AllocMultivector<N>, N:Dim> Multivector<T,N> {
         )
     }
 
+    /// Negatates the components of odd grade
     pub fn involute(self) -> Self where T: Neg<Output=T> {
         let n = self.dim();
         involution!(
