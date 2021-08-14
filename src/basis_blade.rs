@@ -142,6 +142,33 @@ impl BasisBlade {
         self.sign().bits == BasisBlade::NEG_ONE.bits
     }
 
+    /// Reverses the order of the vectors making up this basis element
+    pub const fn reverse(self) -> Self {
+        //to invert, we need to reverse the order of the basic vectors:
+        //- To do this, we must pass the `i`th vector in the mul through the `i-1` vectors before it
+        //  giving `i-1` swaps for each of the g vectors.
+        //- Summing this all up, we get `0 + 1 + .. (g-1) = g*(g-1)/2` total swaps
+        //- Now, this value is only even iff `4 | g*(g-1)`
+        //- but this can only happen if either `4|g` or `4|(g-1)` as 2 cannot divide both `g` and
+        //  `g-1` at the same time
+        //- Therefore, to invert, we negate iff g == 2,3 mod 4
+
+        //get the grade
+        let g = self.grade() as Bits;
+
+        //test if the grade is 2 or 3 mod 4 by masking out the 2nd bit
+        //and then shifting that bit to the leading position
+        let sign = (g & 0b10) << (Self::MAX_DIM-1);
+
+        //multiply self by sign
+        BasisBlade { bits: self.bits ^ sign }
+    }
+
+    /// Negates if [`grade`](BasisBlade::grade) is odd
+    pub const fn involute(self) -> Self {
+        self.unchecked_fast_mul(Self::neg_one_pow(self.grade()))
+    }
+
     pub const fn const_mul(self, rhs: Self) -> Self {
         //we only have to abs() self since it will mask out the sign of rhs
         let a = self.abs().bits;
@@ -168,28 +195,7 @@ impl BasisBlade {
         self.unchecked_fast_mul(rhs).unchecked_fast_mul(sign)
     }
 
-    pub const fn const_inv(self) -> Self {
-        //to invert, we need to reverse the order of the basic vectors:
-        //- To do this, we must pass the `i`th vector in the mul through the `i-1` vectors before it
-        //  giving `i-1` swaps for each of the g vectors.
-        //- Summing this all up, we get `0 + 1 + .. (g-1) = g*(g-1)/2` total swaps
-        //- Now, this value is only even iff `4 | g*(g-1)`
-        //- but this can only happen if either `4|g` or `4|(g-1)` as 2 cannot divide both `g` and
-        //  `g-1` at the same time
-        //- Therefore, to invert, we negate iff g == 2,3 mod 4
-
-        //get the grade
-        let g = self.grade() as Bits;
-
-        //test if the grade is 2 or 3 mod 4 by masking out the 2nd bit
-        //and then shifting that bit to the leading position
-        let sign = (g & 0b10) << (Self::MAX_DIM-1);
-
-        //multiply self by sign
-        BasisBlade { bits: self.bits ^ sign }
-    }
-
-    pub const fn const_div(self, rhs: Self) -> Self { self.const_mul(rhs.const_inv()) }
+    pub const fn const_div(self, rhs: Self) -> Self { self.const_mul(rhs.reverse()) }
 
     ///
     /// Returns the nth basis vector
@@ -654,7 +660,7 @@ impl Neg for BasisBlade {
 
 impl Inv for BasisBlade {
     type Output = Self;
-    fn inv(self) -> Self { self.const_inv() }
+    fn inv(self) -> Self { self.reverse() }
 }
 
 impl Mul for BasisBlade {

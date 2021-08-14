@@ -22,10 +22,12 @@ trait MultivectorSrc:IntoIterator {
 
     type Scalar;
     type Dim: Dim;
+    type Shape: Copy;
 
     fn dim(&self) -> Self::Dim;
     fn elements(&self) -> usize;
     fn subspace(&self) -> Subspace;
+    fn shape(&self) -> Self::Shape;
 
     fn get(&self, i:usize) -> &Self::Scalar;
     fn basis(&self, i:usize) -> BasisBlade;
@@ -33,7 +35,6 @@ trait MultivectorSrc:IntoIterator {
 
 trait MultivectorDst: MultivectorSrc {
 
-    type Shape: Copy;
     type Uninit: UninitStorage<Self::Scalar>;
 
     fn subspace_of(shape: Self::Shape) -> Subspace;
@@ -49,10 +50,12 @@ impl<T:AllocBlade<N,G>, N:Dim, G:Dim> MultivectorSrc for Blade<T,N,G> {
 
     type Scalar = T;
     type Dim = N;
+    type Shape = (N,G);
 
     fn dim(&self) -> N { self.dim_generic() }
     fn subspace(&self) -> Subspace { Subspace::Blade(Blade::dim(self), self.grade()) }
     fn elements(&self) -> usize { Blade::elements(self) }
+    fn shape(&self) -> (N,G) { (self.dim_generic(), self.grade_generic()) }
 
     fn get(&self, i:usize) -> &T { &self[i] }
     fn basis(&self, i:usize) -> BasisBlade {
@@ -65,10 +68,12 @@ impl<T:AllocRotor<N>, N:Dim> MultivectorSrc for Rotor<T,N> {
 
     type Scalar = T;
     type Dim = N;
+    type Shape = N;
 
     fn dim(&self) -> N { self.dim_generic() }
     fn subspace(&self) -> Subspace { Subspace::Even(Rotor::dim(self)) }
     fn elements(&self) -> usize { Rotor::elements(self) }
+    fn shape(&self) -> N { self.dim_generic() }
 
     fn get(&self, i:usize) -> &T { &self[i] }
     fn basis(&self, i:usize) -> BasisBlade {
@@ -81,10 +86,12 @@ impl<T:AllocMultivector<N>, N:Dim> MultivectorSrc for Multivector<T,N> {
 
     type Scalar = T;
     type Dim = N;
+    type Shape = N;
 
     fn dim(&self) -> N { self.dim_generic() }
     fn subspace(&self) -> Subspace { Subspace::Full(Multivector::dim(self)) }
     fn elements(&self) -> usize { Multivector::elements(self) }
+    fn shape(&self) -> N { self.dim_generic() }
 
     fn get(&self, i:usize) -> &T { &self[i] }
     fn basis(&self, i:usize) -> BasisBlade {
@@ -99,10 +106,12 @@ macro_rules! impl_src_ref {
 
             type Scalar = T;
             type Dim = N;
+            type Shape = <$Ty<T,N $(, $G)*> as MultivectorSrc>::Shape;
 
             fn dim(&self) -> N { MultivectorSrc::dim(*self) }
             fn elements(&self) -> usize { MultivectorSrc::elements(*self) }
             fn subspace(&self) -> Subspace { MultivectorSrc::subspace(*self) }
+            fn shape(&self) -> Self::Shape { MultivectorSrc::shape(*self) }
 
             fn get(&self, i:usize) -> &T { MultivectorSrc::get(*self, i) }
             fn basis(&self, i:usize) -> BasisBlade { MultivectorSrc::basis(*self, i) }
@@ -117,7 +126,6 @@ impl_src_ref!(Multivector<T:AllocMultivector,N>);
 
 impl<T:AllocBlade<N,G>, N:Dim, G:Dim> MultivectorDst for Blade<T,N,G> {
 
-    type Shape = (N, G);
     type Uninit = <AllocateBlade<T,N,G> as Storage<T>>::Uninit;
 
     fn subspace_of((n,g): (N,G)) -> Subspace { Subspace::Blade(n.value(), g.value()) }
@@ -132,7 +140,6 @@ impl<T:AllocBlade<N,G>, N:Dim, G:Dim> MultivectorDst for Blade<T,N,G> {
 
 impl<T:AllocRotor<N>, N:Dim> MultivectorDst for Rotor<T,N> {
 
-    type Shape = N;
     type Uninit = <AllocateRotor<T,N> as Storage<T>>::Uninit;
 
     fn subspace_of(n: N) -> Subspace { Subspace::Even(n.value()) }
@@ -147,7 +154,6 @@ impl<T:AllocRotor<N>, N:Dim> MultivectorDst for Rotor<T,N> {
 
 impl<T:AllocMultivector<N>, N:Dim> MultivectorDst for Multivector<T,N> {
 
-    type Shape = N;
     type Uninit = <AllocateMultivector<T,N> as Storage<T>>::Uninit;
 
     fn subspace_of(n: N) -> Subspace { Subspace::Full(n.value()) }
@@ -160,16 +166,12 @@ impl<T:AllocMultivector<N>, N:Dim> MultivectorDst for Multivector<T,N> {
 
 }
 
-fn mul_selected<B1,B2,B3,N:Dim>(b1:B1, b2:B2, shape:B3::Shape) -> B3
-where
-    B1: MultivectorSrc<Dim=N>,
-    B2: MultivectorSrc<Dim=N>,
-    B3: MultivectorDst<Dim=N>,
-    B1::Scalar: RefMul<B2::Scalar, Output=B3::Scalar>,
-    B1::Item: Mul<B2::Item, Output=B3::Scalar>,
-    B3::Scalar: ClosedAdd + ClosedSub + Neg<Output=B3::Scalar> + Zero,
+fn check_dim<B1,B2,B3>(b1: &B1, b2: &B2, shape: B3::Shape) -> usize where
+    B1: MultivectorSrc,
+    B2: MultivectorSrc,
+    B3: MultivectorDst
 {
-
+    //for convenience
     let (n1, n2, n3) = (b1.dim().value(), b2.dim().value(), B3::subspace_of(shape).dim());
 
     //To save further headache with generics, we don't allow multiplying two blades of
@@ -182,7 +184,20 @@ where
         panic!("Cannot multiply into a value of different dimension: {}!={}", n1, n3)
     }
 
-    let n = n1;
+    n1
+}
+
+fn mul_selected<B1,B2,B3,N:Dim>(b1:B1, b2:B2, shape:B3::Shape) -> B3
+where
+    B1: MultivectorSrc<Dim=N>,
+    B2: MultivectorSrc<Dim=N>,
+    B3: MultivectorDst<Dim=N>,
+    B1::Scalar: RefMul<B2::Scalar, Output=B3::Scalar>,
+    B1::Item: Mul<B2::Item, Output=B3::Scalar>,
+    B3::Scalar: ClosedAdd + ClosedSub + Neg<Output=B3::Scalar> + Zero,
+{
+
+    let n = check_dim::<_,_,B3>(&b1,&b2,shape);
 
     //
     //The *slow* method
@@ -278,6 +293,63 @@ where
     unsafe { B3::assume_init(dest) }
 }
 
+fn verser_mul_selected<B1,B2,B3,N:Dim>(b1:B1, b2:B2, shape:B3::Shape) -> B3
+where
+    B1: MultivectorSrc<Dim=N>,
+    B2: MultivectorSrc<Dim=N>,
+    B3: MultivectorDst<Dim=N>,
+    B1::Scalar: RefMul<B2::Scalar>,
+    <B1::Scalar as RefMul<B2::Scalar>>::Output: for<'a> Mul<&'a B1::Scalar, Output=B3::Scalar>,
+    B3::Scalar: ClosedAdd + ClosedSub + Neg<Output=B3::Scalar> + Zero,
+{
+
+    check_dim::<_,_,B3>(&b1, &b2, shape);
+
+    //create an unitialized value
+    let mut dest = B3::uninit(shape);
+
+    //TODO: optimize a little. We don't always need to initialize beforehand
+    for i in 0..dest.elements() {
+        dest[i] = MaybeUninit::new(B3::Scalar::zero());
+    }
+
+    //do an even more FOILiester FOIL
+    for i in 0..b1.elements() {
+        let basis1 = b1.basis(i).involute();
+
+        for j in 0..b2.elements() {
+            let basis2 = b2.basis(j).involute();
+
+            for k in 0..b1.elements() {
+                let basis3 = b1.basis(k).reverse();
+
+                //mul the bases at i and j and k
+                let result_basis = basis1 * basis2 * basis3;
+
+                //get the index and sign of the result
+                if let Some((l, pos)) = B3::index_of(result_basis, shape) {
+                    //multiply the three terms
+                    let term = b1.get(i).ref_mul(b2.get(j)).mul(b1.get(k));
+
+                    unsafe {
+                        //TODO: change once assume_init_ref() is stable
+                        if pos {
+                            *dest[l].as_mut_ptr() += term;
+                        } else {
+                            *dest[l].as_mut_ptr() -= term;
+                        }
+                    }
+                }
+
+            }
+
+        }
+    }
+
+    unsafe { B3::assume_init(dest) }
+}
+
+
 //TODO: when we have specialization, we'll use this to impl optimized varients for each
 //statically sized type instead of using if statements in mul_selected
 
@@ -300,6 +372,11 @@ pub trait GeometricMul<Rhs> {
     fn mul_full(self, rhs: Rhs) -> Multivector<Self::OutputScalar, Self::N>
     where Self::OutputScalar: AllocMultivector<Self::N>;
 
+}
+
+pub trait VerserMul<Rhs> {
+    type Output;
+    fn apply(self, rhs: Rhs) -> Self::Output;
 }
 
 macro_rules! impl_geometric_mul {
@@ -359,6 +436,22 @@ macro_rules! impl_geometric_mul {
                 mul_selected(self, rhs, n)
             }
 
+        }
+
+        impl<$($a, )? $($b, )? T1, T2, U, N:Dim $(, $G1:Dim)* $(, $G2:Dim)*>
+        VerserMul<$(&$b)? $Ty2<T2,N $(,$G2)*>> for $(&$a)? $Ty1<T1,N $(,$G1)*> where
+            T1: $Alloc1<N $(, $G1)*> + RefMul<T2, Output=U>,
+            T2: $Alloc2<N $(, $G2)*>,
+            U: for<'c> Mul<&'c T1, Output=U> + ClosedAdd + ClosedSub + Neg<Output=U> + Zero + $Alloc2<N $(, $G2)*>
+        {
+            //idk if this is proven, but the result should be the same grades as the input
+            type Output = $Ty2<U,N $(,$G2)*>;
+
+            //technically, the "rhs" here is in the middle since it's a verser product
+            fn apply(self, rhs: $(&$b)? $Ty2<T2,N $(,$G2)*>) -> $Ty2<U,N $(,$G2)*> {
+                let shape = rhs.shape();
+                verser_mul_selected(self, rhs, shape)
+            }
         }
 
         //
