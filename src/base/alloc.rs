@@ -89,7 +89,7 @@ macro_rules! impl_alloc{
         assert_eq!(
             std::mem::size_of::<AllocateEven<f32, Const<$N>>>(),
             //this has some weird behavior
-            std::mem::size_of::<f32>() * rotor_elements($N)
+            std::mem::size_of::<f32>() * even_elements($N)
         );
 
         assert_eq!(
@@ -106,14 +106,14 @@ macro_rules! impl_alloc{
 
     ($N:literal @impl) => {
         unsafe impl<T> AllocEven<Const<$N>> for T {
-            type Buffer = [T; rotor_elements($N)];
+            type Buffer = [T; even_elements($N)];
         }
 
-        unsafe impl<T> EvenStorage<T, Const<$N>> for [T; rotor_elements($N) ] {
+        unsafe impl<T> EvenStorage<T, Const<$N>> for [T; even_elements($N) ] {
             fn dim(&self) -> Const<$N> { Const::<$N> }
             fn uninit(_: Const<$N>,) -> Self::Uninit { uninit_array() }
             fn from_iterator<I:IntoIterator<Item=T>>(_: Const<$N>, iter: I) -> Self {
-                array_from_iter(iter, "rotor")
+                array_from_iter(iter, "value")
             }
         }
 
@@ -125,7 +125,7 @@ macro_rules! impl_alloc{
             fn dim(&self) -> Const<$N> { Const::<$N> }
             fn uninit(_: Const<$N>,) -> Self::Uninit { uninit_array() }
             fn from_iterator<I:IntoIterator<Item=T>>(_: Const<$N>, iter: I) -> Self {
-                array_from_iter(iter, "rotor")
+                array_from_iter(iter, "value")
             }
         }
 

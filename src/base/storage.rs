@@ -190,7 +190,7 @@ unsafe impl<T,N:Dim,G:Dim> BladeStorage<T,N,G> for DynBladeStorage<T,N,G> {
 
 #[inline(always)]
 fn even_elements(n:usize) -> usize {
-    crate::rotor_elements(n.try_into().unwrap())
+    crate::even_elements(n.try_into().unwrap())
 }
 
 unsafe impl<T,N:Dim> UninitStorage<T> for DynEvenStorage<MaybeUninit<T>,N> {

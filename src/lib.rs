@@ -60,9 +60,9 @@ pub const fn binom(n:usize, k:usize) -> usize {
     (n-k+1) * binom(n, k-1) / k
 }
 
-//TODO maybe make binom and rotor_elements private
+//TODO maybe make these private
 
-pub const fn rotor_elements(n:u32) -> usize {
+pub const fn even_elements(n:u32) -> usize {
     2usize.pow(n.saturating_sub(1))
 }
 

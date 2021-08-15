@@ -3,7 +3,7 @@ use num_traits::{One, Inv};
 use std::ops::{Neg, Mul, MulAssign, Div, DivAssign};
 use std::fmt::{Formatter, Debug, Display, Binary, Result as FmtResult, Alignment};
 
-use crate::{binom, components_in, rotor_elements, odd_elements, multivector_elements};
+use crate::{binom, components_in, even_elements, odd_elements, multivector_elements};
 
 //So we can maybe change it later though there really is no reason it needs any more bits than this
 pub type Bits = i32;
@@ -391,7 +391,7 @@ impl BasisBlade {
             }
         }
 
-        panic!("index out of range: {}>{}", i, rotor_elements(n as u32))
+        panic!("index out of range: {}>{}", i, even_elements(n as u32))
     }
 
     pub fn basis_odd(n: usize, i: usize) -> BasisBlade {

@@ -31,7 +31,7 @@ use na::dimension::{
 use crate::basis_blade::BasisBlade;
 use crate::{
     DimName, RefMul,
-    binom, rotor_elements, odd_elements,
+    binom, even_elements, odd_elements,
     components_in, even_components_in
 };
 
