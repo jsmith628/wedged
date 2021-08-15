@@ -3,6 +3,7 @@ use super::*;
 
 pub type AllocateBlade<T,N,G> = <T as AllocBlade<N,G>>::Buffer;
 pub type AllocateEven<T,N> = <T as AllocEven<N>>::Buffer;
+pub type AllocateOdd<T,N> = <T as AllocOdd<N>>::Buffer;
 pub type AllocateMultivector<T,N> = <T as AllocMultivector<N>>::Buffer;
 
 pub unsafe trait AllocBlade<N:Dim,G:Dim>: Sized {
@@ -11,6 +12,10 @@ pub unsafe trait AllocBlade<N:Dim,G:Dim>: Sized {
 
 pub unsafe trait AllocEven<N:Dim>: Sized {
     type Buffer: EvenStorage<Self,N>;
+}
+
+pub unsafe trait AllocOdd<N:Dim>: Sized {
+    type Buffer: OddStorage<Self,N>;
 }
 
 pub unsafe trait AllocMultivector<N:Dim>: Sized {
@@ -31,6 +36,10 @@ unsafe impl<T> AllocBlade<Dynamic, Dynamic> for T {
 
 unsafe impl<T> AllocEven<Dynamic> for T {
     type Buffer = DynEvenStorage<T, Dynamic>;
+}
+
+unsafe impl<T> AllocOdd<Dynamic> for T {
+    type Buffer = DynOddStorage<T, Dynamic>;
 }
 
 unsafe impl<T> AllocMultivector<Dynamic> for T {
@@ -84,6 +93,12 @@ macro_rules! impl_alloc{
         );
 
         assert_eq!(
+            std::mem::size_of::<AllocateOdd<f32, Const<$N>>>(),
+            //this has some weird behavior
+            std::mem::size_of::<f32>() * odd_elements($N)
+        );
+
+        assert_eq!(
             std::mem::size_of::<AllocateMultivector<f32, Const<$N>>>(),
             std::mem::size_of::<f32>() * 2usize.pow($N)
         );
@@ -95,6 +110,18 @@ macro_rules! impl_alloc{
         }
 
         unsafe impl<T> EvenStorage<T, Const<$N>> for [T; rotor_elements($N) ] {
+            fn dim(&self) -> Const<$N> { Const::<$N> }
+            fn uninit(_: Const<$N>,) -> Self::Uninit { uninit_array() }
+            fn from_iterator<I:IntoIterator<Item=T>>(_: Const<$N>, iter: I) -> Self {
+                array_from_iter(iter, "rotor")
+            }
+        }
+
+        unsafe impl<T> AllocOdd<Const<$N>> for T {
+            type Buffer = [T; odd_elements($N)];
+        }
+
+        unsafe impl<T> OddStorage<T, Const<$N>> for [T; odd_elements($N) ] {
             fn dim(&self) -> Const<$N> { Const::<$N> }
             fn uninit(_: Const<$N>,) -> Self::Uninit { uninit_array() }
             fn from_iterator<I:IntoIterator<Item=T>>(_: Const<$N>, iter: I) -> Self {

@@ -66,6 +66,14 @@ pub const fn rotor_elements(n:u32) -> usize {
     2usize.pow(n.saturating_sub(1))
 }
 
+pub const fn odd_elements(n:u32) -> usize {
+    2usize.pow(n.saturating_sub(1))
+}
+
+pub const fn multivector_elements(n:u32) -> usize {
+    2usize.pow(n)
+}
+
 ///
 /// Iterates over the number of elements of each blade in the given dimension
 ///

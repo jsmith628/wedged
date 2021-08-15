@@ -3,7 +3,7 @@ use num_traits::{One, Inv};
 use std::ops::{Neg, Mul, MulAssign, Div, DivAssign};
 use std::fmt::{Formatter, Debug, Display, Binary, Result as FmtResult, Alignment};
 
-use super::binom;
+use crate::{binom, components_in, rotor_elements, odd_elements, multivector_elements};
 
 //So we can maybe change it later though there really is no reason it needs any more bits than this
 pub type Bits = i32;
@@ -382,34 +382,42 @@ impl BasisBlade {
     }
 
     pub fn basis_even(n: usize, i: usize) -> BasisBlade {
-        let (mut g, mut i, mut binom) = (0, i, 1);
-        while binom <= i {
-            i -= binom;
-
-            //compute the amount of elements in the next grade
-            binom *= n-g;
-            g += 1;
-            binom /= g;
-
-            //do it twice since we're in the even subalgebra
-            binom *= n-g;
-            g += 1;
-            binom /= g;
+        let mut i = i;
+        for (g, binom) in components_in(n).enumerate().step_by(2) {
+            if binom > i {
+                return Self::basis_blade(n,g,i);
+            } else {
+                i -= binom;
+            }
         }
-        Self::basis_blade(n,g,i)
+
+        panic!("index out of range: {}>{}", i, rotor_elements(n as u32))
+    }
+
+    pub fn basis_odd(n: usize, i: usize) -> BasisBlade {
+        let mut i = i;
+        for (g, binom) in components_in(n).enumerate().skip(1).step_by(2) {
+            if binom > i {
+                return Self::basis_blade(n,g,i);
+            } else {
+                i -= binom;
+            }
+        }
+
+        panic!("index out of range: {}>{}", i, odd_elements(n as u32))
     }
 
     pub fn basis(n: usize, i: usize) -> BasisBlade {
-        let (mut g, mut i, mut binom) = (0, i, 1);
-        while binom <= i {
-            i -= binom;
-
-            //compute the amount of elements in the next grade
-            binom *= n-g;
-            g += 1;
-            binom /= g;
+        let mut i = i;
+        for (g, binom) in components_in(n).enumerate() {
+            if binom > i {
+                return Self::basis_blade(n,g,i);
+            } else {
+                i -= binom;
+            }
         }
-        Self::basis_blade(n,g,i)
+
+        panic!("index out of range: {}>{}", i, multivector_elements(n as u32))
     }
 
     const fn get_index_sign_in(self, n: usize, g: usize) -> (usize, bool) {
@@ -473,6 +481,19 @@ impl BasisBlade {
 
     pub const fn even_index_sign(&self, n: usize) -> (usize, bool) {
         if self.grade()%2 == 1 { return (0,self.positive()); }
+        let (i, sign) = self.blade_index_sign(n);
+
+        //TODO: optimize by having a progressive value of the binomial coefficient
+        const fn get_start(n:usize, g:usize) -> usize {
+            if g<=1 { return 0; }
+            get_start(n, g-2) + binom(n,g-2)
+        }
+
+        (get_start(n,self.grade()) + i, sign)
+    }
+
+    pub const fn odd_index_sign(&self, n: usize) -> (usize, bool) {
+        if self.grade()%2 == 0 { return (0,self.positive()); }
         let (i, sign) = self.blade_index_sign(n);
 
         //TODO: optimize by having a progressive value of the binomial coefficient

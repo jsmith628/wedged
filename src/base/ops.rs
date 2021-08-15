@@ -27,6 +27,7 @@ macro_rules! impl_index {
 
 impl_index!(impl<T:AllocBlade, N, G> Index for Blade {});
 impl_index!(impl<T:AllocEven, N> Index for Even {});
+impl_index!(impl<T:AllocOdd, N> Index for Odd {});
 impl_index!(impl<T:AllocMultivector, N> Index for Multivector {});
 
 //
@@ -59,7 +60,7 @@ macro_rules! check {
         //if the dims or grades don't match, panic
         //this check should optimize away for statically allocated values
         //TODO: maybe allow non-equal dims in the future
-        if d1!=d2 { panic!("Cannot add blades of different dimension: {}!={}", d1.value(), d2.value()); }
+        if d1!=d2 { panic!("Cannot add values of different dimension: {}!={}", d1.value(), d2.value()); }
 
     };
 }
@@ -156,6 +157,8 @@ impl_binops!(impl<T:AllocBlade,N,G> Add.add() for Blade with AllocateBlade);
 impl_binops!(impl<T:AllocBlade,N,G> Sub.sub() for Blade with AllocateBlade);
 impl_binops!(impl<T:AllocEven,N> Add.add() for Even with AllocateEven);
 impl_binops!(impl<T:AllocEven,N> Sub.sub() for Even with AllocateEven);
+impl_binops!(impl<T:AllocOdd,N> Add.add() for Odd with AllocateOdd);
+impl_binops!(impl<T:AllocOdd,N> Sub.sub() for Odd with AllocateOdd);
 impl_binops!(impl<T:AllocMultivector,N> Add.add() for Multivector with AllocateMultivector);
 impl_binops!(impl<T:AllocMultivector,N> Sub.sub() for Multivector with AllocateMultivector);
 
@@ -163,6 +166,8 @@ impl_assign_binops!(impl<T:AllocBlade,N,G> AddAssign.add_assign() for Blade);
 impl_assign_binops!(impl<T:AllocBlade,N,G> SubAssign.sub_assign() for Blade);
 impl_assign_binops!(impl<T:AllocEven,N> AddAssign.add_assign() for Even);
 impl_assign_binops!(impl<T:AllocEven,N> SubAssign.sub_assign() for Even);
+impl_assign_binops!(impl<T:AllocOdd,N> AddAssign.add_assign() for Odd);
+impl_assign_binops!(impl<T:AllocOdd,N> SubAssign.sub_assign() for Odd);
 impl_assign_binops!(impl<T:AllocMultivector,N> AddAssign.add_assign() for Multivector);
 impl_assign_binops!(impl<T:AllocMultivector,N> SubAssign.sub_assign() for Multivector);
 
@@ -181,6 +186,11 @@ impl<T:AllocBlade<N,G>+Zero, N:DimName, G:DimName> Zero for Blade<T,N,G> {
 }
 
 impl<T:AllocEven<N>+Zero, N:DimName> Zero for Even<T,N> {
+    fn zero() -> Self { Self::zeroed() }
+    fn is_zero(&self) -> bool { self.iter().all(|e| e.is_zero()) }
+}
+
+impl<T:AllocOdd<N>+Zero, N:DimName> Zero for Odd<T,N> {
     fn zero() -> Self { Self::zeroed() }
     fn is_zero(&self) -> bool { self.iter().all(|e| e.is_zero()) }
 }
@@ -230,6 +240,7 @@ macro_rules! impl_unary_ops {
 
 impl_unary_ops!(impl<T:AllocBlade,N,G> Neg.neg() for Blade with AllocateBlade);
 impl_unary_ops!(impl<T:AllocEven,N> Neg.neg() for Even with AllocateEven);
+impl_unary_ops!(impl<T:AllocOdd,N> Neg.neg() for Odd with AllocateOdd);
 impl_unary_ops!(impl<T:AllocMultivector,N> Neg.neg() for Multivector with AllocateMultivector);
 
 //
@@ -301,17 +312,37 @@ impl<T1:AllocEven<N>, N:Dim> Even<T1,N> {
 
     impl_scale!(
 
-        #[doc = scale_docs!("rotor", "*", "Multiplies", "multiplication")]
+        #[doc = scale_docs!("value", "*", "Multiplies", "multiplication")]
         fn scale<U:AllocEven,N>() -> Even with Mul.mul, AllocateEven {}
 
-        #[doc = scale_docs!("rotor", "*", "Multiplies", "multiplication")]
+        #[doc = scale_docs!("value", "*", "Multiplies", "multiplication")]
         fn scale_ref<U:AllocEven,N>() -> &'a Even with Mul.mul, AllocateEven {}
 
-        #[doc = scale_docs!("rotor", "/", "Divides", "division")]
+        #[doc = scale_docs!("value", "/", "Divides", "division")]
         fn inv_scale<U:AllocEven,N>() -> Even with Div.div, AllocateEven {}
 
-        #[doc = scale_docs!("rotor", "/", "Divides", "division")]
+        #[doc = scale_docs!("value", "/", "Divides", "division")]
         fn inv_scale_ref<U:AllocEven,N>() -> &'a Even with Div.div, AllocateEven {}
+
+    );
+
+}
+
+impl<T1:AllocOdd<N>, N:Dim> Odd<T1,N> {
+
+    impl_scale!(
+
+        #[doc = scale_docs!("value", "*", "Multiplies", "multiplication")]
+        fn scale<U:AllocOdd,N>() -> Odd with Mul.mul, AllocateOdd {}
+
+        #[doc = scale_docs!("value", "*", "Multiplies", "multiplication")]
+        fn scale_ref<U:AllocOdd,N>() -> &'a Odd with Mul.mul, AllocateOdd {}
+
+        #[doc = scale_docs!("value", "/", "Divides", "division")]
+        fn inv_scale<U:AllocOdd,N>() -> Odd with Div.div, AllocateOdd {}
+
+        #[doc = scale_docs!("value", "/", "Divides", "division")]
+        fn inv_scale_ref<U:AllocOdd,N>() -> &'a Odd with Div.div, AllocateOdd {}
 
     );
 
@@ -379,6 +410,8 @@ impl_scalar_ops!(impl<T:AllocBlade,N,G> Mul.mul() for Blade with scale, scale_re
 impl_scalar_ops!(impl<T:AllocBlade,N,G> Div.div() for Blade with inv_scale, inv_scale_ref);
 impl_scalar_ops!(impl<T:AllocEven,N> Mul.mul() for Even with scale, scale_ref);
 impl_scalar_ops!(impl<T:AllocEven,N> Div.div() for Even with inv_scale, inv_scale_ref);
+impl_scalar_ops!(impl<T:AllocOdd,N> Mul.mul() for Odd with scale, scale_ref);
+impl_scalar_ops!(impl<T:AllocOdd,N> Div.div() for Odd with inv_scale, inv_scale_ref);
 impl_scalar_ops!(impl<T:AllocMultivector,N> Mul.mul() for Multivector with scale, scale_ref);
 impl_scalar_ops!(impl<T:AllocMultivector,N> Div.div() for Multivector with inv_scale, inv_scale_ref);
 
@@ -401,6 +434,8 @@ impl_scalar_assign_binops!(impl<T:AllocBlade,N,G> MulAssign.mul_assign() for Bla
 impl_scalar_assign_binops!(impl<T:AllocBlade,N,G> DivAssign.div_assign() for Blade);
 impl_scalar_assign_binops!(impl<T:AllocEven,N> MulAssign.mul_assign() for Even);
 impl_scalar_assign_binops!(impl<T:AllocEven,N> DivAssign.div_assign() for Even);
+impl_scalar_assign_binops!(impl<T:AllocOdd,N> MulAssign.mul_assign() for Odd);
+impl_scalar_assign_binops!(impl<T:AllocOdd,N> DivAssign.div_assign() for Odd);
 impl_scalar_assign_binops!(impl<T:AllocMultivector,N> MulAssign.mul_assign() for Multivector);
 impl_scalar_assign_binops!(impl<T:AllocMultivector,N> DivAssign.div_assign() for Multivector);
 
@@ -438,5 +473,7 @@ impl_forward_scalar_binops!(impl<T:AllocBlade,N,G> Mul.mul() for Blade);
 // impl_forward_scalar_binops!(impl<T:AllocBlade,N,G> Div.div() for Blade);
 impl_forward_scalar_binops!(impl<T:AllocEven,N> Mul.mul() for Even);
 // impl_forward_scalar_binops!(impl<T:AllocEven,N> Div.div() for Even);
+impl_forward_scalar_binops!(impl<T:AllocOdd,N> Mul.mul() for Odd);
+// impl_forward_scalar_binops!(impl<T:AllocOdd,N> Div.div() for Odd);
 impl_forward_scalar_binops!(impl<T:AllocMultivector,N> Mul.mul() for Multivector);
 // impl_forward_scalar_binops!(impl<T:AllocMultivector,N> Div.div() for Multivector);

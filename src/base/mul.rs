@@ -5,6 +5,7 @@ use super::*;
 enum Subspace {
     Blade(usize, usize),
     Even(usize),
+    Odd(usize),
     Full(usize)
 }
 
@@ -13,6 +14,7 @@ impl Subspace {
         match self {
             Self::Blade(n,_) => *n,
             Self::Even(n) => *n,
+            Self::Odd(n) => *n,
             Self::Full(n) => *n
         }
     }
@@ -82,6 +84,24 @@ impl<T:AllocEven<N>, N:Dim> MultivectorSrc for Even<T,N> {
 
 }
 
+impl<T:AllocOdd<N>, N:Dim> MultivectorSrc for Odd<T,N> {
+
+    type Scalar = T;
+    type Dim = N;
+    type Shape = N;
+
+    fn dim(&self) -> N { self.dim_generic() }
+    fn subspace(&self) -> Subspace { Subspace::Odd(Odd::dim(self)) }
+    fn elements(&self) -> usize { Odd::elements(self) }
+    fn shape(&self) -> N { self.dim_generic() }
+
+    fn get(&self, i:usize) -> &T { &self[i] }
+    fn basis(&self, i:usize) -> BasisBlade {
+        BasisBlade::basis_odd(Odd::dim(self), i)
+    }
+
+}
+
 impl<T:AllocMultivector<N>, N:Dim> MultivectorSrc for Multivector<T,N> {
 
     type Scalar = T;
@@ -122,6 +142,7 @@ macro_rules! impl_src_ref {
 
 impl_src_ref!(Blade<T:AllocBlade,N,G>);
 impl_src_ref!(Even<T:AllocEven,N>);
+impl_src_ref!(Odd<T:AllocOdd,N>);
 impl_src_ref!(Multivector<T:AllocMultivector,N>);
 
 impl<T:AllocBlade<N,G>, N:Dim, G:Dim> MultivectorDst for Blade<T,N,G> {
@@ -148,6 +169,20 @@ impl<T:AllocEven<N>, N:Dim> MultivectorDst for Even<T,N> {
 
     fn index_of(basis:BasisBlade, n:N) -> Option<(usize, bool)> {
         if basis.grade()%2 == 0 { Some(basis.even_index_sign(n.value())) } else { None }
+    }
+
+}
+
+impl<T:AllocOdd<N>, N:Dim> MultivectorDst for Odd<T,N> {
+
+    type Uninit = <AllocateOdd<T,N> as Storage<T>>::Uninit;
+
+    fn subspace_of(n: N) -> Subspace { Subspace::Odd(n.value()) }
+    fn uninit(n: N) -> Self::Uninit { AllocateOdd::<T,N>::uninit(n) }
+    unsafe fn assume_init(uninit: Self::Uninit) -> Self { Odd { data: uninit.assume_init() } }
+
+    fn index_of(basis:BasisBlade, n:N) -> Option<(usize, bool)> {
+        if basis.grade()%2 == 0 { Some(basis.odd_index_sign(n.value())) } else { None }
     }
 
 }
@@ -369,6 +404,9 @@ pub trait GeometricMul<Rhs> {
     fn mul_even(self, rhs: Rhs) -> Even<Self::OutputScalar, Self::N>
     where Self::OutputScalar: AllocEven<Self::N>;
 
+    fn mul_odd(self, rhs: Rhs) -> Odd<Self::OutputScalar, Self::N>
+    where Self::OutputScalar: AllocOdd<Self::N>;
+
     fn mul_full(self, rhs: Rhs) -> Multivector<Self::OutputScalar, Self::N>
     where Self::OutputScalar: AllocMultivector<Self::N>;
 
@@ -424,6 +462,13 @@ macro_rules! impl_geometric_mul {
 
             fn mul_even(self, rhs: $(&$b)? $Ty2<T2,N $(,$G2)*>) -> Even<U, N>
             where U: AllocEven<N>
+            {
+                let n = self.dim_generic();
+                mul_selected(self, rhs, n)
+            }
+
+            fn mul_odd(self, rhs: $(&$b)? $Ty2<T2,N $(,$G2)*>) -> Odd<U, N>
+            where U: AllocOdd<N>
             {
                 let n = self.dim_generic();
                 mul_selected(self, rhs, n)
@@ -502,15 +547,23 @@ macro_rules! impl_geometric_mul {
 impl_geometric_mul!(
 
     Blade<T:AllocBlade,G1> * Blade<T:AllocBlade,G2>          = Multivector<T:AllocMultivector>;
-    Blade<T:AllocBlade,G1> * Even<T:AllocEven>             = Multivector<T:AllocMultivector>;
+    Blade<T:AllocBlade,G1> * Even<T:AllocEven>               = Multivector<T:AllocMultivector>;
+    Blade<T:AllocBlade,G1> * Odd<T:AllocOdd>                 = Multivector<T:AllocMultivector>;
     Blade<T:AllocBlade,G1> * Multivector<T:AllocMultivector> = Multivector<T:AllocMultivector>;
 
     Even<T:AllocEven> * Blade<T:AllocBlade,G2>          = Multivector<T:AllocMultivector>;
-    Even<T:AllocEven> * Even<T:AllocEven>             = Even<T:AllocEven>;
+    Even<T:AllocEven> * Even<T:AllocEven>               = Even<T:AllocEven>;
+    Even<T:AllocEven> * Odd<T:AllocOdd>                 = Odd<T:AllocOdd>;
     Even<T:AllocEven> * Multivector<T:AllocMultivector> = Multivector<T:AllocMultivector>;
 
+    Odd<T:AllocOdd> * Blade<T:AllocBlade,G2>          = Multivector<T:AllocMultivector>;
+    Odd<T:AllocOdd> * Even<T:AllocEven>               = Odd<T:AllocOdd>;
+    Odd<T:AllocOdd> * Odd<T:AllocOdd>                 = Even<T:AllocEven>;
+    Odd<T:AllocOdd> * Multivector<T:AllocMultivector> = Multivector<T:AllocMultivector>;
+
     Multivector<T:AllocMultivector> * Blade<T:AllocBlade,G2>          = Multivector<T:AllocMultivector>;
-    Multivector<T:AllocMultivector> * Even<T:AllocEven>             = Multivector<T:AllocMultivector>;
+    Multivector<T:AllocMultivector> * Even<T:AllocEven>               = Multivector<T:AllocMultivector>;
+    Multivector<T:AllocMultivector> * Odd<T:AllocOdd>                 = Multivector<T:AllocMultivector>;
     Multivector<T:AllocMultivector> * Multivector<T:AllocMultivector> = Multivector<T:AllocMultivector>;
 
 );

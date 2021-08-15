@@ -37,6 +37,23 @@ pub type Even6<T> = Even<T,U6>;
 ///A rotor with dynamic dimension
 pub type EvenD<T> = Even<T,Dynamic>;
 
+///A 0-dimensional odd value
+pub type Odd0<T> = Odd<T,U0>;
+///A 1-dimensional odd value
+pub type Odd1<T> = Odd<T,U1>;
+///A 2-dimensional odd value
+pub type Odd2<T> = Odd<T,U2>;
+///A 3-dimensional odd value
+pub type Odd3<T> = Odd<T,U3>;
+///A 4-dimensional odd value
+pub type Odd4<T> = Odd<T,U4>;
+///A 5-dimensional odd value
+pub type Odd5<T> = Odd<T,U5>;
+///A 6-dimensional odd value
+pub type Odd6<T> = Odd<T,U6>;
+///An odd value with dynamic dimension
+pub type OddD<T> = Odd<T,Dynamic>;
+
 ///A 0-dimensional multivector
 pub type Multivector0<T> = Multivector<T,U0>;
 ///A 1-dimensional multivector

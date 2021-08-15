@@ -31,7 +31,7 @@ use na::dimension::{
 use crate::basis_blade::BasisBlade;
 use crate::{
     DimName, RefMul,
-    binom, rotor_elements,
+    binom, rotor_elements, odd_elements,
     components_in, even_components_in
 };
 
@@ -46,6 +46,11 @@ pub struct Blade<T:AllocBlade<N,G>, N:Dim, G:Dim> {
 #[repr(transparent)]
 pub struct Even<T:AllocEven<N>, N:Dim> {
     pub data: AllocateEven<T,N>
+}
+
+#[repr(transparent)]
+pub struct Odd<T:AllocOdd<N>, N:Dim> {
+    pub data: AllocateOdd<T,N>
 }
 
 #[repr(transparent)]
@@ -233,6 +238,10 @@ impl<T:AllocEven<N>,N:Dim> Even<T,N> {
     common_functions!(false Even);
 }
 
+impl<T:AllocOdd<N>,N:Dim> Odd<T,N> {
+    common_functions!(false Odd);
+}
+
 impl<T:AllocMultivector<N>,N:Dim> Multivector<T,N> {
     common_functions!(false Multivector);
 }
@@ -318,6 +327,7 @@ macro_rules! impl_basic_traits {
 
 impl_basic_traits!(impl<T:AllocBlade, N, G> Blade where AllocateBlade {});
 impl_basic_traits!(impl<T:AllocEven, N> Even where AllocateEven {});
+impl_basic_traits!(impl<T:AllocOdd, N> Odd where AllocateOdd {});
 impl_basic_traits!(impl<T:AllocMultivector, N> Multivector where AllocateMultivector {});
 
 impl<T, U, N1:Dim, N2:Dim, G1:Dim, G2:Dim> PartialEq<Blade<U,N2,G2>> for Blade<T,N1,G1>
@@ -344,6 +354,20 @@ where
     }
 
     fn ne(&self, rhs:&Even<U,N2>) -> bool {
+        self.dim() != rhs.dim() || self.as_slice() != rhs.as_slice()
+    }
+}
+
+impl<T, U, N1:Dim, N2:Dim> PartialEq<Odd<U,N2>> for Odd<T,N1>
+where
+    T: AllocOdd<N1> + PartialEq<U>,
+    U: AllocOdd<N2>
+{
+    fn eq(&self, rhs:&Odd<U,N2>) -> bool {
+        self.dim() == rhs.dim() && self.as_slice() == rhs.as_slice()
+    }
+
+    fn ne(&self, rhs:&Odd<U,N2>) -> bool {
         self.dim() != rhs.dim() || self.as_slice() != rhs.as_slice()
     }
 }
@@ -388,6 +412,7 @@ mod tests{
                 assert_eq!(BladeD::from_element(n,g,0).dim(), n);
             }
             assert_eq!(EvenD::from_element(n,0).dim(), n);
+            assert_eq!(OddD::from_element(n,0).dim(), n);
             assert_eq!(MultivectorD::from_element(n,0).dim(), n);
         }
     }
@@ -399,6 +424,7 @@ mod tests{
                 assert_eq!(BladeD::from_element(n,g,0).elements(), binom(n,g));
             }
             assert_eq!(EvenD::from_element(n,0).elements(), if n==0 {1} else {1 << (n-1)} );
+            assert_eq!(OddD::from_element(n,0).elements(), if n==0 {1} else {1 << (n-1)} );
             assert_eq!(MultivectorD::from_element(n,0).elements(), 1<<n);
         }
     }

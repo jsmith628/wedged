@@ -37,6 +37,12 @@ pub unsafe trait EvenStorage<T,N:Dim>: Storage<T> {
     fn from_iterator<I:IntoIterator<Item=T>>(n:N, iter: I) -> Self;
 }
 
+pub unsafe trait OddStorage<T,N:Dim>: Storage<T> {
+    fn dim(&self) -> N;
+    fn uninit(n:N) -> Self::Uninit;
+    fn from_iterator<I:IntoIterator<Item=T>>(n:N, iter: I) -> Self;
+}
+
 pub unsafe trait MultivectorStorage<T,N:Dim>: Storage<T> {
     fn dim(&self) -> N;
     fn uninit(n:N) -> Self::Uninit;
@@ -83,6 +89,12 @@ pub struct DynBladeStorage<T,N:Dim,G:Dim> {
 
 #[derive(Clone)]
 pub struct DynEvenStorage<T,N:Dim> {
+    data: Vec<T>,
+    dim: N
+}
+
+#[derive(Clone)]
+pub struct DynOddStorage<T,N:Dim> {
     data: Vec<T>,
     dim: N
 }
@@ -140,7 +152,7 @@ macro_rules! impl_dyn_storage {
 }
 
 impl_dyn_storage!(
-    DynBladeStorage<T,N,G>; DynEvenStorage<T,N>; DynMultivectorStorage<T,N>;
+    DynBladeStorage<T,N,G>; DynEvenStorage<T,N>; DynOddStorage<T,N>; DynMultivectorStorage<T,N>;
 );
 
 unsafe impl<T,N:Dim,G:Dim> UninitStorage<T> for DynBladeStorage<MaybeUninit<T>,N,G> {
@@ -177,7 +189,7 @@ unsafe impl<T,N:Dim,G:Dim> BladeStorage<T,N,G> for DynBladeStorage<T,N,G> {
 }
 
 #[inline(always)]
-fn rotor_elements(n:usize) -> usize {
+fn even_elements(n:usize) -> usize {
     crate::rotor_elements(n.try_into().unwrap())
 }
 
@@ -197,14 +209,49 @@ unsafe impl<T,N:Dim> EvenStorage<T,N> for DynEvenStorage<T,N> {
 
     fn uninit(n:N) -> Self::Uninit {
         DynEvenStorage {
-            data: vec_uninit(rotor_elements(n.value())),
+            data: vec_uninit(even_elements(n.value())),
             dim: n
         }
     }
 
     fn from_iterator<I:IntoIterator<Item=T>>(n:N, iter: I) -> Self {
         DynEvenStorage {
-            data: vec_from_iter(rotor_elements(n.value()), iter, "rotor"),
+            data: vec_from_iter(even_elements(n.value()), iter, "value"),
+            dim: n
+        }
+    }
+
+}
+
+#[inline(always)]
+fn odd_elements(n:usize) -> usize {
+    crate::odd_elements(n.try_into().unwrap())
+}
+
+unsafe impl<T,N:Dim> UninitStorage<T> for DynOddStorage<MaybeUninit<T>,N> {
+    type Init = DynOddStorage<T,N>;
+
+    unsafe fn assume_init(self) -> Self::Init {
+        //TODO: maybe make less ugly
+        DynOddStorage { data: transmute(self.data), dim: self.dim }
+    }
+
+}
+
+unsafe impl<T,N:Dim> OddStorage<T,N> for DynOddStorage<T,N> {
+
+    fn dim(&self) -> N { self.dim }
+
+    fn uninit(n:N) -> Self::Uninit {
+        DynOddStorage {
+            data: vec_uninit(odd_elements(n.value())),
+            dim: n
+        }
+    }
+
+    fn from_iterator<I:IntoIterator<Item=T>>(n:N, iter: I) -> Self {
+        DynOddStorage {
+            data: vec_from_iter(odd_elements(n.value()), iter, "value"),
             dim: n
         }
     }

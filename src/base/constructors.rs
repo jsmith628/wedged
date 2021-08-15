@@ -55,6 +55,12 @@ impl<T:AllocEven<N>, N:Dim> Even<T,N> {
     );
 }
 
+impl<T:AllocOdd<N>, N:Dim> Odd<T,N> {
+    impl_generic_constructors!(
+        pub fn new(n:N) -> Self { AllocateOdd::new() }
+    );
+}
+
 impl<T:AllocMultivector<N>, N:Dim> Multivector<T,N> {
     impl_generic_constructors!(
         pub fn new(n:N) -> Self { AllocateMultivector::new() }
@@ -249,6 +255,24 @@ impl<T:AllocEven<N>, N:DimName> Even<T, N> {
 
 ///Constructors for rotors with dynamic dimension
 impl<T:AllocEven<Dynamic>> EvenD<T> {
+    impl_general_constructors!(
+        pub fn new(n:usize,) -> Self {
+            Self::new_generic(Dynamic::new(n))
+        }
+    );
+}
+
+//Constructors for statically sized odd-values
+impl<T:AllocOdd<N>, N:DimName> Odd<T, N> {
+    impl_general_constructors!(
+        pub fn new() -> Self {
+            Self::new_generic(N::name())
+        }
+    );
+}
+
+//Constructors for odd values with dynamic dimension
+impl<T:AllocOdd<Dynamic>> OddD<T> {
     impl_general_constructors!(
         pub fn new(n:usize,) -> Self {
             Self::new_generic(Dynamic::new(n))
