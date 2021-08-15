@@ -144,35 +144,51 @@ impl<T:AllocBlade<N,G>+Debug, N:Dim, G:Dim> Debug for Blade<T,N,G> {
 
 
 macro_rules! impl_fmt {
-    ($($Fmt:ident $symbol:literal),*) => {
-        $(
-            impl<T:AllocBlade<N,G>+$Fmt, N:Dim, G:Dim> $Fmt for Blade<T,N,G> {
-                fn fmt(&self, f: &mut Formatter) -> FmtResult {
 
-                    let (alt, prec) = (f.alternate(), f.precision());
+    //loop over every fmt trait
+    (;$($rest:tt)*) => {};
+    ($Fmt:ident $symbol:literal $(, $F:ident $s:literal)*; $Ty:ident<T:$Alloc:ident $(, $N:ident)*>) => {
+        impl<T:$Alloc<$($N),*>+$Fmt $(, $N:Dim)*> $Fmt for $Ty<T $(, $N)*> {
+            fn fmt(&self, f: &mut Formatter) -> FmtResult {
 
-                    Debug::fmt(
-                        &FmtAlgebra(
-                            self.as_slice(),
-                            |i| Some(BasisBlade::basis_blade(self.dim(), self.grade(), i)),
-                            |t, dest| match (alt, prec) {
-                                (false, None)    => write!(dest, concat!("{:", $symbol, "}"), t),
-                                (false, Some(p)) => write!(dest, concat!("{:.1$", $symbol, "}"), t, p),
-                                (true,  None)    => write!(dest, concat!("{:#", $symbol, "}"), t),
-                                (true,  Some(p)) => write!(dest, concat!("{:#.1$", $symbol, "}"), t, p),
-                            }
-                        ),
-                        f
-                    )
+                let (alt, prec) = (f.alternate(), f.precision());
+
+                Debug::fmt(
+                    &FmtAlgebra(
+                        self.as_slice(),
+                        |i| Some(self.basis(i)),
+                        |t, dest| match (alt, prec) {
+                            (false, None)    => write!(dest, concat!("{:", $symbol, "}"), t),
+                            (false, Some(p)) => write!(dest, concat!("{:.1$", $symbol, "}"), t, p),
+                            (true,  None)    => write!(dest, concat!("{:#", $symbol, "}"), t),
+                            (true,  Some(p)) => write!(dest, concat!("{:#.1$", $symbol, "}"), t, p),
+                        }
+                    ),
+                    f
+                )
 
 
-                }
             }
-        )*
-    }
+        }
+
+        impl_fmt!($($F $s),*; $Ty<T:$Alloc $(, $N)*>);
+    };
+
+    //loop over each type
+    ($($Fmt:ident $symbol:literal),*;) => {};
+    ($($Fmt:ident $symbol:literal),*; $Ty:ident<T:$Alloc:ident $(, $N:ident)*> $($rest:tt)*) => {
+        impl_fmt!($($Fmt $symbol),*; $Ty<T:$Alloc $(, $N)*>);
+        impl_fmt!($($Fmt $symbol),*; $($rest)*);
+    };
+
+
+
 }
 
-impl_fmt!(Display "", Binary "b", Octal "o", LowerHex "x", UpperHex "X", LowerExp "e", UpperExp "E");
+impl_fmt!(
+    Display "", Binary "b", Octal "o", LowerHex "x", UpperHex "X", LowerExp "e", UpperExp "E";
+    Blade<T:AllocBlade,N,G> Even<T:AllocEven,N> Odd<T:AllocOdd,N> Multivector<T:AllocMultivector,N>
+);
 
 #[cfg(test)]
 mod tests {

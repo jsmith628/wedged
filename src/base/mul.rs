@@ -2,7 +2,7 @@
 use super::*;
 
 #[derive(Clone, Copy, Debug)]
-enum Subspace {
+pub(super) enum Subspace {
     Blade(usize, usize),
     Even(usize),
     Odd(usize),
@@ -20,7 +20,7 @@ impl Subspace {
     }
 }
 
-trait MultivectorSrc:IntoIterator {
+pub(super) trait MultivectorSrc:IntoIterator {
 
     type Scalar;
     type Dim: Dim;
@@ -35,7 +35,7 @@ trait MultivectorSrc:IntoIterator {
     fn basis(&self, i:usize) -> BasisBlade;
 }
 
-trait MultivectorDst: MultivectorSrc {
+pub(super) trait MultivectorDst: MultivectorSrc {
 
     type Uninit: UninitStorage<Self::Scalar>;
 
