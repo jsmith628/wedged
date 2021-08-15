@@ -3,7 +3,7 @@ use num_traits::{One, Inv};
 use std::ops::{Neg, Mul, MulAssign, Div, DivAssign};
 use std::fmt::{Formatter, Debug, Display, Binary, Result as FmtResult, Alignment};
 
-use crate::{binom, components_in, even_elements, odd_elements, multivector_elements};
+use crate::{binom, components_of, even_elements, odd_elements, multivector_elements};
 
 //So we can maybe change it later though there really is no reason it needs any more bits than this
 pub type Bits = i32;
@@ -383,7 +383,7 @@ impl BasisBlade {
 
     pub fn basis_even(n: usize, i: usize) -> BasisBlade {
         let mut i = i;
-        for (g, binom) in components_in(n).enumerate().step_by(2) {
+        for (g, binom) in components_of(n).enumerate().step_by(2) {
             if binom > i {
                 return Self::basis_blade(n,g,i);
             } else {
@@ -396,7 +396,7 @@ impl BasisBlade {
 
     pub fn basis_odd(n: usize, i: usize) -> BasisBlade {
         let mut i = i;
-        for (g, binom) in components_in(n).enumerate().skip(1).step_by(2) {
+        for (g, binom) in components_of(n).enumerate().skip(1).step_by(2) {
             if binom > i {
                 return Self::basis_blade(n,g,i);
             } else {
@@ -409,7 +409,7 @@ impl BasisBlade {
 
     pub fn basis(n: usize, i: usize) -> BasisBlade {
         let mut i = i;
-        for (g, binom) in components_in(n).enumerate() {
+        for (g, binom) in components_of(n).enumerate() {
             if binom > i {
                 return Self::basis_blade(n,g,i);
             } else {

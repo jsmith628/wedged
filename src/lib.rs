@@ -79,19 +79,19 @@ pub const fn multivector_elements(n:u32) -> usize {
 ///
 /// # Examples
 /// ```
-/// # use galgebra::components_in;
+/// # use galgebra::components_of;
 ///
-/// assert_eq!(components_in(0).collect::<Vec<_>>(), vec![1]);
-/// assert_eq!(components_in(1).collect::<Vec<_>>(), vec![1, 1]);
-/// assert_eq!(components_in(2).collect::<Vec<_>>(), vec![1, 2, 1]);
-/// assert_eq!(components_in(3).collect::<Vec<_>>(), vec![1, 3, 3, 1]);
-/// assert_eq!(components_in(4).collect::<Vec<_>>(), vec![1, 4, 6, 4, 1]);
-/// assert_eq!(components_in(5).collect::<Vec<_>>(), vec![1, 5, 10, 10, 5, 1]);
-/// assert_eq!(components_in(6).collect::<Vec<_>>(), vec![1, 6, 15, 20, 15, 6, 1]);
+/// assert_eq!(components_of(0).collect::<Vec<_>>(), vec![1]);
+/// assert_eq!(components_of(1).collect::<Vec<_>>(), vec![1, 1]);
+/// assert_eq!(components_of(2).collect::<Vec<_>>(), vec![1, 2, 1]);
+/// assert_eq!(components_of(3).collect::<Vec<_>>(), vec![1, 3, 3, 1]);
+/// assert_eq!(components_of(4).collect::<Vec<_>>(), vec![1, 4, 6, 4, 1]);
+/// assert_eq!(components_of(5).collect::<Vec<_>>(), vec![1, 5, 10, 10, 5, 1]);
+/// assert_eq!(components_of(6).collect::<Vec<_>>(), vec![1, 6, 15, 20, 15, 6, 1]);
 ///
 /// ```
 ///
-pub fn components_in(n: usize) -> impl std::iter::Iterator<Item=usize> {
+pub fn components_of(n: usize) -> impl std::iter::Iterator<Item=usize> {
     let mut binom = 1;
     (0..=n).map(
         move |g| {
@@ -108,20 +108,41 @@ pub fn components_in(n: usize) -> impl std::iter::Iterator<Item=usize> {
 ///
 /// # Examples
 /// ```
-/// # use galgebra::even_components_in;
+/// # use galgebra::even_components_of;
 ///
-/// assert_eq!(even_components_in(0).collect::<Vec<_>>(), vec![1]);
-/// assert_eq!(even_components_in(1).collect::<Vec<_>>(), vec![1]);
-/// assert_eq!(even_components_in(2).collect::<Vec<_>>(), vec![1, 1]);
-/// assert_eq!(even_components_in(3).collect::<Vec<_>>(), vec![1, 3]);
-/// assert_eq!(even_components_in(4).collect::<Vec<_>>(), vec![1, 6, 1]);
-/// assert_eq!(even_components_in(5).collect::<Vec<_>>(), vec![1, 10, 5]);
-/// assert_eq!(even_components_in(6).collect::<Vec<_>>(), vec![1, 15, 15, 1]);
+/// assert_eq!(even_components_of(0).collect::<Vec<_>>(), vec![1]);
+/// assert_eq!(even_components_of(1).collect::<Vec<_>>(), vec![1]);
+/// assert_eq!(even_components_of(2).collect::<Vec<_>>(), vec![1, 1]);
+/// assert_eq!(even_components_of(3).collect::<Vec<_>>(), vec![1, 3]);
+/// assert_eq!(even_components_of(4).collect::<Vec<_>>(), vec![1, 6, 1]);
+/// assert_eq!(even_components_of(5).collect::<Vec<_>>(), vec![1, 10, 5]);
+/// assert_eq!(even_components_of(6).collect::<Vec<_>>(), vec![1, 15, 15, 1]);
 ///
 /// ```
 ///
-pub fn even_components_in(n: usize) -> impl std::iter::Iterator<Item=usize> {
-    components_in(n).step_by(2)
+pub fn even_components_of(n: usize) -> impl std::iter::Iterator<Item=usize> {
+    components_of(n).step_by(2)
+}
+
+///
+/// Iterates over the number of elements of each _odd_ blade in the given dimension
+///
+/// # Examples
+/// ```
+/// # use galgebra::odd_components_of;
+///
+/// assert_eq!(odd_components_of(0).collect::<Vec<_>>(), vec![]);
+/// assert_eq!(odd_components_of(1).collect::<Vec<_>>(), vec![1]);
+/// assert_eq!(odd_components_of(2).collect::<Vec<_>>(), vec![2]);
+/// assert_eq!(odd_components_of(3).collect::<Vec<_>>(), vec![3, 1]);
+/// assert_eq!(odd_components_of(4).collect::<Vec<_>>(), vec![4, 4]);
+/// assert_eq!(odd_components_of(5).collect::<Vec<_>>(), vec![5, 10, 1]);
+/// assert_eq!(odd_components_of(6).collect::<Vec<_>>(), vec![6, 20, 6]);
+///
+/// ```
+///
+pub fn odd_components_of(n: usize) -> impl std::iter::Iterator<Item=usize> {
+    components_of(n).skip(1).step_by(2)
 }
 
 pub trait DimName: na::dimension::DimName {}

@@ -32,7 +32,7 @@ use crate::basis_blade::BasisBlade;
 use crate::{
     DimName, RefMul,
     binom, even_elements, odd_elements,
-    components_in, even_components_in
+    components_of, even_components_of, odd_components_of
 };
 
 pub type Iter<'a, T> = std::slice::Iter<'a, T>;
