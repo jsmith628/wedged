@@ -64,20 +64,20 @@ impl<T:AllocBlade<N,G>, N:Dim, G:Dim> MultivectorSrc for Blade<T,N,G> {
 
 }
 
-impl<T:AllocRotor<N>, N:Dim> MultivectorSrc for Rotor<T,N> {
+impl<T:AllocEven<N>, N:Dim> MultivectorSrc for Even<T,N> {
 
     type Scalar = T;
     type Dim = N;
     type Shape = N;
 
     fn dim(&self) -> N { self.dim_generic() }
-    fn subspace(&self) -> Subspace { Subspace::Even(Rotor::dim(self)) }
-    fn elements(&self) -> usize { Rotor::elements(self) }
+    fn subspace(&self) -> Subspace { Subspace::Even(Even::dim(self)) }
+    fn elements(&self) -> usize { Even::elements(self) }
     fn shape(&self) -> N { self.dim_generic() }
 
     fn get(&self, i:usize) -> &T { &self[i] }
     fn basis(&self, i:usize) -> BasisBlade {
-        BasisBlade::basis_rotor(Rotor::dim(self), i)
+        BasisBlade::basis_even(Even::dim(self), i)
     }
 
 }
@@ -121,7 +121,7 @@ macro_rules! impl_src_ref {
 }
 
 impl_src_ref!(Blade<T:AllocBlade,N,G>);
-impl_src_ref!(Rotor<T:AllocRotor,N>);
+impl_src_ref!(Even<T:AllocEven,N>);
 impl_src_ref!(Multivector<T:AllocMultivector,N>);
 
 impl<T:AllocBlade<N,G>, N:Dim, G:Dim> MultivectorDst for Blade<T,N,G> {
@@ -138,16 +138,16 @@ impl<T:AllocBlade<N,G>, N:Dim, G:Dim> MultivectorDst for Blade<T,N,G> {
 
 }
 
-impl<T:AllocRotor<N>, N:Dim> MultivectorDst for Rotor<T,N> {
+impl<T:AllocEven<N>, N:Dim> MultivectorDst for Even<T,N> {
 
-    type Uninit = <AllocateRotor<T,N> as Storage<T>>::Uninit;
+    type Uninit = <AllocateEven<T,N> as Storage<T>>::Uninit;
 
     fn subspace_of(n: N) -> Subspace { Subspace::Even(n.value()) }
-    fn uninit(n: N) -> Self::Uninit { AllocateRotor::<T,N>::uninit(n) }
-    unsafe fn assume_init(uninit: Self::Uninit) -> Self { Rotor { data: uninit.assume_init() } }
+    fn uninit(n: N) -> Self::Uninit { AllocateEven::<T,N>::uninit(n) }
+    unsafe fn assume_init(uninit: Self::Uninit) -> Self { Even { data: uninit.assume_init() } }
 
     fn index_of(basis:BasisBlade, n:N) -> Option<(usize, bool)> {
-        if basis.grade()%2 == 0 { Some(basis.rotor_index_sign(n.value())) } else { None }
+        if basis.grade()%2 == 0 { Some(basis.even_index_sign(n.value())) } else { None }
     }
 
 }
@@ -366,8 +366,8 @@ pub trait GeometricMul<Rhs> {
     fn mul_grade<G:DimName>(self, rhs: Rhs) -> Blade<Self::OutputScalar, Self::N, G>
     where Self::OutputScalar: AllocBlade<Self::N, G>;
 
-    fn mul_even(self, rhs: Rhs) -> Rotor<Self::OutputScalar, Self::N>
-    where Self::OutputScalar: AllocRotor<Self::N>;
+    fn mul_even(self, rhs: Rhs) -> Even<Self::OutputScalar, Self::N>
+    where Self::OutputScalar: AllocEven<Self::N>;
 
     fn mul_full(self, rhs: Rhs) -> Multivector<Self::OutputScalar, Self::N>
     where Self::OutputScalar: AllocMultivector<Self::N>;
@@ -422,8 +422,8 @@ macro_rules! impl_geometric_mul {
                 self.mul_grade_generic(rhs, G::name())
             }
 
-            fn mul_even(self, rhs: $(&$b)? $Ty2<T2,N $(,$G2)*>) -> Rotor<U, N>
-            where U: AllocRotor<N>
+            fn mul_even(self, rhs: $(&$b)? $Ty2<T2,N $(,$G2)*>) -> Even<U, N>
+            where U: AllocEven<N>
             {
                 let n = self.dim_generic();
                 mul_selected(self, rhs, n)
@@ -457,7 +457,7 @@ macro_rules! impl_geometric_mul {
         //
         //This is only implemented on values with the same scalar type so as to not conflict with
         //scalar multiplication. Also, most of these output `Multivector` besides the obvious
-        //`Rotor * Rotor` counterexample. Now yes, even blades times Rotors do result in rotors,
+        //`Even * Even` counterexample. Now yes, even blades times Rotors do result in rotors,
         //but it would mess with the type inference and type checking if we did that even once
         //we have specialization. Instead, users will need to use mul_even() to get that functionality
         //
@@ -502,15 +502,15 @@ macro_rules! impl_geometric_mul {
 impl_geometric_mul!(
 
     Blade<T:AllocBlade,G1> * Blade<T:AllocBlade,G2>          = Multivector<T:AllocMultivector>;
-    Blade<T:AllocBlade,G1> * Rotor<T:AllocRotor>             = Multivector<T:AllocMultivector>;
+    Blade<T:AllocBlade,G1> * Even<T:AllocEven>             = Multivector<T:AllocMultivector>;
     Blade<T:AllocBlade,G1> * Multivector<T:AllocMultivector> = Multivector<T:AllocMultivector>;
 
-    Rotor<T:AllocRotor> * Blade<T:AllocBlade,G2>          = Multivector<T:AllocMultivector>;
-    Rotor<T:AllocRotor> * Rotor<T:AllocRotor>             = Rotor<T:AllocRotor>;
-    Rotor<T:AllocRotor> * Multivector<T:AllocMultivector> = Multivector<T:AllocMultivector>;
+    Even<T:AllocEven> * Blade<T:AllocBlade,G2>          = Multivector<T:AllocMultivector>;
+    Even<T:AllocEven> * Even<T:AllocEven>             = Even<T:AllocEven>;
+    Even<T:AllocEven> * Multivector<T:AllocMultivector> = Multivector<T:AllocMultivector>;
 
     Multivector<T:AllocMultivector> * Blade<T:AllocBlade,G2>          = Multivector<T:AllocMultivector>;
-    Multivector<T:AllocMultivector> * Rotor<T:AllocRotor>             = Multivector<T:AllocMultivector>;
+    Multivector<T:AllocMultivector> * Even<T:AllocEven>             = Multivector<T:AllocMultivector>;
     Multivector<T:AllocMultivector> * Multivector<T:AllocMultivector> = Multivector<T:AllocMultivector>;
 
 );

@@ -21,21 +21,21 @@ pub type Blade6<T> = Blade<T,U6,Dynamic>;
 pub type BladeD<T> = Blade<T,Dynamic,Dynamic>;
 
 ///A 0-dimensional rotor
-pub type Rotor0<T> = Rotor<T,U0>;
+pub type Even0<T> = Even<T,U0>;
 ///A 1-dimensional rotor
-pub type Rotor1<T> = Rotor<T,U1>;
+pub type Even1<T> = Even<T,U1>;
 ///A 2-dimensional rotor
-pub type Rotor2<T> = Rotor<T,U2>;
+pub type Even2<T> = Even<T,U2>;
 ///A 3-dimensional rotor
-pub type Rotor3<T> = Rotor<T,U3>;
+pub type Even3<T> = Even<T,U3>;
 ///A 4-dimensional rotor
-pub type Rotor4<T> = Rotor<T,U4>;
+pub type Even4<T> = Even<T,U4>;
 ///A 5-dimensional rotor
-pub type Rotor5<T> = Rotor<T,U5>;
+pub type Even5<T> = Even<T,U5>;
 ///A 6-dimensional rotor
-pub type Rotor6<T> = Rotor<T,U6>;
+pub type Even6<T> = Even<T,U6>;
 ///A rotor with dynamic dimension
-pub type RotorD<T> = Rotor<T,Dynamic>;
+pub type EvenD<T> = Even<T,Dynamic>;
 
 ///A 0-dimensional multivector
 pub type Multivector0<T> = Multivector<T,U0>;

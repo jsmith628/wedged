@@ -49,9 +49,9 @@ impl<T:AllocBlade<N,G>, N:Dim, G:Dim> Blade<T,N,G> {
     );
 }
 
-impl<T:AllocRotor<N>, N:Dim> Rotor<T,N> {
+impl<T:AllocEven<N>, N:Dim> Even<T,N> {
     impl_generic_constructors!(
-        pub fn new(n:N) -> Self { AllocateRotor::new() }
+        pub fn new(n:N) -> Self { AllocateEven::new() }
     );
 }
 
@@ -239,7 +239,7 @@ impl<T:AllocBlade<Dynamic,Dynamic>> BladeD<T> {
 }
 
 ///Constructors for statically sized rotors
-impl<T:AllocRotor<N>, N:DimName> Rotor<T, N> {
+impl<T:AllocEven<N>, N:DimName> Even<T, N> {
     impl_general_constructors!(
         pub fn new() -> Self {
             Self::new_generic(N::name())
@@ -248,7 +248,7 @@ impl<T:AllocRotor<N>, N:DimName> Rotor<T, N> {
 }
 
 ///Constructors for rotors with dynamic dimension
-impl<T:AllocRotor<Dynamic>> RotorD<T> {
+impl<T:AllocEven<Dynamic>> EvenD<T> {
     impl_general_constructors!(
         pub fn new(n:usize,) -> Self {
             Self::new_generic(Dynamic::new(n))
@@ -321,11 +321,11 @@ impl_specific_constructors!{
 
     HexVec6::new(x);
 
-    Rotor0::new(r);
-    Rotor1::new(r);
-    Rotor2::new(r, i);
-    Rotor3::new(w, i,j,k);
-    Rotor4::new(r, yz,zx,xy,xw,yw,zw, i);
+    Even0::new(r);
+    Even1::new(r);
+    Even2::new(r, i);
+    Even3::new(w, i,j,k);
+    Even4::new(r, yz,zx,xy,xw,yw,zw, i);
 
     Multivector0::new(r);
     Multivector1::new(r,x);

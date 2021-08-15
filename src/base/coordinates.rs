@@ -95,8 +95,8 @@ impl_coords! {
     PentVec5 = ScalarCoords;
     HexVec6  = ScalarCoords;
 
-    //Rotors as Complex numbers and quaternion
-    Rotor2 = ReIm;
-    Rotor3 = WIJK;
+    //The even algebras as Complex numbers and quaternions
+    Even2 = ReIm;
+    Even3 = WIJK;
 
 }

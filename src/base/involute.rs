@@ -105,7 +105,7 @@ macro_rules! involution {
     }
 }
 
-impl<T:AllocRotor<N>, N:Dim> Rotor<T,N> {
+impl<T:AllocEven<N>, N:Dim> Even<T,N> {
 
     ///
     /// Swaps the order of the vectors in each basis element
@@ -115,7 +115,7 @@ impl<T:AllocRotor<N>, N:Dim> Rotor<T,N> {
     ///
     /// The reverse function is useful as this effectively finds the multiplicative inverse of each
     /// basis element. This way, for invertible rotors, `r * r.reverse() == r.norm_sqrd()` and for
-    /// unit invertible rotors, this is the same as computing the [inverse](Rotor::inverse())
+    /// unit invertible rotors, this is the same as computing the [inverse](Even::inverse())
     ///
     /// Furthermore, for invertible rotors, this operation inverts the rotational action of this
     /// rotor without affecting the scaling action.
@@ -124,7 +124,7 @@ impl<T:AllocRotor<N>, N:Dim> Rotor<T,N> {
         let n = self.dim();
         involution!(
             self,
-            AllocateRotor::<T,N>::uninit(self.dim_generic()),
+            AllocateEven::<T,N>::uninit(self.dim_generic()),
             even_components_in(n), 0b10
         )
     }
@@ -141,7 +141,7 @@ impl<T:AllocRotor<N>, N:Dim> Rotor<T,N> {
     /// The multiplicative inverse of this rotor
     ///
     /// NOTE: this only works for _invertible_ rotors. For non-invertible rotors, it only computes
-    /// the [reverse](Rotor::reverse) divided by the [square norm](Rotor::norm_sqrd()). Up to 4D,
+    /// the [reverse](Even::reverse) divided by the [square norm](Even::norm_sqrd()). Up to 4D,
     /// this is not an issue, as all non-zero rotors in 1-3D are invertible, but starting in four
     /// dimensions, there will always be values such as `1 + e₁₂₃₄` that cannot be inverted.
     ///

@@ -26,7 +26,7 @@ macro_rules! impl_index {
 }
 
 impl_index!(impl<T:AllocBlade, N, G> Index for Blade {});
-impl_index!(impl<T:AllocRotor, N> Index for Rotor {});
+impl_index!(impl<T:AllocEven, N> Index for Even {});
 impl_index!(impl<T:AllocMultivector, N> Index for Multivector {});
 
 //
@@ -154,15 +154,15 @@ macro_rules! impl_assign_binops {
 
 impl_binops!(impl<T:AllocBlade,N,G> Add.add() for Blade with AllocateBlade);
 impl_binops!(impl<T:AllocBlade,N,G> Sub.sub() for Blade with AllocateBlade);
-impl_binops!(impl<T:AllocRotor,N> Add.add() for Rotor with AllocateRotor);
-impl_binops!(impl<T:AllocRotor,N> Sub.sub() for Rotor with AllocateRotor);
+impl_binops!(impl<T:AllocEven,N> Add.add() for Even with AllocateEven);
+impl_binops!(impl<T:AllocEven,N> Sub.sub() for Even with AllocateEven);
 impl_binops!(impl<T:AllocMultivector,N> Add.add() for Multivector with AllocateMultivector);
 impl_binops!(impl<T:AllocMultivector,N> Sub.sub() for Multivector with AllocateMultivector);
 
 impl_assign_binops!(impl<T:AllocBlade,N,G> AddAssign.add_assign() for Blade);
 impl_assign_binops!(impl<T:AllocBlade,N,G> SubAssign.sub_assign() for Blade);
-impl_assign_binops!(impl<T:AllocRotor,N> AddAssign.add_assign() for Rotor);
-impl_assign_binops!(impl<T:AllocRotor,N> SubAssign.sub_assign() for Rotor);
+impl_assign_binops!(impl<T:AllocEven,N> AddAssign.add_assign() for Even);
+impl_assign_binops!(impl<T:AllocEven,N> SubAssign.sub_assign() for Even);
 impl_assign_binops!(impl<T:AllocMultivector,N> AddAssign.add_assign() for Multivector);
 impl_assign_binops!(impl<T:AllocMultivector,N> SubAssign.sub_assign() for Multivector);
 
@@ -180,7 +180,7 @@ impl<T:AllocBlade<N,G>+Zero, N:DimName, G:DimName> Zero for Blade<T,N,G> {
     fn is_zero(&self) -> bool { self.iter().all(|e| e.is_zero()) }
 }
 
-impl<T:AllocRotor<N>+Zero, N:DimName> Zero for Rotor<T,N> {
+impl<T:AllocEven<N>+Zero, N:DimName> Zero for Even<T,N> {
     fn zero() -> Self { Self::zeroed() }
     fn is_zero(&self) -> bool { self.iter().all(|e| e.is_zero()) }
 }
@@ -229,7 +229,7 @@ macro_rules! impl_unary_ops {
 }
 
 impl_unary_ops!(impl<T:AllocBlade,N,G> Neg.neg() for Blade with AllocateBlade);
-impl_unary_ops!(impl<T:AllocRotor,N> Neg.neg() for Rotor with AllocateRotor);
+impl_unary_ops!(impl<T:AllocEven,N> Neg.neg() for Even with AllocateEven);
 impl_unary_ops!(impl<T:AllocMultivector,N> Neg.neg() for Multivector with AllocateMultivector);
 
 //
@@ -297,21 +297,21 @@ impl<T1:AllocBlade<N,G>, N:Dim, G:Dim> Blade<T1,N,G> {
 
 }
 
-impl<T1:AllocRotor<N>, N:Dim> Rotor<T1,N> {
+impl<T1:AllocEven<N>, N:Dim> Even<T1,N> {
 
     impl_scale!(
 
         #[doc = scale_docs!("rotor", "*", "Multiplies", "multiplication")]
-        fn scale<U:AllocRotor,N>() -> Rotor with Mul.mul, AllocateRotor {}
+        fn scale<U:AllocEven,N>() -> Even with Mul.mul, AllocateEven {}
 
         #[doc = scale_docs!("rotor", "*", "Multiplies", "multiplication")]
-        fn scale_ref<U:AllocRotor,N>() -> &'a Rotor with Mul.mul, AllocateRotor {}
+        fn scale_ref<U:AllocEven,N>() -> &'a Even with Mul.mul, AllocateEven {}
 
         #[doc = scale_docs!("rotor", "/", "Divides", "division")]
-        fn inv_scale<U:AllocRotor,N>() -> Rotor with Div.div, AllocateRotor {}
+        fn inv_scale<U:AllocEven,N>() -> Even with Div.div, AllocateEven {}
 
         #[doc = scale_docs!("rotor", "/", "Divides", "division")]
-        fn inv_scale_ref<U:AllocRotor,N>() -> &'a Rotor with Div.div, AllocateRotor {}
+        fn inv_scale_ref<U:AllocEven,N>() -> &'a Even with Div.div, AllocateEven {}
 
     );
 
@@ -377,8 +377,8 @@ macro_rules! impl_scalar_ops {
 
 impl_scalar_ops!(impl<T:AllocBlade,N,G> Mul.mul() for Blade with scale, scale_ref);
 impl_scalar_ops!(impl<T:AllocBlade,N,G> Div.div() for Blade with inv_scale, inv_scale_ref);
-impl_scalar_ops!(impl<T:AllocRotor,N> Mul.mul() for Rotor with scale, scale_ref);
-impl_scalar_ops!(impl<T:AllocRotor,N> Div.div() for Rotor with inv_scale, inv_scale_ref);
+impl_scalar_ops!(impl<T:AllocEven,N> Mul.mul() for Even with scale, scale_ref);
+impl_scalar_ops!(impl<T:AllocEven,N> Div.div() for Even with inv_scale, inv_scale_ref);
 impl_scalar_ops!(impl<T:AllocMultivector,N> Mul.mul() for Multivector with scale, scale_ref);
 impl_scalar_ops!(impl<T:AllocMultivector,N> Div.div() for Multivector with inv_scale, inv_scale_ref);
 
@@ -399,8 +399,8 @@ macro_rules! impl_scalar_assign_binops {
 
 impl_scalar_assign_binops!(impl<T:AllocBlade,N,G> MulAssign.mul_assign() for Blade);
 impl_scalar_assign_binops!(impl<T:AllocBlade,N,G> DivAssign.div_assign() for Blade);
-impl_scalar_assign_binops!(impl<T:AllocRotor,N> MulAssign.mul_assign() for Rotor);
-impl_scalar_assign_binops!(impl<T:AllocRotor,N> DivAssign.div_assign() for Rotor);
+impl_scalar_assign_binops!(impl<T:AllocEven,N> MulAssign.mul_assign() for Even);
+impl_scalar_assign_binops!(impl<T:AllocEven,N> DivAssign.div_assign() for Even);
 impl_scalar_assign_binops!(impl<T:AllocMultivector,N> MulAssign.mul_assign() for Multivector);
 impl_scalar_assign_binops!(impl<T:AllocMultivector,N> DivAssign.div_assign() for Multivector);
 
@@ -436,7 +436,7 @@ macro_rules! impl_forward_scalar_binops {
 
 impl_forward_scalar_binops!(impl<T:AllocBlade,N,G> Mul.mul() for Blade);
 // impl_forward_scalar_binops!(impl<T:AllocBlade,N,G> Div.div() for Blade);
-impl_forward_scalar_binops!(impl<T:AllocRotor,N> Mul.mul() for Rotor);
-// impl_forward_scalar_binops!(impl<T:AllocRotor,N> Div.div() for Rotor);
+impl_forward_scalar_binops!(impl<T:AllocEven,N> Mul.mul() for Even);
+// impl_forward_scalar_binops!(impl<T:AllocEven,N> Div.div() for Even);
 impl_forward_scalar_binops!(impl<T:AllocMultivector,N> Mul.mul() for Multivector);
 // impl_forward_scalar_binops!(impl<T:AllocMultivector,N> Div.div() for Multivector);

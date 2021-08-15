@@ -31,7 +31,7 @@ pub unsafe trait BladeStorage<T,N:Dim,G:Dim>: Storage<T> {
 
 }
 
-pub unsafe trait RotorStorage<T,N:Dim>: Storage<T> {
+pub unsafe trait EvenStorage<T,N:Dim>: Storage<T> {
     fn dim(&self) -> N;
     fn uninit(n:N) -> Self::Uninit;
     fn from_iterator<I:IntoIterator<Item=T>>(n:N, iter: I) -> Self;
@@ -82,7 +82,7 @@ pub struct DynBladeStorage<T,N:Dim,G:Dim> {
 }
 
 #[derive(Clone)]
-pub struct DynRotorStorage<T,N:Dim> {
+pub struct DynEvenStorage<T,N:Dim> {
     data: Vec<T>,
     dim: N
 }
@@ -140,7 +140,7 @@ macro_rules! impl_dyn_storage {
 }
 
 impl_dyn_storage!(
-    DynBladeStorage<T,N,G>; DynRotorStorage<T,N>; DynMultivectorStorage<T,N>;
+    DynBladeStorage<T,N,G>; DynEvenStorage<T,N>; DynMultivectorStorage<T,N>;
 );
 
 unsafe impl<T,N:Dim,G:Dim> UninitStorage<T> for DynBladeStorage<MaybeUninit<T>,N,G> {
@@ -181,29 +181,29 @@ fn rotor_elements(n:usize) -> usize {
     crate::rotor_elements(n.try_into().unwrap())
 }
 
-unsafe impl<T,N:Dim> UninitStorage<T> for DynRotorStorage<MaybeUninit<T>,N> {
-    type Init = DynRotorStorage<T,N>;
+unsafe impl<T,N:Dim> UninitStorage<T> for DynEvenStorage<MaybeUninit<T>,N> {
+    type Init = DynEvenStorage<T,N>;
 
     unsafe fn assume_init(self) -> Self::Init {
         //TODO: maybe make less ugly
-        DynRotorStorage { data: transmute(self.data), dim: self.dim }
+        DynEvenStorage { data: transmute(self.data), dim: self.dim }
     }
 
 }
 
-unsafe impl<T,N:Dim> RotorStorage<T,N> for DynRotorStorage<T,N> {
+unsafe impl<T,N:Dim> EvenStorage<T,N> for DynEvenStorage<T,N> {
 
     fn dim(&self) -> N { self.dim }
 
     fn uninit(n:N) -> Self::Uninit {
-        DynRotorStorage {
+        DynEvenStorage {
             data: vec_uninit(rotor_elements(n.value())),
             dim: n
         }
     }
 
     fn from_iterator<I:IntoIterator<Item=T>>(n:N, iter: I) -> Self {
-        DynRotorStorage {
+        DynEvenStorage {
             data: vec_from_iter(rotor_elements(n.value()), iter, "rotor"),
             dim: n
         }

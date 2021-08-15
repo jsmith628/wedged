@@ -44,8 +44,8 @@ pub struct Blade<T:AllocBlade<N,G>, N:Dim, G:Dim> {
 }
 
 #[repr(transparent)]
-pub struct Rotor<T:AllocRotor<N>, N:Dim> {
-    pub data: AllocateRotor<T,N>
+pub struct Even<T:AllocEven<N>, N:Dim> {
+    pub data: AllocateEven<T,N>
 }
 
 #[repr(transparent)]
@@ -148,7 +148,7 @@ macro_rules! common_functions {
         /// //All of these live in 3-dimensions
         /// let v = Vec3::new(3, 1, 4);
         /// let b = BiVec3::new(6, 2, 8);
-        /// let r = Rotor3::new(1, 6, 1, 8);
+        /// let r = Even3::new(1, 6, 1, 8);
         /// let m = Multivector3::new(0, 5, 7, 7, 2, 1, 5, 6);
         ///
         /// assert_eq!(v.dim(), 3);
@@ -159,7 +159,7 @@ macro_rules! common_functions {
         /// //whereas these are in 4D
         /// let v = Vec4::from_element(6);
         /// let b = BiVec4::from_element(2);
-        /// let r = Rotor4::from_element(8);
+        /// let r = Even4::from_element(8);
         /// let m = Multivector4::from_element(3);
         ///
         /// assert_eq!(v.dim(), 4);
@@ -184,7 +184,7 @@ macro_rules! common_functions {
         /// - For [blades](Blade), this value is equal to number of combinations of size
         ///   `self.grade()` you can make from `self.dim()` basis vectors, ie
         ///   [`binom(self.dim(), self.grade())`](binom).
-        /// - For [rotors](Rotor), the number of elements is `2^(self.dim()-1)` with the exception
+        /// - For [even](Even) values, the number of elements is `2^(self.dim()-1)` with the exception
         ///   of `1` when the dimension is `0`
         /// - For general [multivectors](Multivector), there are `2^self.dim()` components
         ///
@@ -198,7 +198,7 @@ macro_rules! common_functions {
         ///
         /// let v = Vec4::from_element(0);
         /// let b = BiVec4::from_element(0);
-        /// let r = Rotor4::from_element(0);
+        /// let r = Even4::from_element(0);
         /// let m = Multivector4::from_element(0);
         ///
         /// assert_eq!(v.elements(), 4); // (4 choose 1) = 4
@@ -229,8 +229,8 @@ impl<T:AllocBlade<N,G>, N:Dim, G:Dim> Blade<T,N,G> {
     common_functions!(true Blade);
 }
 
-impl<T:AllocRotor<N>,N:Dim> Rotor<T,N> {
-    common_functions!(false Rotor);
+impl<T:AllocEven<N>,N:Dim> Even<T,N> {
+    common_functions!(false Even);
 }
 
 impl<T:AllocMultivector<N>,N:Dim> Multivector<T,N> {
@@ -317,7 +317,7 @@ macro_rules! impl_basic_traits {
 }
 
 impl_basic_traits!(impl<T:AllocBlade, N, G> Blade where AllocateBlade {});
-impl_basic_traits!(impl<T:AllocRotor, N> Rotor where AllocateRotor {});
+impl_basic_traits!(impl<T:AllocEven, N> Even where AllocateEven {});
 impl_basic_traits!(impl<T:AllocMultivector, N> Multivector where AllocateMultivector {});
 
 impl<T, U, N1:Dim, N2:Dim, G1:Dim, G2:Dim> PartialEq<Blade<U,N2,G2>> for Blade<T,N1,G1>
@@ -334,16 +334,16 @@ where
     }
 }
 
-impl<T, U, N1:Dim, N2:Dim> PartialEq<Rotor<U,N2>> for Rotor<T,N1>
+impl<T, U, N1:Dim, N2:Dim> PartialEq<Even<U,N2>> for Even<T,N1>
 where
-    T: AllocRotor<N1> + PartialEq<U>,
-    U: AllocRotor<N2>
+    T: AllocEven<N1> + PartialEq<U>,
+    U: AllocEven<N2>
 {
-    fn eq(&self, rhs:&Rotor<U,N2>) -> bool {
+    fn eq(&self, rhs:&Even<U,N2>) -> bool {
         self.dim() == rhs.dim() && self.as_slice() == rhs.as_slice()
     }
 
-    fn ne(&self, rhs:&Rotor<U,N2>) -> bool {
+    fn ne(&self, rhs:&Even<U,N2>) -> bool {
         self.dim() != rhs.dim() || self.as_slice() != rhs.as_slice()
     }
 }
@@ -387,7 +387,7 @@ mod tests{
             for g in 0..=N {
                 assert_eq!(BladeD::from_element(n,g,0).dim(), n);
             }
-            assert_eq!(RotorD::from_element(n,0).dim(), n);
+            assert_eq!(EvenD::from_element(n,0).dim(), n);
             assert_eq!(MultivectorD::from_element(n,0).dim(), n);
         }
     }
@@ -398,7 +398,7 @@ mod tests{
             for g in 0..=N {
                 assert_eq!(BladeD::from_element(n,g,0).elements(), binom(n,g));
             }
-            assert_eq!(RotorD::from_element(n,0).elements(), if n==0 {1} else {1 << (n-1)} );
+            assert_eq!(EvenD::from_element(n,0).elements(), if n==0 {1} else {1 << (n-1)} );
             assert_eq!(MultivectorD::from_element(n,0).elements(), 1<<n);
         }
     }

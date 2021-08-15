@@ -2,15 +2,15 @@
 use super::*;
 
 pub type AllocateBlade<T,N,G> = <T as AllocBlade<N,G>>::Buffer;
-pub type AllocateRotor<T,N> = <T as AllocRotor<N>>::Buffer;
+pub type AllocateEven<T,N> = <T as AllocEven<N>>::Buffer;
 pub type AllocateMultivector<T,N> = <T as AllocMultivector<N>>::Buffer;
 
 pub unsafe trait AllocBlade<N:Dim,G:Dim>: Sized {
     type Buffer: BladeStorage<Self,N,G>;
 }
 
-pub unsafe trait AllocRotor<N:Dim>: Sized {
-    type Buffer: RotorStorage<Self,N>;
+pub unsafe trait AllocEven<N:Dim>: Sized {
+    type Buffer: EvenStorage<Self,N>;
 }
 
 pub unsafe trait AllocMultivector<N:Dim>: Sized {
@@ -29,8 +29,8 @@ unsafe impl<T> AllocBlade<Dynamic, Dynamic> for T {
     type Buffer = DynBladeStorage<T, Dynamic, Dynamic>;
 }
 
-unsafe impl<T> AllocRotor<Dynamic> for T {
-    type Buffer = DynRotorStorage<T, Dynamic>;
+unsafe impl<T> AllocEven<Dynamic> for T {
+    type Buffer = DynEvenStorage<T, Dynamic>;
 }
 
 unsafe impl<T> AllocMultivector<Dynamic> for T {
@@ -78,7 +78,7 @@ macro_rules! impl_alloc{
 
     ($N:literal @tests) => {
         assert_eq!(
-            std::mem::size_of::<AllocateRotor<f32, Const<$N>>>(),
+            std::mem::size_of::<AllocateEven<f32, Const<$N>>>(),
             //this has some weird behavior
             std::mem::size_of::<f32>() * rotor_elements($N)
         );
@@ -90,11 +90,11 @@ macro_rules! impl_alloc{
     };
 
     ($N:literal @impl) => {
-        unsafe impl<T> AllocRotor<Const<$N>> for T {
+        unsafe impl<T> AllocEven<Const<$N>> for T {
             type Buffer = [T; rotor_elements($N)];
         }
 
-        unsafe impl<T> RotorStorage<T, Const<$N>> for [T; rotor_elements($N) ] {
+        unsafe impl<T> EvenStorage<T, Const<$N>> for [T; rotor_elements($N) ] {
             fn dim(&self) -> Const<$N> { Const::<$N> }
             fn uninit(_: Const<$N>,) -> Self::Uninit { uninit_array() }
             fn from_iterator<I:IntoIterator<Item=T>>(_: Const<$N>, iter: I) -> Self {

@@ -381,7 +381,7 @@ impl BasisBlade {
 
     }
 
-    pub fn basis_rotor(n: usize, i: usize) -> BasisBlade {
+    pub fn basis_even(n: usize, i: usize) -> BasisBlade {
         let (mut g, mut i, mut binom) = (0, i, 1);
         while binom <= i {
             i -= binom;
@@ -471,7 +471,7 @@ impl BasisBlade {
         self.get_index_sign_in(n, self.grade())
     }
 
-    pub const fn rotor_index_sign(&self, n: usize) -> (usize, bool) {
+    pub const fn even_index_sign(&self, n: usize) -> (usize, bool) {
         if self.grade()%2 == 1 { return (0,self.positive()); }
         let (i, sign) = self.blade_index_sign(n);
 
@@ -1065,14 +1065,14 @@ mod tests {
     }
 
     #[test]
-    fn rotor_index() {
+    fn even_index() {
         for n in 1..=16 {
             // println!("\nn = {}:", n);
             for i in 0..(1<<(n/2)) {
-                let rotor = BasisBlade::basis_rotor(n,i);
-                // print!("{:?} ", rotor.rotor_index_sign(n));
-                assert_eq!((i, true), rotor.rotor_index_sign(n));
-                assert_eq!((i, false), (-rotor).rotor_index_sign(n));
+                let even = BasisBlade::basis_even(n,i);
+                // print!("{:?} ", even.even_index_sign(n));
+                assert_eq!((i, true), even.even_index_sign(n));
+                assert_eq!((i, false), (-even).even_index_sign(n));
             }
         }
     }
@@ -1089,10 +1089,10 @@ mod tests {
     }
 
     macro_rules! test_index {
-        ($($e:expr; $n:expr, $blade:expr, $rotor:expr, $mv:expr;)*) => {
+        ($($e:expr; $n:expr, $blade:expr, $even:expr, $mv:expr;)*) => {
             $(
                 assert_eq!($e.blade_index_sign($n).0, $blade);
-                assert_eq!($e.rotor_index_sign($n).0, $rotor);
+                assert_eq!($e.even_index_sign($n).0, $even);
                 assert_eq!($e.multivector_index_sign($n).0, $mv);
             )*
         }
