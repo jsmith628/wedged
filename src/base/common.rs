@@ -244,6 +244,12 @@ macro_rules! impl_basic_traits {
             fn into_iter(self) -> Self::IntoIter { self.iter_mut() }
         }
 
+        impl<T:$Alloc<$($N),*>+Debug, $($N:Dim),*> Debug for $Ty<T,$($N),*> {
+            fn fmt(&self, f: &mut Formatter) -> FmtResult {
+                Debug::fmt(self.as_slice(), f)
+            }
+        }
+
     }
 }
 

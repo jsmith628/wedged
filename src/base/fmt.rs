@@ -136,13 +136,6 @@ where
     }
 }
 
-impl<T:AllocBlade<N,G>+Debug, N:Dim, G:Dim> Debug for Blade<T,N,G> {
-    fn fmt(&self, f: &mut Formatter) -> FmtResult {
-        Debug::fmt(self.as_slice(), f)
-    }
-}
-
-
 macro_rules! impl_fmt {
 
     //loop over every fmt trait
@@ -198,23 +191,23 @@ mod tests {
     #[test]
     fn print() {
 
-        for n in 0..=6 {
-            println!("n={}", n);
-            for g in 0..=n {
-                println!("{}", BladeD::from_iterator(n, g, 1..));
-            }
-            println!();
-        }
-
-        println!();
-
-        for n in 0..=6 {
-            println!("n={}", n);
-            for g in 0..=n {
-                println!("{:+}", BladeD::from_iterator(n, g, -3..));
-            }
-            println!();
-        }
+        // for n in 0..=6 {
+        //     println!("n={}", n);
+        //     for g in 0..=n {
+        //         println!("{}", BladeD::from_iterator(n, g, 1..));
+        //     }
+        //     println!();
+        // }
+        //
+        // println!();
+        //
+        // for n in 0..=6 {
+        //     println!("n={}", n);
+        //     for g in 0..=n {
+        //         println!("{:+}", BladeD::from_iterator(n, g, -3..));
+        //     }
+        //     println!();
+        // }
 
     }
 

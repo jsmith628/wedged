@@ -66,17 +66,19 @@ pub mod alloc;
 pub mod coordinates;
 
 pub use self::common::*;
-pub use self::ops::*;
 pub use self::involute::*;
+pub use self::ops::*;
 pub use self::mul::*;
+pub use self::dim_cast::*;
 pub use self::constructors::*;
 pub use self::aliases::*;
 pub use self::fmt::*;
 
 mod common;
-mod ops;
 mod involute;
+mod ops;
 mod mul;
+mod dim_cast;
 mod constructors;
 mod aliases;
 mod fmt;
