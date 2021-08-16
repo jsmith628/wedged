@@ -388,7 +388,7 @@ where
 //TODO: when we have specialization, we'll use this to impl optimized varients for each
 //statically sized type instead of using if statements in mul_selected
 
-pub trait GeometricMul<Rhs> {
+pub trait GeometricMul<Rhs>: Sized {
     type OutputScalar;
     type N: Dim;
 
@@ -396,10 +396,14 @@ pub trait GeometricMul<Rhs> {
     where Self::OutputScalar: AllocBlade<Self::N, G>;
 
     fn mul_dyn_grade(self, rhs: Rhs, g:usize) -> Blade<Self::OutputScalar, Self::N, Dynamic>
-    where Self::OutputScalar: AllocBlade<Self::N, Dynamic>;
+    where Self::OutputScalar: AllocBlade<Self::N, Dynamic> {
+        self.mul_grade_generic(rhs, Dynamic::new(g))
+    }
 
     fn mul_grade<G:DimName>(self, rhs: Rhs) -> Blade<Self::OutputScalar, Self::N, G>
-    where Self::OutputScalar: AllocBlade<Self::N, G>;
+    where Self::OutputScalar: AllocBlade<Self::N, G> {
+        self.mul_grade_generic(rhs, G::name())
+    }
 
     fn mul_even(self, rhs: Rhs) -> Even<Self::OutputScalar, Self::N>
     where Self::OutputScalar: AllocEven<Self::N>;
@@ -410,12 +414,30 @@ pub trait GeometricMul<Rhs> {
     fn mul_full(self, rhs: Rhs) -> Multivector<Self::OutputScalar, Self::N>
     where Self::OutputScalar: AllocMultivector<Self::N>;
 
+    fn verser_mul_grade_generic<G:Dim>(self, rhs: Rhs, g:G) -> Blade<Self::OutputScalar, Self::N, G>
+    where Self::OutputScalar: AllocBlade<Self::N, G>;
+
+    fn verser_mul_dyn_grade(self, rhs: Rhs, g:usize) -> Blade<Self::OutputScalar, Self::N, Dynamic>
+    where Self::OutputScalar: AllocBlade<Self::N, Dynamic> {
+        self.verser_mul_grade_generic(rhs, Dynamic::new(g))
+    }
+
+    fn verser_mul_grade<G:DimName>(self, rhs: Rhs) -> Blade<Self::OutputScalar, Self::N, G>
+    where Self::OutputScalar: AllocBlade<Self::N, G> {
+        self.verser_mul_grade_generic(rhs, G::name())
+    }
+
+    fn verser_mul_even(self, rhs: Rhs) -> Even<Self::OutputScalar, Self::N>
+    where Self::OutputScalar: AllocEven<Self::N>;
+
+    fn verser_mul_odd(self, rhs: Rhs) -> Odd<Self::OutputScalar, Self::N>
+    where Self::OutputScalar: AllocOdd<Self::N>;
+
+    fn verser_mul_full(self, rhs: Rhs) -> Multivector<Self::OutputScalar, Self::N>
+    where Self::OutputScalar: AllocMultivector<Self::N>;
+
 }
 
-pub trait VerserMul<Rhs> {
-    type Output;
-    fn apply(self, rhs: Rhs) -> Self::Output;
-}
 
 macro_rules! impl_geometric_mul {
 
@@ -435,7 +457,7 @@ macro_rules! impl_geometric_mul {
         GeometricMul<$(&$b)? $Ty2<T2,N $(,$G2)*>> for $(&$a)? $Ty1<T1,N $(,$G1)*> where
             T1: $Alloc1<N $(, $G1)*> + RefMul<T2, Output=U>,
             T2: $Alloc2<N $(, $G2)*>,
-            U: ClosedAdd + ClosedSub + Neg<Output=U> + Zero,
+            U: for<'c> Mul<&'c T1, Output=U> + ClosedAdd + ClosedSub + Neg<Output=U> + Zero,
             $(&$a)? T1: Mul<$(&$b)? T2, Output=U>
         {
             type OutputScalar = U;
@@ -446,18 +468,6 @@ macro_rules! impl_geometric_mul {
             {
                 let shape = (self.dim_generic(), g);
                 mul_selected(self, rhs, shape)
-            }
-
-            fn mul_dyn_grade(self, rhs: $(&$b)? $Ty2<T2,N $(,$G2)*>, g:usize) -> Blade<U, N, Dynamic>
-            where U: AllocBlade<Self::N, Dynamic>
-            {
-                self.mul_grade_generic(rhs, Dynamic::new(g))
-            }
-
-            fn mul_grade<G:DimName>(self, rhs: $(&$b)? $Ty2<T2,N $(,$G2)*>) -> Blade<U, N, G>
-            where U: AllocBlade<Self::N, G>
-            {
-                self.mul_grade_generic(rhs, G::name())
             }
 
             fn mul_even(self, rhs: $(&$b)? $Ty2<T2,N $(,$G2)*>) -> Even<U, N>
@@ -481,22 +491,34 @@ macro_rules! impl_geometric_mul {
                 mul_selected(self, rhs, n)
             }
 
-        }
-
-        impl<$($a, )? $($b, )? T1, T2, U, N:Dim $(, $G1:Dim)* $(, $G2:Dim)*>
-        VerserMul<$(&$b)? $Ty2<T2,N $(,$G2)*>> for $(&$a)? $Ty1<T1,N $(,$G1)*> where
-            T1: $Alloc1<N $(, $G1)*> + RefMul<T2, Output=U>,
-            T2: $Alloc2<N $(, $G2)*>,
-            U: for<'c> Mul<&'c T1, Output=U> + ClosedAdd + ClosedSub + Neg<Output=U> + Zero + $Alloc2<N $(, $G2)*>
-        {
-            //idk if this is proven, but the result should be the same grades as the input
-            type Output = $Ty2<U,N $(,$G2)*>;
-
-            //technically, the "rhs" here is in the middle since it's a verser product
-            fn apply(self, rhs: $(&$b)? $Ty2<T2,N $(,$G2)*>) -> $Ty2<U,N $(,$G2)*> {
-                let shape = rhs.shape();
+            fn verser_mul_grade_generic<G:Dim>(self, rhs: $(&$b)? $Ty2<T2,N $(,$G2)*>, g:G) -> Blade<U, N, G>
+            where U: AllocBlade<Self::N, G>
+            {
+                let shape = (self.dim_generic(), g);
                 verser_mul_selected(self, rhs, shape)
             }
+
+            fn verser_mul_even(self, rhs: $(&$b)? $Ty2<T2,N $(,$G2)*>) -> Even<U, N>
+            where U: AllocEven<N>
+            {
+                let n = self.dim_generic();
+                verser_mul_selected(self, rhs, n)
+            }
+
+            fn verser_mul_odd(self, rhs: $(&$b)? $Ty2<T2,N $(,$G2)*>) -> Odd<U, N>
+            where U: AllocOdd<N>
+            {
+                let n = self.dim_generic();
+                verser_mul_selected(self, rhs, n)
+            }
+
+            fn verser_mul_full(self, rhs: $(&$b)? $Ty2<T2,N $(,$G2)*>) -> Multivector<U, N>
+            where U: AllocMultivector<N>
+            {
+                let n = self.dim_generic();
+                verser_mul_selected(self, rhs, n)
+            }
+
         }
 
         //
