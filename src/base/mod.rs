@@ -1,38 +1,32 @@
 
-use std::convert::{AsRef, AsMut, TryInto};
+use std::convert::{AsRef, AsMut};
 use std::borrow::{Borrow, BorrowMut};
 use std::hash::{Hash, Hasher};
 use std::iter::{repeat, repeat_with};
-use std::mem::{MaybeUninit, transmute, transmute_copy};
+use std::mem::MaybeUninit;
 use std::fmt::{
     Debug, Display, Binary, Octal, LowerHex, UpperHex, LowerExp, UpperExp,
     Formatter, Result as FmtResult
 };
 use std::ops::{
     Index, IndexMut,
-    Deref, DerefMut,
     Add, AddAssign, Sub, SubAssign, Neg,
     Mul, MulAssign, Div, DivAssign, BitXor, Rem
 };
-use std::iter::{
-    IntoIterator, FromIterator,
-    DoubleEndedIterator, ExactSizeIterator, FusedIterator,
-    //TrustedLen
-};
+use std::iter::IntoIterator;
 
 use num_traits::{Zero, One};
 
 use na::{ClosedAdd, ClosedSub, ComplexField};
 use na::dimension::{
     Dim, DimAdd, DimSum, DimSub, DimDiff, DimNameDiff,
-    Dynamic, Const, U0, U1, U2, U3, U4, U5, U6
+    Dynamic, U0, U1, U2, U3, U4, U5, U6
 };
 
 use crate::basis_blade::BasisBlade;
 use crate::{
     DimName, RefMul,
-    binom, even_elements, odd_elements,
-    components_of, even_components_of, odd_components_of
+    binom, components_of, even_components_of, odd_components_of
 };
 
 pub type Iter<'a, T> = std::slice::Iter<'a, T>;
@@ -58,12 +52,8 @@ pub struct Multivector<T:AllocMultivector<N>, N:Dim> {
     pub data: AllocateMultivector<T,N>
 }
 
-use self::storage::*;
-use self::alloc::*;
-
-pub mod storage;
-pub mod alloc;
-pub mod coordinates;
+use crate::storage::*;
+use crate::alloc::*;
 
 pub use self::common::*;
 pub use self::involute::*;

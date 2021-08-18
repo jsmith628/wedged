@@ -1,7 +1,10 @@
 
-use super::*;
+
+use std::ops::{Deref, DerefMut};
+
 use na::Scalar;
 
+use crate::base::*;
 pub use na::base::coordinates::*;
 
 #[repr(C)]

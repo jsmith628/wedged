@@ -6,9 +6,12 @@
 extern crate num_traits;
 extern crate nalgebra as na;
 
+pub mod storage;
+pub mod alloc;
+pub mod coordinates;
+
 pub mod basis_blade;
 pub mod base;
-
 ///
 /// Computes the [binomial coefficient][1] of n terms at position k.
 ///
