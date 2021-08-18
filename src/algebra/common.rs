@@ -34,7 +34,7 @@ macro_rules! common_functions {
         ///
         /// # Examples
         /// ```
-        /// # use galgebra::base::*;
+        /// # use galgebra::algebra::*;
         ///
         /// //All vectors are grade 1
         /// let v1 = Vec3::new(6, 2, 8);
@@ -90,7 +90,7 @@ macro_rules! common_functions {
         ///
         /// # Examples
         /// ```
-        /// # use galgebra::base::*;
+        /// # use galgebra::algebra::*;
         ///
         /// //All of these live in 3-dimensions
         /// let v = Vec3::new(3, 1, 4);
@@ -141,7 +141,7 @@ macro_rules! common_functions {
         ///
         /// # Examples
         /// ```
-        /// # use galgebra::base::*;
+        /// # use galgebra::algebra::*;
         ///
         /// let v = Vec4::from_element(0);
         /// let b = BiVec4::from_element(0);

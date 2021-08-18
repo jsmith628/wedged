@@ -11,7 +11,7 @@ pub mod alloc;
 pub mod coordinates;
 
 pub mod basis_blade;
-pub mod base;
+pub mod algebra;
 ///
 /// Computes the [binomial coefficient][1] of n terms at position k.
 ///

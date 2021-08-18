@@ -4,7 +4,7 @@ use std::ops::{Deref, DerefMut};
 
 use na::Scalar;
 
-use crate::base::*;
+use crate::algebra::*;
 pub use na::base::coordinates::*;
 
 #[repr(C)]
