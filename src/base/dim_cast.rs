@@ -149,7 +149,7 @@ mod tests {
 
         for n1 in 1..=16 {
             for n2 in n1..=16 {
-                
+
                 for g in 0..=16 {
                     let b1 = BladeD::from_iterator(n1, g, 1..);
                     let b2 = b1.clone().cast_dim_dyn(n2).cast_dim_dyn(n1);
