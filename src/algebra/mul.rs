@@ -616,6 +616,31 @@ impl<T1,T2,U,N:Dim,G1:Dim,G2:Dim> Rem<Blade<T2,N,G2>> for Blade<T1,N,G1> where
     }
 }
 
+impl<T:AllocEven<N>+Zero+One+PartialEq,N:DimName> One for Even<T,N> where Even<T,N>:Mul<Output=Self> {
+    fn is_one(&self) -> bool {
+        self.iter().enumerate().all(
+            |(i,x)| if i==0 { x.is_one() } else { x.is_zero() }
+        )
+    }
+    fn one() -> Self {
+        Self::from_iterator(once_with(T::one).chain(repeat_with(T::zero)))
+    }
+}
+
+impl<T,N:DimName> One for Multivector<T,N> where
+    T: AllocMultivector<N> + Zero + One + PartialEq,
+    Multivector<T,N>: Mul<Output=Self>
+{
+    fn is_one(&self) -> bool {
+        self.iter().enumerate().all(
+            |(i,x)| if i==0 { x.is_one() } else { x.is_zero() }
+        )
+    }
+    fn one() -> Self {
+        Self::from_iterator(once_with(T::one).chain(repeat_with(T::zero)))
+    }
+}
+
 #[cfg(test)]
 mod benches {
 

@@ -2,7 +2,7 @@
 use std::convert::{AsRef, AsMut};
 use std::borrow::{Borrow, BorrowMut};
 use std::hash::{Hash, Hasher};
-use std::iter::{repeat, repeat_with};
+use std::iter::{once_with, repeat, repeat_with};
 use std::mem::MaybeUninit;
 use std::fmt::{
     Debug, Display, Binary, Octal, LowerHex, UpperHex, LowerExp, UpperExp,
