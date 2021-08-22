@@ -4,6 +4,7 @@ version = "0.1.0"
 edition = "2018"
 
 [dependencies]
+derivative = "^2.2"
 typenum = "^1.13"
 nalgebra = "^0.27"
 num-traits = "^0.2"

@@ -3,6 +3,8 @@
 
 #[cfg(test)] extern crate test;
 
+#[macro_use]
+extern crate derivative;
 extern crate num_traits;
 extern crate nalgebra as na;
 
@@ -12,6 +14,7 @@ pub mod coordinates;
 
 pub mod basis_blade;
 pub mod algebra;
+pub mod subspace;
 ///
 /// Computes the [binomial coefficient][1] of n terms at position k.
 ///
