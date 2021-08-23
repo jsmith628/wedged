@@ -1,6 +1,56 @@
 
 use super::*;
 
+unsafe impl<T:AllocBlade<N,G>, N:Dim, G:Dim> Alloc<Blade<T,N,G>> for DefaultAllocator {
+    type Scalar = T;
+    type Shape = (N,G);
+    type Buffer = AllocateBlade<T,N,G>;
+    type Uninit = <AllocateBlade<T,N,G> as Storage<T>>::Uninit;
+
+    fn shape(this: &Blade<T,N,G>) -> (N,G) { (this.dim_generic(), this.grade_generic()) }
+    fn uninit((n,g): (N,G)) -> Self::Uninit { AllocateBlade::<T,N,G>::uninit(n,g) }
+    unsafe fn assume_init(uninit: Self::Uninit) -> Blade<T,N,G> { Blade { data: uninit.assume_init() } }
+
+}
+
+unsafe impl<T:AllocEven<N>, N:Dim> Alloc<Even<T,N>> for DefaultAllocator {
+    type Scalar = T;
+    type Shape = N;
+    type Buffer = AllocateEven<T,N>;
+    type Uninit = <AllocateEven<T,N> as Storage<T>>::Uninit;
+
+    fn shape(this: &Even<T,N>) -> N { this.dim_generic() }
+    fn uninit(n: N) -> Self::Uninit { AllocateEven::<T,N>::uninit(n) }
+    unsafe fn assume_init(uninit: Self::Uninit) -> Even<T,N> { Even { data: uninit.assume_init() } }
+
+}
+
+unsafe impl<T:AllocOdd<N>, N:Dim> Alloc<Odd<T,N>> for DefaultAllocator {
+    type Scalar = T;
+    type Shape = N;
+    type Buffer = AllocateOdd<T,N>;
+    type Uninit = <AllocateOdd<T,N> as Storage<T>>::Uninit;
+
+    fn shape(this: &Odd<T,N>) -> N { this.dim_generic() }
+    fn uninit(n: N) -> Self::Uninit { AllocateOdd::<T,N>::uninit(n) }
+    unsafe fn assume_init(uninit: Self::Uninit) -> Odd<T,N> { Odd { data: uninit.assume_init() } }
+
+}
+
+unsafe impl<T:AllocMultivector<N>, N:Dim> Alloc<Multivector<T,N>> for DefaultAllocator {
+    type Scalar = T;
+    type Shape = N;
+    type Buffer = AllocateMultivector<T,N>;
+    type Uninit = <AllocateMultivector<T,N> as Storage<T>>::Uninit;
+
+    fn shape(this: &Multivector<T,N>) -> N { this.dim_generic() }
+    fn uninit(n: N) -> Self::Uninit { AllocateMultivector::<T,N>::uninit(n) }
+    unsafe fn assume_init(uninit: Self::Uninit) -> Multivector<T,N> {
+        Multivector { data: uninit.assume_init() }
+    }
+
+}
+
 macro_rules! common_functions {
 
     //we put this here so that we can order things in the docs
@@ -190,14 +240,15 @@ impl<T:AllocMultivector<N>,N:Dim> Multivector<T,N> {
 
 
 macro_rules! impl_basic_traits {
-    (impl<T:$Alloc:ident, $($N:ident),*> $Ty:ident where $Allocate:ident {}) => {
+    () => {};
+    (impl<T:$Alloc:ident, $($N:ident),*> $Ty:ident {} $($rest:tt)*) => {
 
-        impl<T:$Alloc<$($N),*>, $($N:Dim),*> Clone for $Ty<T,$($N),*> where $Allocate<T,$($N),*>: Clone {
+        impl<T:$Alloc<$($N),*>, $($N:Dim),*> Clone for $Ty<T,$($N),*> where Allocate<Self>: Clone {
             fn clone(&self) -> Self { $Ty { data: self.data.clone() } }
             fn clone_from(&mut self, src: &Self) { self.data.clone_from(&src.data) }
         }
 
-        impl<T:$Alloc<$($N),*>, $($N:Dim),*> Copy for $Ty<T,$($N),*> where $Allocate<T,$($N),*>: Copy {}
+        impl<T:$Alloc<$($N),*>, $($N:Dim),*> Copy for $Ty<T,$($N),*> where Allocate<Self>: Copy {}
 
 
         impl<T:$Alloc<$($N),*>, $($N:Dim),*> AsRef<[T]> for $Ty<T,$($N),*> {
@@ -226,7 +277,7 @@ macro_rules! impl_basic_traits {
 
         impl<T:$Alloc<$($N),*>, $($N:Dim),*> IntoIterator for $Ty<T,$($N),*> {
             type Item = T;
-            type IntoIter = <$Allocate<T,$($N),*> as Storage<T>>::Iter;
+            type IntoIter = <Allocate<Self> as Storage<T>>::Iter;
             fn into_iter(self) -> Self::IntoIter {
                 self.data.into_iter()
             }
@@ -250,13 +301,17 @@ macro_rules! impl_basic_traits {
             }
         }
 
+        impl_basic_traits!($($rest)*);
+
     }
 }
 
-impl_basic_traits!(impl<T:AllocBlade, N, G> Blade where AllocateBlade {});
-impl_basic_traits!(impl<T:AllocEven, N> Even where AllocateEven {});
-impl_basic_traits!(impl<T:AllocOdd, N> Odd where AllocateOdd {});
-impl_basic_traits!(impl<T:AllocMultivector, N> Multivector where AllocateMultivector {});
+impl_basic_traits!(
+    impl<T:AllocBlade, N, G> Blade {}
+    impl<T:AllocEven, N> Even {}
+    impl<T:AllocOdd, N> Odd {}
+    impl<T:AllocMultivector, N> Multivector {}
+);
 
 impl<T, U, N1:Dim, N2:Dim, G1:Dim, G2:Dim> PartialEq<Blade<U,N2,G2>> for Blade<T,N1,G1>
 where

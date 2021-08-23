@@ -66,11 +66,8 @@ macro_rules! check {
 }
 
 macro_rules! uninit {
-    ($x:ident, AllocateBlade<$($T:ident),*>) => {
-        AllocateBlade::<$($T),*>::uninit($x.dim_generic(), $x.grade_generic())
-    };
-    ($x:ident, $Allocate:ident<$($T:ident),*>) => {
-        $Allocate::<$($T),*>::uninit($x.dim_generic())
+    ($self:ident, $ty:ty) => {
+        <DefaultAllocator as Alloc<$ty>>::uninit($self.shape())
     };
 }
 
@@ -78,7 +75,7 @@ macro_rules! impl_binops {
 
     //implements operation with optional references
     (
-        impl<T:$Alloc:ident,$($N:ident),*> $Op:ident.$op:ident() for $Ty:ident with $Allocate:ident;
+        impl<T:$Alloc:ident,$($N:ident),*> $Op:ident.$op:ident() for $Ty:ident;
         $($a:lifetime)?; $($b:lifetime)?
     ) => {
 
@@ -96,7 +93,7 @@ macro_rules! impl_binops {
 
                 check!(self, rhs, $Ty);
 
-                let mut dest = uninit!(self, $Allocate<U,$($N),*>);
+                let mut dest = uninit!(self, Self::Output);
                 for ((t1, t2), u) in self.into_iter().zip(rhs).zip(dest.borrow_mut()) {
                     *u = MaybeUninit::new(t1.$op(t2));
                 }
@@ -110,11 +107,11 @@ macro_rules! impl_binops {
     };
 
     //do every combination of reference and value
-    (impl<T:$Alloc:ident,$($N:ident),*> $Op:ident.$op:ident() for $Ty:ident with $Allocate:ident) => {
-        impl_binops!(impl<T:$Alloc,$($N),*> $Op.$op() for $Ty with $Allocate;   ;   );
-        impl_binops!(impl<T:$Alloc,$($N),*> $Op.$op() for $Ty with $Allocate; 'a;   );
-        impl_binops!(impl<T:$Alloc,$($N),*> $Op.$op() for $Ty with $Allocate;   ; 'b);
-        impl_binops!(impl<T:$Alloc,$($N),*> $Op.$op() for $Ty with $Allocate; 'a; 'b);
+    (impl<T:$Alloc:ident,$($N:ident),*> $Op:ident.$op:ident() for $Ty:ident) => {
+        impl_binops!(impl<T:$Alloc,$($N),*> $Op.$op() for $Ty;   ;   );
+        impl_binops!(impl<T:$Alloc,$($N),*> $Op.$op() for $Ty; 'a;   );
+        impl_binops!(impl<T:$Alloc,$($N),*> $Op.$op() for $Ty;   ; 'b);
+        impl_binops!(impl<T:$Alloc,$($N),*> $Op.$op() for $Ty; 'a; 'b);
     };
 
 }
@@ -153,14 +150,14 @@ macro_rules! impl_assign_binops {
 
 }
 
-impl_binops!(impl<T:AllocBlade,N,G> Add.add() for Blade with AllocateBlade);
-impl_binops!(impl<T:AllocBlade,N,G> Sub.sub() for Blade with AllocateBlade);
-impl_binops!(impl<T:AllocEven,N> Add.add() for Even with AllocateEven);
-impl_binops!(impl<T:AllocEven,N> Sub.sub() for Even with AllocateEven);
-impl_binops!(impl<T:AllocOdd,N> Add.add() for Odd with AllocateOdd);
-impl_binops!(impl<T:AllocOdd,N> Sub.sub() for Odd with AllocateOdd);
-impl_binops!(impl<T:AllocMultivector,N> Add.add() for Multivector with AllocateMultivector);
-impl_binops!(impl<T:AllocMultivector,N> Sub.sub() for Multivector with AllocateMultivector);
+impl_binops!(impl<T:AllocBlade,N,G> Add.add() for Blade);
+impl_binops!(impl<T:AllocBlade,N,G> Sub.sub() for Blade);
+impl_binops!(impl<T:AllocEven,N> Add.add() for Even);
+impl_binops!(impl<T:AllocEven,N> Sub.sub() for Even);
+impl_binops!(impl<T:AllocOdd,N> Add.add() for Odd);
+impl_binops!(impl<T:AllocOdd,N> Sub.sub() for Odd);
+impl_binops!(impl<T:AllocMultivector,N> Add.add() for Multivector);
+impl_binops!(impl<T:AllocMultivector,N> Sub.sub() for Multivector);
 
 impl_assign_binops!(impl<T:AllocBlade,N,G> AddAssign.add_assign() for Blade);
 impl_assign_binops!(impl<T:AllocBlade,N,G> SubAssign.sub_assign() for Blade);
@@ -206,7 +203,7 @@ impl<T:AllocMultivector<N>+Zero, N:DimName> Zero for Multivector<T,N> {
 
 macro_rules! impl_unary_ops {
     (
-        impl<T:$Alloc:ident,$($N:ident),*> $Op:ident.$op:ident() for $Ty:ident with $Allocate:ident;
+        impl<T:$Alloc:ident,$($N:ident),*> $Op:ident.$op:ident() for $Ty:ident;
         $($a:lifetime)?
     ) => {
         impl<$($a,)? T, U, $($N:Dim),*> $Op for $(&$a)? $Ty<T,$($N),*>
@@ -219,7 +216,7 @@ macro_rules! impl_unary_ops {
             type Output = $Ty<U,$($N),*>;
 
             fn $op(self) -> $Ty<U,$($N),*> {
-                let mut dest = uninit!(self, $Allocate<U,$($N),*>);
+                let mut dest = uninit!(self, Self::Output);
                 for (t, u) in self.into_iter().zip(dest.borrow_mut()) {
                     *u = MaybeUninit::new(t.$op());
                 }
@@ -232,16 +229,16 @@ macro_rules! impl_unary_ops {
     };
 
     //do for value and reference
-    (impl<T:$Alloc:ident,$($N:ident),*> $Op:ident.$op:ident() for $Ty:ident with $Allocate:ident) => {
-        impl_unary_ops!(impl<T:$Alloc,$($N),*> $Op.$op() for $Ty with $Allocate;   );
-        impl_unary_ops!(impl<T:$Alloc,$($N),*> $Op.$op() for $Ty with $Allocate; 'a);
+    (impl<T:$Alloc:ident,$($N:ident),*> $Op:ident.$op:ident() for $Ty:ident) => {
+        impl_unary_ops!(impl<T:$Alloc,$($N),*> $Op.$op() for $Ty;   );
+        impl_unary_ops!(impl<T:$Alloc,$($N),*> $Op.$op() for $Ty; 'a);
     };
 }
 
-impl_unary_ops!(impl<T:AllocBlade,N,G> Neg.neg() for Blade with AllocateBlade);
-impl_unary_ops!(impl<T:AllocEven,N> Neg.neg() for Even with AllocateEven);
-impl_unary_ops!(impl<T:AllocOdd,N> Neg.neg() for Odd with AllocateOdd);
-impl_unary_ops!(impl<T:AllocMultivector,N> Neg.neg() for Multivector with AllocateMultivector);
+impl_unary_ops!(impl<T:AllocBlade,N,G> Neg.neg() for Blade);
+impl_unary_ops!(impl<T:AllocEven,N> Neg.neg() for Even);
+impl_unary_ops!(impl<T:AllocOdd,N> Neg.neg() for Odd);
+impl_unary_ops!(impl<T:AllocMultivector,N> Neg.neg() for Multivector);
 
 //
 //Scalar Multiplication and Division
@@ -250,8 +247,8 @@ impl_unary_ops!(impl<T:AllocMultivector,N> Neg.neg() for Multivector with Alloca
 macro_rules! impl_scalar_ops {
 
     (
-        impl<T:$Alloc:ident, $($N:ident),*> $Op:ident.$op:ident(), $Scale:ident.$scale:ident() for $Ty:ident
-        with $Allocate:ident; $($a:lifetime)?
+        impl<T:$Alloc:ident, $($N:ident),*>
+            $Op:ident.$op:ident(), $Scale:ident.$scale:ident() for $Ty:ident; $($a:lifetime)?
     ) => {
 
         impl<$($a,)? T1,T2,U,$($N:Dim),*> $Scale<T2> for $(&$a)? $Ty<T1,$($N),*>
@@ -265,7 +262,7 @@ macro_rules! impl_scalar_ops {
             type Output = $Ty<U,$($N),*>;
 
             fn $scale(self, t2: T2) -> $Ty<U,$($N),*> {
-                let mut dest = uninit!(self, $Allocate<U,$($N),*>);
+                let mut dest = uninit!(self, Self::Output);
                 for (t1, u) in self.into_iter().zip(dest.borrow_mut()) {
                     *u = MaybeUninit::new(t1.$op(t2.clone()));
                 }
@@ -298,24 +295,21 @@ macro_rules! impl_scalar_ops {
     };
 
     //do every combination of reference and value
-    (
-        impl<T:$Alloc:ident, $($N:ident),*> $Op:ident.$op:ident(), $Scale:ident.$scale:ident() for $Ty:ident
-        with $Allocate:ident
-    ) => {
-        impl_scalar_ops!(impl<T:$Alloc, $($N),*> $Op.$op(), $Scale.$scale() for $Ty with $Allocate;);
-        impl_scalar_ops!(impl<T:$Alloc, $($N),*> $Op.$op(), $Scale.$scale() for $Ty with $Allocate; 'a);
+    (impl<T:$Alloc:ident, $($N:ident),*> $Op:ident.$op:ident(), $Scale:ident.$scale:ident() for $Ty:ident) => {
+        impl_scalar_ops!(impl<T:$Alloc, $($N),*> $Op.$op(), $Scale.$scale() for $Ty;);
+        impl_scalar_ops!(impl<T:$Alloc, $($N),*> $Op.$op(), $Scale.$scale() for $Ty; 'a);
     };
 
 }
 
-impl_scalar_ops!(impl<T:AllocBlade,N,G> Mul.mul(), Scale.scale() for Blade with AllocateBlade);
-impl_scalar_ops!(impl<T:AllocBlade,N,G> Div.div(), InvScale.inv_scale() for Blade with AllocateBlade);
-impl_scalar_ops!(impl<T:AllocEven,N> Mul.mul(), Scale.scale() for Even with AllocateEven);
-impl_scalar_ops!(impl<T:AllocEven,N> Div.div(), InvScale.inv_scale() for Even with AllocateEven);
-impl_scalar_ops!(impl<T:AllocOdd,N> Mul.mul(), Scale.scale() for Odd with AllocateOdd);
-impl_scalar_ops!(impl<T:AllocOdd,N> Div.div(), InvScale.inv_scale() for Odd with AllocateOdd);
-impl_scalar_ops!(impl<T:AllocMultivector,N> Mul.mul(), Scale.scale() for Multivector with AllocateMultivector);
-impl_scalar_ops!(impl<T:AllocMultivector,N> Div.div(), InvScale.inv_scale() for Multivector with AllocateMultivector);
+impl_scalar_ops!(impl<T:AllocBlade,N,G> Mul.mul(), Scale.scale() for Blade);
+impl_scalar_ops!(impl<T:AllocBlade,N,G> Div.div(), InvScale.inv_scale() for Blade);
+impl_scalar_ops!(impl<T:AllocEven,N> Mul.mul(), Scale.scale() for Even);
+impl_scalar_ops!(impl<T:AllocEven,N> Div.div(), InvScale.inv_scale() for Even);
+impl_scalar_ops!(impl<T:AllocOdd,N> Mul.mul(), Scale.scale() for Odd);
+impl_scalar_ops!(impl<T:AllocOdd,N> Div.div(), InvScale.inv_scale() for Odd);
+impl_scalar_ops!(impl<T:AllocMultivector,N> Mul.mul(), Scale.scale() for Multivector);
+impl_scalar_ops!(impl<T:AllocMultivector,N> Div.div(), InvScale.inv_scale() for Multivector);
 
 macro_rules! impl_scalar_assign_binops {
     (impl<T:$Alloc:ident, $($N:ident),*> $Op:ident.$op:ident() for $Ty:ident) => {

@@ -95,14 +95,14 @@ impl<T:AllocBlade<N1,G>+Zero, N1:Dim, G:Dim> Blade<T,N1,G> {
 }
 
 macro_rules! impl_dim_cast {
-    ($($Ty:ident<T:$Alloc:ident,N1>, $Allocate:ident, |$n1:ident, $n2:ident| $iter:expr;)*) => {
+    ($($Ty:ident<T:$Alloc:ident,N1>, |$n1:ident, $n2:ident| $iter:expr;)*) => {
 
         $(
             impl<T:$Alloc<N1>+Zero, N1:Dim> $Ty<T,N1> {
 
                 pub fn cast_dim_generic<N2:Dim>(self, n:N2) -> $Ty<T,N2> where T:$Alloc<N2> {
                     //the destination value
-                    let mut uninit = $Allocate::<T,N2>::uninit(n);
+                    let mut uninit = Allocate::<$Ty<T,N2>>::uninit(n);
 
                     //copy the right amount of values from the source to the destination at the right spot
                     let ($n1, $n2) = (self.dim(), n.value());
@@ -126,15 +126,15 @@ macro_rules! impl_dim_cast {
 }
 
 impl_dim_cast!(
-    Even<T:AllocEven,N1>, AllocateEven, |n1,n2| {
+    Even<T:AllocEven,N1>, |n1,n2| {
         components_of(n1).zip(components_of(n2)).enumerate().map(|(g,(e1,e2))| (g,e1,e2)).step_by(2)
     };
 
-    Odd<T:AllocOdd,N1>, AllocateOdd, |n1,n2| {
+    Odd<T:AllocOdd,N1>, |n1,n2| {
         components_of(n1).zip(components_of(n2)).enumerate().map(|(g,(e1,e2))| (g,e1,e2)).skip(1).step_by(2)
     };
 
-    Multivector<T:AllocMultivector,N1>, AllocateMultivector, |n1,n2| {
+    Multivector<T:AllocMultivector,N1>, |n1,n2| {
         components_of(n1).zip(components_of(n2)).enumerate().map(|(g,(e1,e2))| (g,e1,e2))
     };
 );

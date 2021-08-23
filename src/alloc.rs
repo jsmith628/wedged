@@ -7,10 +7,28 @@ use na::dimension::{Dim, Const, Dynamic};
 use crate::storage::*;
 use crate::{binom, even_elements, odd_elements};
 
+pub struct DefaultAllocator;
+
+pub type Allocate<M> = <DefaultAllocator as Alloc<M>>::Buffer;
+
 pub type AllocateBlade<T,N,G> = <T as AllocBlade<N,G>>::Buffer;
 pub type AllocateEven<T,N> = <T as AllocEven<N>>::Buffer;
 pub type AllocateOdd<T,N> = <T as AllocOdd<N>>::Buffer;
 pub type AllocateMultivector<T,N> = <T as AllocMultivector<N>>::Buffer;
+
+pub unsafe trait Alloc<M> {
+
+    type Scalar: Sized;
+    type Shape: Copy;
+
+    type Buffer: Storage<Self::Scalar, Uninit=Self::Uninit>;
+    type Uninit: UninitStorage<Self::Scalar, Init=Self::Buffer>;
+
+    fn shape(this: &M) -> Self::Shape;
+    fn uninit(shape: Self::Shape) -> Self::Uninit;
+    unsafe fn assume_init(uninit: Self::Uninit) -> M;
+
+}
 
 pub unsafe trait AllocBlade<N:Dim,G:Dim>: Sized {
     type Buffer: BladeStorage<Self,N,G>;
@@ -51,7 +69,6 @@ unsafe impl<T> AllocOdd<Dynamic> for T {
 unsafe impl<T> AllocMultivector<Dynamic> for T {
     type Buffer = DynMultivectorStorage<T, Dynamic>;
 }
-
 
 #[inline(always)]
 fn uninit_array<T, const L: usize>() -> [MaybeUninit<T>; L] {

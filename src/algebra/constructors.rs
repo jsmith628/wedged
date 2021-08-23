@@ -2,10 +2,10 @@
 use super::*;
 
 macro_rules! impl_generic_constructors {
-    (pub fn new($($n:ident:$N:ident),*) -> Self { $Allocate:ident::new() }) => {
+    (pub fn new($($n:ident:$N:ident),*) -> Self { }) => {
         /// Constructs a value with elements from an iterator using a generic shape
         pub fn from_iter_generic<I:IntoIterator<Item=T>>($($n: $N, )* iter: I) -> Self {
-            Self { data: $Allocate::<T,$($N),*>::from_iterator($($n, )* iter) }
+            Self { data: Allocate::<Self>::from_iterator($($n, )* iter) }
         }
 
         /// Constructs a value from an index function using a generic shape
@@ -44,27 +44,19 @@ macro_rules! impl_generic_constructors {
 }
 
 impl<T:AllocBlade<N,G>, N:Dim, G:Dim> Blade<T,N,G> {
-    impl_generic_constructors!(
-        pub fn new(n:N, g:G) -> Self { AllocateBlade::new() }
-    );
+    impl_generic_constructors!( pub fn new(n:N, g:G) -> Self { } );
 }
 
 impl<T:AllocEven<N>, N:Dim> Even<T,N> {
-    impl_generic_constructors!(
-        pub fn new(n:N) -> Self { AllocateEven::new() }
-    );
+    impl_generic_constructors!( pub fn new(n:N) -> Self { } );
 }
 
 impl<T:AllocOdd<N>, N:Dim> Odd<T,N> {
-    impl_generic_constructors!(
-        pub fn new(n:N) -> Self { AllocateOdd::new() }
-    );
+    impl_generic_constructors!( pub fn new(n:N) -> Self { } );
 }
 
 impl<T:AllocMultivector<N>, N:Dim> Multivector<T,N> {
-    impl_generic_constructors!(
-        pub fn new(n:N) -> Self { AllocateMultivector::new() }
-    );
+    impl_generic_constructors!( pub fn new(n:N) -> Self { } );
 }
 
 //TODO: fix the documentation
