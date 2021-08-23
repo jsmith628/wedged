@@ -150,9 +150,6 @@ pub fn odd_components_of(n: usize) -> impl std::iter::Iterator<Item=usize> {
     components_of(n).skip(1).step_by(2)
 }
 
-pub trait DimName: na::dimension::DimName {}
-impl<const N: usize> DimName for na::dimension::Const<N> {}
-
 pub trait RefMul<Rhs:?Sized> {
     type Output;
     fn ref_mul<'a,'b>(&'a self, rhs:&'b Rhs) -> Self::Output;

@@ -606,12 +606,12 @@ impl<T1,T2,U,N:Dim,G1:Dim,G2:Dim> BitXor<Blade<T2,N,G2>> for Blade<T1,N,G1> wher
 impl<T1,T2,U,N:Dim,G1:Dim,G2:Dim> Rem<Blade<T2,N,G2>> for Blade<T1,N,G1> where
     T1: AllocBlade<N,G1> + Mul<T2,Output=U> + RefMul<T2,Output=U>,
     T2: AllocBlade<N,G2>,
-    G2: DimSub<G1>,
-    U: AllocBlade<N, DimDiff<G2, G1>> + ClosedAdd + ClosedSub + Neg<Output=U> + Zero,
+    G2: DimSymSub<G1>,
+    U: AllocBlade<N, DimSymDiff<G2, G1>> + ClosedAdd + ClosedSub + Neg<Output=U> + Zero,
 {
-    type Output = Blade<U,N,DimDiff<G2, G1>>;
+    type Output = Blade<U,N,DimSymDiff<G2,G1>>;
     fn rem(self, rhs: Blade<T2,N,G2>) -> Self::Output {
-        let (n, g) = (self.dim_generic(), rhs.grade_generic().sub(self.grade_generic()));
+        let (n, g) = (self.dim_generic(), rhs.grade_generic().sym_sub(self.grade_generic()));
         mul_selected(self, rhs, (n, g))
     }
 }
@@ -1015,14 +1015,14 @@ mod tests {
         test_mul!(e2^e31 == e123; true);
         test_mul!(e3^e12 == e123; true);
 
-        assert_eq!(e%e, e);
-        assert_eq!(e%e1, e1);
-        assert_eq!(e%e2, e2);
-        assert_eq!(e%e3, e3);
-        assert_eq!(e%e23, e23);
-        assert_eq!(e%e31, e31);
-        assert_eq!(e%e12, e12);
-        assert_eq!(e%e123, e123);
+        test_mul!(e%e    == e;    true);
+        test_mul!(e%e1   == e1;   true);
+        test_mul!(e%e2   == e2;   true);
+        test_mul!(e%e3   == e3;   true);
+        test_mul!(e%e23  == e23;  true);
+        test_mul!(e%e31  == e31;  true);
+        test_mul!(e%e12  == e12;  true);
+        test_mul!(e%e123 == e123; true);
 
         test_mul!(e1%e1 == e; true);
         test_mul!(e1%e2 == zero; true);
@@ -1031,22 +1031,22 @@ mod tests {
         test_mul!(e2%e3 == zero; true);
         test_mul!(e3%e3 == e; true);
 
-        assert_eq!(e1%e23, zerov);
-        assert_eq!(e1%e31, -e3);
-        assert_eq!(e1%e12, e2);
-        assert_eq!(e2%e23, e3);
-        assert_eq!(e2%e31, zerov);
-        assert_eq!(e2%e12, -e1);
-        assert_eq!(e3%e23, -e2);
-        assert_eq!(e3%e31, e1);
-        assert_eq!(e3%e12, zerov);
+        test_mul!(e1%e23 == zerov; false);
+        test_mul!(e1%e31 == -e3; false);
+        test_mul!(e1%e12 == e2; false);
+        test_mul!(e2%e23 == e3; false);
+        test_mul!(e2%e31 == zerov; false);
+        test_mul!(e2%e12 == -e1; false);
+        test_mul!(e3%e23 == -e2; false);
+        test_mul!(e3%e31 == e1; false);
+        test_mul!(e3%e12 == zerov; false);
 
-        assert_eq!(e1%e123, e23);
-        assert_eq!(e2%e123, e31);
-        assert_eq!(e3%e123, e12);
-        assert_eq!(e23%e123, -e1);
-        assert_eq!(e31%e123, -e2);
-        assert_eq!(e12%e123, -e3);
+        test_mul!(e1%e123  == e23; true);
+        test_mul!(e2%e123  == e31; true);
+        test_mul!(e3%e123  == e12; true);
+        test_mul!(e23%e123 == -e1; true);
+        test_mul!(e31%e123 == -e2; true);
+        test_mul!(e12%e123 == -e3; true);
 
     }
 

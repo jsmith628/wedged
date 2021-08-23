@@ -18,18 +18,17 @@ use std::iter::IntoIterator;
 use num_traits::{Zero, One};
 
 use na::{ClosedAdd, ClosedSub, ComplexField};
-use na::dimension::{
-    Dim, DimAdd, DimSum, DimSub, DimDiff, DimNameDiff,
-    Dynamic, U0, U1, U2, U3, U4, U5, U6
-};
-
 
 use crate::base::storage::*;
 use crate::base::alloc::*;
+use crate::base::dim::{
+    Dim, DimName, DimAdd, DimSum, DimSub, DimDiff, DimNameDiff, DimSymSub, DimSymDiff,
+    Dynamic, U0, U1, U2, U3, U4, U5, U6
+};
 
 use crate::basis_blade::BasisBlade;
 use crate::{
-    DimName, RefMul, Scale, InvScale,
+    RefMul, Scale, InvScale,
     binom, components_of, even_components_of, odd_components_of
 };
 
