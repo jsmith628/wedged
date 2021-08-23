@@ -20,7 +20,7 @@ use na::dimension::{
     U0, U1, U2, U3, U4, U5, U6
 };
 
-use crate::alloc::{AllocBlade, AllocEven, AllocOdd};
+use crate::alloc::{AllocBlade, AllocEven, AllocOdd, AllocVersor};
 use crate::algebra::{Blade, Even, Odd};
 
 pub type Iter<'a, T> = std::slice::Iter<'a, T>;
@@ -50,7 +50,7 @@ pub struct Reflector<T:AllocOdd<N>,N:Dim> {
 #[derivative(Clone(bound = "Rotor<T,N>:Clone, Reflector<T,N>:Clone"))]
 #[derivative(Copy(bound = "Rotor<T,N>:Copy, Reflector<T,N>:Copy"))]
 #[derivative(Hash(bound = "T: Hash"))]
-pub enum Versor<T,N:Dim> where T:AllocEven<N>+AllocOdd<N> {
+pub enum Versor<T:AllocVersor<N>, N:Dim> {
     Even(Rotor<T,N>),
     Odd(Reflector<T,N>)
 }

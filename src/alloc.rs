@@ -42,6 +42,9 @@ pub unsafe trait AllocOdd<N:Dim>: Sized {
     type Buffer: OddStorage<Self,N>;
 }
 
+pub unsafe trait AllocVersor<N:Dim>: AllocEven<N> + AllocOdd<N> {}
+unsafe impl<T:AllocEven<N>+AllocOdd<N>, N:Dim> AllocVersor<N> for T {}
+
 pub unsafe trait AllocMultivector<N:Dim>: Sized {
     type Buffer: MultivectorStorage<Self,N>;
 }
