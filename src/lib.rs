@@ -15,6 +15,7 @@ pub mod coordinates;
 pub mod basis_blade;
 pub mod algebra;
 pub mod subspace;
+
 ///
 /// Computes the [binomial coefficient][1] of n terms at position k.
 ///
@@ -162,4 +163,14 @@ pub trait RefMul<Rhs:?Sized> {
 impl<T1:?Sized,T2:?Sized,U> RefMul<T2> for T1 where for<'a,'b> &'a T1: std::ops::Mul<&'b T2,Output=U> {
     type Output = U;
     fn ref_mul<'a,'b>(&'a self, rhs:&'b T2) -> U { self * rhs }
+}
+
+pub trait Scale<Rhs=Self> {
+    type Output;
+    fn scale(self, rhs:Rhs) -> Self::Output;
+}
+
+pub trait InvScale<Rhs=Self> {
+    type Output;
+    fn inv_scale(self, rhs:Rhs) -> Self::Output;
 }

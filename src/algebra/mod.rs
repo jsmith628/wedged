@@ -25,7 +25,7 @@ use na::dimension::{
 
 use crate::basis_blade::BasisBlade;
 use crate::{
-    DimName, RefMul,
+    DimName, RefMul, Scale, InvScale,
     binom, components_of, even_components_of, odd_components_of
 };
 
