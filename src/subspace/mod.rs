@@ -20,7 +20,7 @@ use na::dimension::{
     U0, U1, U2, U3, U4, U5, U6
 };
 
-use crate::alloc::{AllocBlade, AllocEven, AllocOdd, AllocVersor};
+use crate::base::alloc::{AllocBlade, AllocEven, AllocOdd, AllocVersor};
 use crate::algebra::{Blade, Even, Odd};
 
 pub type Iter<'a, T> = std::slice::Iter<'a, T>;

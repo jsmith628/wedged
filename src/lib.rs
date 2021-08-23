@@ -8,9 +8,7 @@ extern crate derivative;
 extern crate num_traits;
 extern crate nalgebra as na;
 
-pub mod storage;
-pub mod alloc;
-pub mod coordinates;
+pub mod base;
 
 pub mod basis_blade;
 pub mod algebra;

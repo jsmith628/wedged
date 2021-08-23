@@ -23,11 +23,16 @@ use na::dimension::{
     Dynamic, U0, U1, U2, U3, U4, U5, U6
 };
 
+
+use crate::base::storage::*;
+use crate::base::alloc::*;
+
 use crate::basis_blade::BasisBlade;
 use crate::{
     DimName, RefMul, Scale, InvScale,
     binom, components_of, even_components_of, odd_components_of
 };
+
 
 pub type Iter<'a, T> = std::slice::Iter<'a, T>;
 pub type IterMut<'a, T> = std::slice::IterMut<'a, T>;
@@ -51,9 +56,6 @@ pub struct Odd<T:AllocOdd<N>, N:Dim> {
 pub struct Multivector<T:AllocMultivector<N>, N:Dim> {
     pub data: AllocateMultivector<T,N>
 }
-
-use crate::storage::*;
-use crate::alloc::*;
 
 pub use self::common::*;
 pub use self::involute::*;
