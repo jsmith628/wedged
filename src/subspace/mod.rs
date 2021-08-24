@@ -60,7 +60,9 @@ pub enum Versor<T:AllocVersor<N>, N:Dim> {
 pub use self::common::*;
 pub use self::mutable::*;
 pub use self::aliases::*;
+pub use self::constructors::*;
 
 mod common;
 mod mutable;
 mod aliases;
+mod constructors;
