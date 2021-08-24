@@ -6,7 +6,8 @@ use std::cmp::{PartialEq, Eq};
 use std::hash::{Hash, Hasher};
 use std::ops::{
     Index, IndexMut,
-    Deref, Mul, Div
+    Deref, DerefMut,
+    Add, Sub, Mul, Div
 };
 use std::fmt::{
     Formatter, Result as FmtResult,
@@ -15,8 +16,9 @@ use std::fmt::{
 
 use num_traits::{Zero};
 
-use na::dimension::{
-    Dim,
+use crate::base::dim::{
+    Dim, DimName, ToTypenum,
+    DimSub, DimDiff,
     U0, U1, U2, U3, U4, U5, U6
 };
 
@@ -56,5 +58,7 @@ pub enum Versor<T:AllocVersor<N>, N:Dim> {
 }
 
 pub use self::common::*;
+pub use self::mutable::*;
 
 mod common;
+mod mutable;
