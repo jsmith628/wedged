@@ -70,6 +70,10 @@ macro_rules! impl_deref {
                 fn into_iter(self) -> Self::IntoIter { (&self.data).into_iter() }
             }
 
+            impl<'a, T:$Alloc<$($N),*>, $($N:Dim),*> From<$Ty<T,$($N),*>> for $Target<T,$($N),*> {
+                fn from(x: $Ty<T,$($N),*>) -> $Target<T,$($N),*> { x.data }
+            }
+
         )*
 
     }
