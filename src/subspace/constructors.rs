@@ -18,6 +18,7 @@ macro_rules! impl_specific_constructors {
 
 
 impl<T:AllocBlade<N,U0>, N:DimName> SimpleScalar<T,N> {
+    /// Constructs a scalar directly from components
     pub fn new(x:T) -> SimpleScalar<T,N> {
         Self { data: crate::algebra::Scalar::new(x) }
     }

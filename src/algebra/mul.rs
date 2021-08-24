@@ -590,31 +590,46 @@ impl_geometric_mul!(
 
 );
 
-impl<T1,T2,U,N:Dim,G1:Dim,G2:Dim> BitXor<Blade<T2,N,G2>> for Blade<T1,N,G1> where
-    T1: AllocBlade<N,G1> + Mul<T2,Output=U> + RefMul<T2,Output=U>,
-    T2: AllocBlade<N,G2>,
-    G1: DimAdd<G2>,
-    U: AllocBlade<N, DimSum<G1, G2>> + ClosedAdd + ClosedSub + Neg<Output=U> + Zero,
-{
-    type Output = Blade<U,N,DimSum<G1, G2>>;
-    fn bitxor(self, rhs: Blade<T2,N,G2>) -> Self::Output {
-        let (n, g) = (self.dim_generic(), self.grade_generic().add(rhs.grade_generic()));
-        mul_selected(self, rhs, (n, g))
+macro_rules! impl_wedge_dot {
+    ($($a:lifetime)?; $($b:lifetime)?) => {
+        impl<$($a,)? $($b,)? T1,T2,U,N:Dim,G1:Dim,G2:Dim>
+            BitXor<$(&$b)? Blade<T2,N,G2>> for $(&$a)? Blade<T1,N,G1>
+        where
+            T1: AllocBlade<N,G1> + RefMul<T2,Output=U>,
+            T2: AllocBlade<N,G2>,
+            G1: DimAdd<G2>,
+            $(&$a)? T1: Mul<$(&$b)? T2,Output=U>,
+            U: AllocBlade<N, DimSum<G1, G2>> + ClosedAdd + ClosedSub + Neg<Output=U> + Zero,
+        {
+            type Output = Blade<U,N,DimSum<G1, G2>>;
+            fn bitxor(self, rhs: $(&$b)? Blade<T2,N,G2>) -> Self::Output {
+                let (n, g) = (self.dim_generic(), self.grade_generic().add(rhs.grade_generic()));
+                mul_selected(self, rhs, (n, g))
+            }
+        }
+
+        impl<$($a,)? $($b,)? T1,T2,U,N:Dim,G1:Dim,G2:Dim>
+            Rem<$(&$b)? Blade<T2,N,G2>> for $(&$a)? Blade<T1,N,G1>
+        where
+            T1: AllocBlade<N,G1> + RefMul<T2,Output=U>,
+            T2: AllocBlade<N,G2>,
+            G2: DimSymSub<G1>,
+            $(&$a)? T1: Mul<$(&$b)? T2,Output=U>,
+            U: AllocBlade<N, DimSymDiff<G2, G1>> + ClosedAdd + ClosedSub + Neg<Output=U> + Zero,
+        {
+            type Output = Blade<U,N,DimSymDiff<G2,G1>>;
+            fn rem(self, rhs: $(&$b)? Blade<T2,N,G2>) -> Self::Output {
+                let (n, g) = (self.dim_generic(), rhs.grade_generic().sym_sub(self.grade_generic()));
+                mul_selected(self, rhs, (n, g))
+            }
+        }
     }
 }
 
-impl<T1,T2,U,N:Dim,G1:Dim,G2:Dim> Rem<Blade<T2,N,G2>> for Blade<T1,N,G1> where
-    T1: AllocBlade<N,G1> + Mul<T2,Output=U> + RefMul<T2,Output=U>,
-    T2: AllocBlade<N,G2>,
-    G2: DimSymSub<G1>,
-    U: AllocBlade<N, DimSymDiff<G2, G1>> + ClosedAdd + ClosedSub + Neg<Output=U> + Zero,
-{
-    type Output = Blade<U,N,DimSymDiff<G2,G1>>;
-    fn rem(self, rhs: Blade<T2,N,G2>) -> Self::Output {
-        let (n, g) = (self.dim_generic(), rhs.grade_generic().sym_sub(self.grade_generic()));
-        mul_selected(self, rhs, (n, g))
-    }
-}
+impl_wedge_dot!(  ;   );
+impl_wedge_dot!('a;   );
+impl_wedge_dot!(  ; 'b);
+impl_wedge_dot!('a; 'b);
 
 impl<T:AllocEven<N>+Zero+One+PartialEq,N:DimName> One for Even<T,N> where Even<T,N>:Mul<Output=Self> {
     fn is_one(&self) -> bool {
