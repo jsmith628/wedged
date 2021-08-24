@@ -18,8 +18,8 @@ use num_traits::{Zero};
 
 use crate::base::dim::{
     Dim, DimName, ToTypenum,
-    DimSub, DimDiff,
-    U0, U1, U2, U3, U4, U5, U6
+    DimSub, DimDiff, DimNameDiff,
+    Dynamic, U0, U1, U2, U3, U4, U5, U6
 };
 
 use crate::base::alloc::{AllocBlade, AllocEven, AllocOdd, AllocVersor};
@@ -59,6 +59,8 @@ pub enum Versor<T:AllocVersor<N>, N:Dim> {
 
 pub use self::common::*;
 pub use self::mutable::*;
+pub use self::aliases::*;
 
 mod common;
 mod mutable;
+mod aliases;
