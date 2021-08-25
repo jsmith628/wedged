@@ -7,7 +7,8 @@ use std::hash::{Hash, Hasher};
 use std::ops::{
     Index, IndexMut,
     Deref, DerefMut,
-    Add, Sub, Mul, Div
+    Add, AddAssign, Sub, SubAssign, Neg,
+    Mul, MulAssign, Div, DivAssign, Rem, BitXor
 };
 use std::fmt::{
     Formatter, Result as FmtResult,
@@ -16,14 +17,18 @@ use std::fmt::{
 
 use num_traits::{Zero};
 
+use na::{ClosedAdd, ClosedSub};
+
+use crate::{RefMul, Scale, InvScale};
+use crate::algebra::{Blade, Even, Odd};
+use crate::base::alloc::{AllocBlade, AllocEven, AllocOdd, AllocVersor};
 use crate::base::dim::{
     Dim, DimName, ToTypenum,
-    DimSub, DimDiff, DimNameDiff,
+    DimDiff, DimNameDiff,
+    DimAdd, DimSum, DimSymSub, DimSymDiff,
     Dynamic, U0, U1, U2, U3, U4, U5, U6
 };
 
-use crate::base::alloc::{AllocBlade, AllocEven, AllocOdd, AllocVersor};
-use crate::algebra::{Blade, Even, Odd};
 
 pub type Iter<'a, T> = std::slice::Iter<'a, T>;
 pub type IterMut<'a, T> = std::slice::IterMut<'a, T>;
@@ -59,10 +64,12 @@ pub enum Versor<T:AllocVersor<N>, N:Dim> {
 
 pub use self::common::*;
 pub use self::mutable::*;
+pub use self::ops::*;
 pub use self::aliases::*;
 pub use self::constructors::*;
 
 mod common;
 mod mutable;
+mod ops;
 mod aliases;
 mod constructors;

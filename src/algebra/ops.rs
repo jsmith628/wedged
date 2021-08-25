@@ -335,36 +335,6 @@ impl_scalar_assign_binops!(impl<T:AllocOdd,N> DivAssign.div_assign() for Odd);
 impl_scalar_assign_binops!(impl<T:AllocMultivector,N> MulAssign.mul_assign() for Multivector);
 impl_scalar_assign_binops!(impl<T:AllocMultivector,N> DivAssign.div_assign() for Multivector);
 
-macro_rules! impl_forward_scalar_binops {
-    (
-        $prim:ident; impl<T:$Alloc:ident,$($N:ident),*> $Op:ident.$op:ident() for $Ty:ident;
-        $($a:lifetime)?; $($b:lifetime)?
-    ) => {
-        impl<$($a,)? $($b,)? $($N:Dim),*> $Op<$(&$b)? $Ty<$prim,$($N),*>> for $(&$a)? $prim where $prim:$Alloc<$($N),*> {
-            type Output = $Ty<$prim,$($N),*>;
-            fn $op(self, rhs: $(&$b)? $Ty<$prim,$($N),*>) -> $Ty<$prim,$($N),*> {
-                rhs.$op(self)
-            }
-        }
-    };
-
-    (; $($rest:tt)*) => {};
-
-    ($p:ident $($prim:ident)*; $($tt:tt)*) => {
-        impl_forward_scalar_binops!($p; $($tt)*;   ;   );
-        impl_forward_scalar_binops!($p; $($tt)*;   ; 'b);
-        impl_forward_scalar_binops!($p; $($tt)*; 'a;   );
-        impl_forward_scalar_binops!($p; $($tt)*; 'a; 'b);
-        impl_forward_scalar_binops!($($prim)*; $($tt)*);
-    };
-
-    ($($tt:tt)*) => {
-        impl_forward_scalar_binops!(u8 i8 u16 i16 u32 i32 u64 i64 u128 i128 usize isize f32 f64; $($tt)*);
-    };
-}
-
-//TODO: add impls for Wrapping<T> and Saturating<T>
-
 impl_forward_scalar_binops!(impl<T:AllocBlade,N,G> Mul.mul() for Blade);
 // impl_forward_scalar_binops!(impl<T:AllocBlade,N,G> Div.div() for Blade);
 impl_forward_scalar_binops!(impl<T:AllocEven,N> Mul.mul() for Even);
