@@ -66,21 +66,54 @@ macro_rules! impl_add_assign_ops {
 impl_add_ops!(Add.add(), Sub.sub());
 impl_add_assign_ops!(AddAssign.add_assign(), SubAssign.sub_assign());
 
-impl<T,U,N:Dim,G:Dim> Neg for SimpleBlade<T,N,G> where
-    T: AllocBlade<N,G> + Neg<Output=U>,
-    U: AllocBlade<N,G>
-{
-    type Output = SimpleBlade<U,N,G>;
-    fn neg(self) -> SimpleBlade<U,N,G> { SimpleBlade { data: -self.data } }
+macro_rules! impl_neg {
+    (impl<T:$Alloc:ident,$($N:ident),*> Neg for $Ty:ident; $($a:lifetime)?) => {
+        impl<$($a,)? T,U,$($N:Dim),*> Neg for $(&$a)? $Ty<T,$($N),*> where
+            T: $Alloc<$($N),*>,
+            U: $Alloc<$($N),*>,
+            $(&$a)? T: Neg<Output=U>
+        {
+            type Output = $Ty<U,$($N),*>;
+            fn neg(self) -> $Ty<U,$($N),*> { $Ty { data: -maybe_ref!(self.data; $($a)?) } }
+        }
+    };
+
+    (impl<T:$Alloc:ident,$($N:ident),*> Neg for $Ty:ident) => {
+        impl_neg!(impl<T:$Alloc,$($N),*> Neg for $Ty;   );
+        impl_neg!(impl<T:$Alloc,$($N),*> Neg for $Ty; 'a);
+    }
 }
 
-impl<'a,T,U,N:Dim,G:Dim> Neg for &'a SimpleBlade<T,N,G> where
-    T: AllocBlade<N,G>,
-    U: AllocBlade<N,G>,
+impl_neg!(impl<T:AllocBlade,N,G> Neg for SimpleBlade);
+impl_neg!(impl<T:AllocBlade,N,G> Neg for UnitBlade);
+impl_neg!(impl<T:AllocEven,N> Neg for Rotor);
+impl_neg!(impl<T:AllocOdd,N> Neg for Reflector);
+
+impl<T,U,N:Dim> Neg for Versor<T,N> where
+    T: AllocVersor<N>+Neg<Output=U>,
+    U: AllocVersor<N>,
+{
+    type Output = Versor<U,N>;
+    fn neg(self) -> Versor<U,N> {
+        match self {
+            Versor::Even(r) => Versor::Even(-r),
+            Versor::Odd(r) => Versor::Odd(-r),
+        }
+    }
+}
+
+impl<'a,T,U,N:Dim> Neg for &'a Versor<T,N> where
+    T: AllocVersor<N>,
+    U: AllocVersor<N>,
     &'a T: Neg<Output=U>
 {
-    type Output = SimpleBlade<U,N,G>;
-    fn neg(self) -> SimpleBlade<U,N,G> { SimpleBlade { data: -&self.data } }
+    type Output = Versor<U,N>;
+    fn neg(self) -> Versor<U,N> {
+        match self {
+            Versor::Even(r) => Versor::Even(-r),
+            Versor::Odd(r) => Versor::Odd(-r),
+        }
+    }
 }
 
 impl<T:AllocBlade<N,G>+Zero, N:DimName, G:DimName> Zero for SimpleBlade<T,N,G> where Self:MutSimpleBlade {
