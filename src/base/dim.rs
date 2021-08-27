@@ -156,25 +156,34 @@ pub mod private {
     use typenum::*;
     use typenum::{U0, U1};
 
+    pub trait PrivateNonZero: Unsigned {}
+    impl<N:Unsigned,B:Bit> PrivateNonZero for UInt<N,B> {}
+
     pub type Binom<N,K> = <N as BinomCoeff<K>>::Output;
     pub trait BinomCoeff<K> {
         type Output;
     }
 
-    // binom(0,0) == 1
-    impl BinomCoeff<UTerm> for UTerm {
-        type Output = U1;
-    }
-
-    // binom(X,0) == 1
-    impl<N,B:Bit> BinomCoeff<UTerm> for UInt<N,B> where UInt<N,B>: NonZero {
-        type Output = U1;
-    }
-
-    // binom(0,X) == 0 where X>0
-    impl<K,B:Bit> BinomCoeff<UInt<K,B>> for UTerm  where UInt<K,B>: NonZero {
+    // binom(0,K) == 0 where K>0
+    impl<K:PrivateNonZero,B:Bit> BinomCoeff<UInt<K,B>> for UTerm  where UInt<K,B>: NonZero {
         type Output = U0;
     }
+
+    // We need this as explicitely as possible to guarantee we can prove Scalars have 1 element
+    // binom(N,0) == 1
+    impl<N:Unsigned> BinomCoeff<UTerm> for N {
+        type Output = U1;
+    }
+
+    // We need this as explicitely as possible to guarantee we can prove Vectors have N elements
+    // binom(N,1) == N
+    impl<N> BinomCoeff<UInt<UTerm, B1>> for N {
+        type Output = N;
+    }
+
+    //Unfortunately, there doesn't seem to be a real way to make sure rustc can prove the number
+    //of elements for psuedoscalars and psuedovectors in general with generics. Once we have
+    //specialization it may be possible though.
 
     //
     // In theory, this way of computing this is suuuuper slow ( O(2^N) in fact), but rustc has
@@ -184,7 +193,7 @@ pub mod private {
     // the falling factorial computation.
     //
     // binom(n,k) = binom(n-1, k) + binom(n-1, k-1)
-    impl<N,K,B,C> BinomCoeff<UInt<K,C>> for UInt<N,B> where
+    impl<N,K:PrivateNonZero,B,C> BinomCoeff<UInt<K,C>> for UInt<N,B> where
         UInt<N,B>: Sub<B1>,
         UInt<K,C>: Sub<B1>,
         Sub1<UInt<N,B>>: BinomCoeff<UInt<K,C>>,
