@@ -436,7 +436,6 @@ macro_rules! impl_div {
             T: $Alloc1<N,$($G1),*> + $Alloc2<N,$($G2),*> + Clone + Neg<Output=T> + RefMul<T, Output=U>,
             U: $Alloc3<N> + AddGroup,
             $(&$a)? T: Mul<T, Output=U>,
-            $Ty2<T,N $(,$G2)*>: Clone
         {
 
             type Output = $Ty3<U,N>;

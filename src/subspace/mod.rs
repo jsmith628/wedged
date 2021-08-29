@@ -54,9 +54,9 @@ pub struct Reflector<T:AllocOdd<N>,N:Dim> {
 }
 
 #[derive(Derivative)]
-#[derivative(Clone(bound = "Rotor<T,N>:Clone, Reflector<T,N>:Clone"))]
-#[derivative(Copy(bound = "Rotor<T,N>:Copy, Reflector<T,N>:Copy"))]
-#[derivative(Hash(bound = "T: Hash"))]
+#[derivative(Copy(bound = "T:Copy, Rotor<T,N>:Copy, Reflector<T,N>:Copy"))]
+#[derivative(Clone(bound = "T:Clone"))]
+#[derivative(Hash(bound = "T:Hash"))]
 pub enum Versor<T:AllocVersor<N>, N:Dim> {
     Even(Rotor<T,N>),
     Odd(Reflector<T,N>)

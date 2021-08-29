@@ -18,8 +18,8 @@ macro_rules! impl_deref {
 
             }
 
-            impl<T:$Alloc<$($N),*>, $($N:Dim),*> Copy for $Ty<T,$($N),*> where $Target<T,$($N),*>:Copy {}
-            impl<T:$Alloc<$($N),*>, $($N:Dim),*> Clone for $Ty<T,$($N),*> where $Target<T,$($N),*>:Clone {
+            impl<T:$Alloc<$($N),*>+Copy, $($N:Dim),*> Copy for $Ty<T,$($N),*> where $Target<T,$($N),*>:Copy {}
+            impl<T:$Alloc<$($N),*>+Clone, $($N:Dim),*> Clone for $Ty<T,$($N),*> {
                 fn clone(&self) -> Self { Self { data: self.data.clone() } }
                 fn clone_from(&mut self, src:&Self) { self.data.clone_from(&src.data) }
             }

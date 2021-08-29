@@ -22,6 +22,11 @@ pub unsafe trait Storage<T>:
 
     fn elements(&self) -> usize;
 
+    //so that we don't have to have Allocate<Self>: Clone bounds
+    fn clone_storage(&self) -> Self where T:Clone;
+    fn clone_from_storage(&mut self, other: &Self) where T:Clone;
+
+
 }
 
 pub unsafe trait UninitStorage<T>: Storage<MaybeUninit<T>> {
@@ -61,6 +66,8 @@ unsafe impl<T, const L: usize> Storage<T> for [T;L] {
     type Uninit = [MaybeUninit<T>; L];
     type Iter = <Self as IntoIterator>::IntoIter;
     fn elements(&self) -> usize { L }
+    fn clone_storage(&self) -> Self where T:Clone { self.clone() }
+    fn clone_from_storage(&mut self, other: &Self) where T:Clone { self.clone_from(other) }
 }
 
 unsafe impl<T, const L: usize> UninitStorage<T> for [MaybeUninit<T>;L] {
@@ -153,6 +160,8 @@ macro_rules! impl_dyn_storage {
                 type Uninit = $Ty<MaybeUninit<T>,$($N),*>;
                 type Iter = <Self as IntoIterator>::IntoIter;
                 fn elements(&self) -> usize { self.data.len() }
+                fn clone_storage(&self) -> Self where T:Clone { self.clone() }
+                fn clone_from_storage(&mut self, other: &Self) where T:Clone { self.clone_from(other) }
             }
 
         )*

@@ -243,12 +243,14 @@ macro_rules! impl_basic_traits {
     () => {};
     (impl<T:$Alloc:ident, $($N:ident),*> $Ty:ident {} $($rest:tt)*) => {
 
-        impl<T:$Alloc<$($N),*>, $($N:Dim),*> Clone for $Ty<T,$($N),*> where Allocate<Self>: Clone {
-            fn clone(&self) -> Self { $Ty { data: self.data.clone() } }
-            fn clone_from(&mut self, src: &Self) { self.data.clone_from(&src.data) }
+        impl<T:$Alloc<$($N),*>+Clone, $($N:Dim),*> Clone for $Ty<T,$($N),*> {
+            fn clone(&self) -> Self { $Ty { data: self.data.clone_storage() } }
+            fn clone_from(&mut self, src: &Self) { self.data.clone_from_storage(&src.data) }
         }
 
-        impl<T:$Alloc<$($N),*>, $($N:Dim),*> Copy for $Ty<T,$($N),*> where Allocate<Self>: Copy {}
+        //TODO: once we have specialization, we can do fancy things to make the extra Self bound
+        //unnecessary
+        impl<T:$Alloc<$($N),*>+Copy, $($N:Dim),*> Copy for $Ty<T,$($N),*> where Allocate<Self>: Copy {}
 
 
         impl<T:$Alloc<$($N),*>, $($N:Dim),*> AsRef<[T]> for $Ty<T,$($N),*> {
