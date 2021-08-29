@@ -1,7 +1,7 @@
 
 use super::*;
 
-macro_rules! impl_deref {
+macro_rules! impl_common {
     ($($Ty:ident<T:$Alloc:ident, $($N:ident),*> = $Target:ident;)*) => {
 
         $(
@@ -96,7 +96,7 @@ macro_rules! impl_fmt {
     };
 }
 
-impl_deref!(
+impl_common!(
     SimpleBlade<T:AllocBlade,N,G> = Blade;
     UnitBlade<T:AllocBlade,N,G> = Blade;
     Rotor<T:AllocEven,N> = Even;
@@ -110,6 +110,21 @@ impl_fmt!(
     Rotor<T:AllocEven,N>
     Reflector<T:AllocOdd,N>
 );
+
+impl<T:AllocVersor<N>, N:Dim> Versor<T,N> {
+    fn even(&self) -> bool {
+        match self {
+            Versor::Even(_) => true,
+            Versor::Odd(_) => false,
+        }
+    }
+    fn odd(&self) -> bool {
+        match self {
+            Versor::Even(_) => false,
+            Versor::Odd(_) => true,
+        }
+    }
+}
 
 impl<T:AllocVersor<N>+Eq, N:Dim> Eq for Versor<T,N> {}
 impl<T:AllocVersor<N>+PartialEq<U>, U:AllocVersor<N>, N:Dim> PartialEq<Versor<U,N>> for Versor<T,N> {

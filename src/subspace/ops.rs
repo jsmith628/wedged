@@ -119,6 +119,7 @@ impl<'a,T,U,N:Dim> Neg for &'a Versor<T,N> where
 impl<T:AllocBlade<N,G>+Zero, N:DimName, G:DimName> Zero for SimpleBlade<T,N,G> where Self:MutSimpleBlade {
     fn zero() -> Self { Self { data: Blade::zero() } }
     fn is_zero(&self) -> bool { self.data.is_zero() }
+    fn set_zero(&mut self) { self.data.set_zero() }
 }
 
 //
@@ -482,5 +483,34 @@ impl_div!{
     Versor<T:AllocVersor,N> / Rotor<T:AllocEven,N>        == Versor<T:AllocVersor,N>;
     Versor<T:AllocVersor,N> / Reflector<T:AllocOdd,N>     == Versor<T:AllocVersor,N>;
     Versor<T:AllocVersor,N> / Versor<T:AllocVersor,N>     == Versor<T:AllocVersor,N>;
+
+}
+
+//
+// One
+//
+
+impl<T:AllocEven<N>+AddGroup+Mul<Output=T>+RefMul<T,Output=T>+One+PartialEq, N:DimName> One for Rotor<T,N> {
+    //TODO: maybe optimize with the assumption the norm is one
+    //There are _some_ complications with negative signatures, but we should be able to check that
+    fn is_one(&self) -> bool { self.data.is_one() }
+    fn set_one(&mut self) { self.data.set_one()}
+    fn one() -> Self { Rotor { data: Even::one() } }
+}
+
+impl<T:AllocVersor<N>+AddGroup+Mul<Output=T>+RefMul<T,Output=T>+One+PartialEq, N:DimName> One for Versor<T,N> {
+    fn one() -> Self { Versor::Even(Rotor::one()) }
+    fn is_one(&self) -> bool {
+        match self {
+            Versor::Even(r) => r.is_one(),
+            Versor::Odd(_) => false
+        }
+    }
+    fn set_one(&mut self) {
+        match self {
+            Versor::Even(r) => return r.set_one(),
+            Versor::Odd(_) => *self = Self::one()
+        }
+    }
 
 }

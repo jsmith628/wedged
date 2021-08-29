@@ -631,7 +631,7 @@ impl_wedge_dot!('a;   );
 impl_wedge_dot!(  ; 'b);
 impl_wedge_dot!('a; 'b);
 
-impl<T:AllocEven<N>+Zero+One+PartialEq, N:DimName> One for Even<T,N> where Even<T,N>: Mul<Output=Self> {
+impl<T:AllocEven<N>+Zero+One+PartialEq, N:DimName> One for Even<T,N> where Self: Mul<Output=Self> {
     fn is_one(&self) -> bool {
         self[0].is_one() &&
         self.iter().skip(1).all(|x| x.is_zero())
@@ -648,7 +648,7 @@ impl<T:AllocEven<N>+Zero+One+PartialEq, N:DimName> One for Even<T,N> where Even<
 }
 
 impl<T: AllocMultivector<N>+Zero+One+PartialEq, N:DimName> One for Multivector<T,N> where
-    Multivector<T,N>: Mul<Output=Self>
+    Self: Mul<Output=Self>
 {
     fn is_one(&self) -> bool {
         self[0].is_one() &&
