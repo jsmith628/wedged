@@ -180,21 +180,25 @@ impl_assign_binops!(impl<T:AllocMultivector,N> SubAssign.sub_assign() for Multiv
 impl<T:AllocBlade<N,G>+Zero, N:DimName, G:DimName> Zero for Blade<T,N,G> {
     fn zero() -> Self { Self::zeroed() }
     fn is_zero(&self) -> bool { self.iter().all(|e| e.is_zero()) }
+    fn set_zero(&mut self) { self.iter_mut().for_each(|x| x.set_zero()) }
 }
 
 impl<T:AllocEven<N>+Zero, N:DimName> Zero for Even<T,N> {
     fn zero() -> Self { Self::zeroed() }
     fn is_zero(&self) -> bool { self.iter().all(|e| e.is_zero()) }
+    fn set_zero(&mut self) { self.iter_mut().for_each(|x| x.set_zero()) }
 }
 
 impl<T:AllocOdd<N>+Zero, N:DimName> Zero for Odd<T,N> {
     fn zero() -> Self { Self::zeroed() }
     fn is_zero(&self) -> bool { self.iter().all(|e| e.is_zero()) }
+    fn set_zero(&mut self) { self.iter_mut().for_each(|x| x.set_zero()) }
 }
 
 impl<T:AllocMultivector<N>+Zero, N:DimName> Zero for Multivector<T,N> {
     fn zero() -> Self { Self::zeroed() }
     fn is_zero(&self) -> bool { self.iter().all(|e| e.is_zero()) }
+    fn set_zero(&mut self) { self.iter_mut().for_each(|x| x.set_zero()) }
 }
 
 //

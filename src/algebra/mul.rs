@@ -631,26 +631,35 @@ impl_wedge_dot!('a;   );
 impl_wedge_dot!(  ; 'b);
 impl_wedge_dot!('a; 'b);
 
-impl<T:AllocEven<N>+Zero+One+PartialEq,N:DimName> One for Even<T,N> where Even<T,N>:Mul<Output=Self> {
+impl<T:AllocEven<N>+Zero+One+PartialEq, N:DimName> One for Even<T,N> where Even<T,N>: Mul<Output=Self> {
     fn is_one(&self) -> bool {
-        self.iter().enumerate().all(
-            |(i,x)| if i==0 { x.is_one() } else { x.is_zero() }
-        )
+        self[0].is_one() &&
+        self.iter().skip(1).all(|x| x.is_zero())
     }
+
+    fn set_one(&mut self) {
+        self[0].set_one();
+        for i in 1..self.elements() { self[i].set_zero() }
+    }
+
     fn one() -> Self {
         Self::from_iterator(once_with(T::one).chain(repeat_with(T::zero)))
     }
 }
 
-impl<T,N:DimName> One for Multivector<T,N> where
-    T: AllocMultivector<N> + Zero + One + PartialEq,
+impl<T: AllocMultivector<N>+Zero+One+PartialEq, N:DimName> One for Multivector<T,N> where
     Multivector<T,N>: Mul<Output=Self>
 {
     fn is_one(&self) -> bool {
-        self.iter().enumerate().all(
-            |(i,x)| if i==0 { x.is_one() } else { x.is_zero() }
-        )
+        self[0].is_one() &&
+        self.iter().skip(1).all(|x| x.is_zero())
     }
+
+    fn set_one(&mut self) {
+        self[0].set_one();
+        for i in 1..self.elements() { self[i].set_zero() }
+    }
+
     fn one() -> Self {
         Self::from_iterator(once_with(T::one).chain(repeat_with(T::zero)))
     }
