@@ -369,6 +369,37 @@ where
     }
 }
 
+impl<T:AllocBlade<N,G>, N:Dim, G:Dim> Blade<T,N,G> {
+
+    /// True if the grade of this blade is even
+    pub fn even(&self) -> bool { self.grade()%2 == 0 }
+
+    /// True if the grade of this blade is odd
+    pub fn odd(&self) -> bool { self.grade()%2 == 1 }
+
+}
+
+impl<T:AllocEven<N>, N:Dim> Even<T,N> {
+
+    /// Always true, but useful for macros
+    pub fn even(&self) -> bool { true }
+
+    /// Always false, but useful for macros
+    pub fn odd(&self) -> bool { false }
+
+}
+
+impl<T:AllocOdd<N>, N:Dim> Odd<T,N> {
+
+    /// Always false, but useful for macros
+    pub fn even(&self) -> bool { false }
+
+    /// Always true, but useful for macros
+    pub fn odd(&self) -> bool { true }
+
+}
+
+
 #[cfg(test)]
 mod tests{
     use super::*;
