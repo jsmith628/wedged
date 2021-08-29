@@ -250,17 +250,18 @@ macro_rules! impl_mul {
         $($a:lifetime)?; $($b:lifetime)?
     ) => {
 
-        impl<$($a,)? $($b,)? T, U, N:Dim, $($G1:Dim,)* $($G2:Dim),* >
-            Mul<$(&$b)? $Ty2<T,N $(,$G2)*>> for $(&$a)? $Ty1<T,N $(,$G1)*>
+        impl<$($a,)? $($b,)? T1, T2, U, N:Dim, $($G1:Dim,)* $($G2:Dim),* >
+            Mul<$(&$b)? $Ty2<T2,N $(,$G2)*>> for $(&$a)? $Ty1<T1,N $(,$G1)*>
         where
-            T: $Alloc1<N,$($G1),*> + $Alloc2<N,$($G2),*> + RefMul<T, Output=U>,
+            T1: $Alloc1<N,$($G1),*> + RefMul<T2, Output=U>,
+            T2: $Alloc2<N,$($G2),*>,
             U: $Alloc3<N> + AddGroup,
-            $(&$a)? T: Mul<$(&$b)? T, Output=U>
+            $(&$a)? T1: Mul<$(&$b)? T2, Output=U>
         {
 
             type Output = $Ty3<U,N>;
 
-            fn mul(self, rhs: $(&$b)? $Ty2<T,N,$($G2)*>) -> $Ty3<U,N> {
+            fn mul(self, rhs: $(&$b)? $Ty2<T2,N,$($G2)*>) -> $Ty3<U,N> {
                 let n = self.dim_generic();
                 $Ty3 {
                     data: mul_selected(
@@ -302,17 +303,18 @@ macro_rules! impl_unit_blade_mul {
         $($a:lifetime)?; $($b:lifetime)?
     ) => {
 
-        impl<$($a,)? $($b,)? T, U, N:Dim, $($G1:Dim,)* $($G2:Dim),* >
-            Mul<$(&$b)? $Ty2<T,N $(,$G2)*>> for $(&$a)? $Ty1<T,N $(,$G1)*>
+        impl<$($a,)? $($b,)? T1, T2, U, N:Dim, $($G1:Dim,)* $($G2:Dim),* >
+            Mul<$(&$b)? $Ty2<T2,N $(,$G2)*>> for $(&$a)? $Ty1<T1,N $(,$G1)*>
         where
-            T: $Alloc1<N,$($G1),*> + $Alloc2<N,$($G2),*> + RefMul<T, Output=U>,
+            T1: $Alloc1<N,$($G1),*> + RefMul<T2, Output=U>,
+            T2: $Alloc2<N,$($G2),*>,
             U: AllocVersor<N> + AddGroup,
-            $(&$a)? T: Mul<$(&$b)? T, Output=U>
+            $(&$a)? T1: Mul<$(&$b)? T2, Output=U>
         {
 
             type Output = Versor<U,N>;
 
-            fn mul(self, rhs: $(&$b)? $Ty2<T,N,$($G2)*>) -> Versor<U,N> {
+            fn mul(self, rhs: $(&$b)? $Ty2<T2,N,$($G2)*>) -> Versor<U,N> {
                 let n = self.dim_generic();
 
                 if self.even() ^ rhs.even() {
@@ -362,17 +364,18 @@ macro_rules! impl_versor_mul {
         $($a:lifetime)?; $($b:lifetime)?
     ) => {
 
-        impl<$($a,)? $($b,)? T, U, N:Dim, $($G1:Dim,)* $($G2:Dim),* >
-            Mul<$(&$b)? $Ty2<T,N $(,$G2)*>> for $(&$a)? $Ty1<T,N $(,$G1)*>
+        impl<$($a,)? $($b,)? T1, T2, U, N:Dim, $($G1:Dim,)* $($G2:Dim),* >
+            Mul<$(&$b)? $Ty2<T2,N $(,$G2)*>> for $(&$a)? $Ty1<T1,N $(,$G1)*>
         where
-            T: $Alloc1<N,$($G1),*> + $Alloc2<N,$($G2),*> + RefMul<T, Output=U>,
+            T1: $Alloc1<N,$($G1),*> + RefMul<T2, Output=U>,
+            T2: $Alloc2<N,$($G2),*>,
             U: AllocVersor<N> + AddGroup,
-            $(&$a)? T: Mul<$(&$b)? T, Output=U>
+            $(&$a)? T1: Mul<$(&$b)? T2, Output=U>
         {
 
             type Output = Versor<U,N>;
 
-            fn mul($self, $rhs: $(&$b)? $Ty2<T,N,$($G2)*>) -> Versor<U,N> {
+            fn mul($self, $rhs: $(&$b)? $Ty2<T2,N,$($G2)*>) -> Versor<U,N> {
                 use Versor::*;
                 match $versor {
                     Even($r) => $even,
@@ -413,7 +416,7 @@ impl_versor_mul!{
     Versor<T:AllocVersor,N> * Versor<T:AllocVersor,N>;     |self,rhs,r| self, r*rhs, r*rhs;
     Versor<T:AllocVersor,N> * UnitBlade<T:AllocBlade,N,G>; |self,rhs,r| self, r*rhs, r*rhs;
     Versor<T:AllocVersor,N> * Rotor<T:AllocEven,N>;        |self,rhs,r| self, Even(r*rhs), Odd(r*rhs);
-    Versor<T:AllocVersor,N> * Reflector<T:AllocVersor,N>;  |self,rhs,r| self, Odd(r*rhs), Even(r*rhs);
+    Versor<T:AllocVersor,N> * Reflector<T:AllocOdd,N>;  |self,rhs,r| self, Odd(r*rhs), Even(r*rhs);
 
     UnitBlade<T:AllocBlade,N,G> * Versor<T:AllocVersor,N>; |self,rhs,r| rhs, self*r, self*r;
     Rotor<T:AllocEven,N>        * Versor<T:AllocVersor,N>; |self,rhs,r| rhs, Even(self*r), Odd(self*r);
@@ -431,17 +434,18 @@ macro_rules! impl_div {
         $($a:lifetime)?; $($b:lifetime)?
     ) => {
 
-        impl<$($a,)? $($b,)? T, U, N:Dim, $($G1:Dim,)* $($G2:Dim),* >
-            Div<$(&$b)? $Ty2<T,N $(,$G2)*>> for $(&$a)? $Ty1<T,N $(,$G1)*>
+        impl<$($a,)? $($b,)? T1, T2, U, N:Dim, $($G1:Dim,)* $($G2:Dim),* >
+            Div<$(&$b)? $Ty2<T2,N $(,$G2)*>> for $(&$a)? $Ty1<T1,N $(,$G1)*>
         where
-            T: $Alloc1<N,$($G1),*> + $Alloc2<N,$($G2),*> + Clone + Neg<Output=T> + RefMul<T, Output=U>,
+            T1: $Alloc1<N,$($G1),*> + RefMul<T2, Output=U>,
+            T2: $Alloc2<N,$($G2),*> + Clone + Neg<Output=T2>,
             U: $Alloc3<N> + AddGroup,
-            $(&$a)? T: Mul<T, Output=U>,
+            $(&$a)? T1: Mul<T2, Output=U>,
         {
 
             type Output = $Ty3<U,N>;
 
-            fn div(self, rhs: $(&$b)? $Ty2<T,N,$($G2)*>) -> $Ty3<U,N> {
+            fn div(self, rhs: $(&$b)? $Ty2<T2,N,$($G2)*>) -> $Ty3<U,N> {
                 self * Inv::inv(rhs)
             }
 
