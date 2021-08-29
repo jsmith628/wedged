@@ -18,12 +18,6 @@ macro_rules! impl_deref {
 
             }
 
-            impl<T:$Alloc<$($N),*>+Copy, $($N:Dim),*> Copy for $Ty<T,$($N),*> where $Target<T,$($N),*>:Copy {}
-            impl<T:$Alloc<$($N),*>+Clone, $($N:Dim),*> Clone for $Ty<T,$($N),*> {
-                fn clone(&self) -> Self { Self { data: self.data.clone() } }
-                fn clone_from(&mut self, src:&Self) { self.data.clone_from(&src.data) }
-            }
-
             impl<T:$Alloc<$($N),*>+Eq, $($N:Dim),*> Eq for $Ty<T,$($N),*> {}
             impl<T, U, $($N:Dim),*> PartialEq<$Ty<U,$($N),*>> for $Ty<T,$($N),*> where
                 T:$Alloc<$($N),*>+PartialEq<U>,
@@ -31,10 +25,6 @@ macro_rules! impl_deref {
             {
                 fn eq(&self, rhs:&$Ty<U,$($N),*>) -> bool { self.data.eq(&rhs.data) }
                 fn ne(&self, rhs:&$Ty<U,$($N),*>) -> bool { self.data.ne(&rhs.data) }
-            }
-
-            impl<T:$Alloc<$($N),*>+Hash, $($N:Dim),*> Hash for $Ty<T,$($N),*>{
-                fn hash<H:Hasher>(&self, h: &mut H) { self.data.hash(h) }
             }
 
             impl<T:$Alloc<$($N),*>, $($N:Dim),*> Index<usize> for $Ty<T,$($N),*> {
@@ -120,6 +110,29 @@ impl_fmt!(
     Rotor<T:AllocEven,N>
     Reflector<T:AllocOdd,N>
 );
+
+impl<T:AllocVersor<N>+Eq, N:Dim> Eq for Versor<T,N> {}
+impl<T:AllocVersor<N>+PartialEq<U>, U:AllocVersor<N>, N:Dim> PartialEq<Versor<U,N>> for Versor<T,N> {
+
+    //NOTE: theoretically, an even versor _can_ eq an odd versor if they are both zero,
+    //However, we require that all versors have norm 1, so this is impossible under normal operation
+
+    fn eq(&self, rhs: &Versor<U,N>) -> bool {
+        match (self, rhs) {
+            (Versor::Even(r1), Versor::Even(r2)) => r1.eq(r2),
+            (Versor::Odd(r1), Versor::Odd(r2)) => r1.eq(r2),
+            _ => false
+        }
+    }
+
+    fn ne(&self, rhs: &Versor<U,N>) -> bool {
+        match (self, rhs) {
+            (Versor::Even(r1), Versor::Even(r2)) => r1.ne(r2),
+            (Versor::Odd(r1), Versor::Odd(r2)) => r1.ne(r2),
+            _ => true
+        }
+    }
+}
 
 macro_rules! impl_versor_fmt {
     ($($Fmt:ident)*) => {

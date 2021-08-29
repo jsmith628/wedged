@@ -34,21 +34,37 @@ pub type Iter<'a, T> = std::slice::Iter<'a, T>;
 pub type IterMut<'a, T> = std::slice::IterMut<'a, T>;
 
 #[repr(transparent)]
+#[derive(Derivative)]
+#[derivative(Copy(bound = "T:Copy, Blade<T,N,G>:Copy"))]
+#[derivative(Clone(bound = "T:Clone"))]
+#[derivative(Hash(bound = "T:Hash"))]
 pub struct SimpleBlade<T:AllocBlade<N,G>,N:Dim,G:Dim> {
     data: Blade<T,N,G>
 }
 
 #[repr(transparent)]
+#[derive(Derivative)]
+#[derivative(Copy(bound = "T:Copy, Blade<T,N,G>:Copy"))]
+#[derivative(Clone(bound = "T:Clone"))]
+#[derivative(Hash(bound = "T:Hash"))]
 pub struct UnitBlade<T:AllocBlade<N,G>,N:Dim,G:Dim> {
     data: Blade<T,N,G>
 }
 
 #[repr(transparent)]
+#[derive(Derivative)]
+#[derivative(Copy(bound = "T:Copy, Even<T,N>:Copy"))]
+#[derivative(Clone(bound = "T:Clone"))]
+#[derivative(Hash(bound = "T:Hash"))]
 pub struct Rotor<T:AllocEven<N>,N:Dim> {
     data: Even<T,N>
 }
 
 #[repr(transparent)]
+#[derive(Derivative)]
+#[derivative(Copy(bound = "T:Copy, Odd<T,N>:Copy"))]
+#[derivative(Clone(bound = "T:Clone"))]
+#[derivative(Hash(bound = "T:Hash"))]
 pub struct Reflector<T:AllocOdd<N>,N:Dim> {
     data: Odd<T,N>
 }
