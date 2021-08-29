@@ -138,7 +138,7 @@ macro_rules! impl_blade_op {
             T2: AllocBlade<N,G2>,
             $G1: $DimOp<$G2>,
             $(&$a)? T1: Mul<$(&$b)? T2, Output=U>,
-            U: AllocBlade<N,$DimRes<$G1,$G2>> + ClosedAdd + ClosedSub + Neg<Output=U> + Zero
+            U: AllocBlade<N,$DimRes<$G1,$G2>> + AddGroup
         {
             type Output = SimpleBlade<U,N,$DimRes<$G1,$G2>>;
             fn $op(self, rhs: $(&$b)? SimpleBlade<T2,N,G2>) -> SimpleBlade<U,N,$DimRes<$G1,$G2>> {
@@ -201,3 +201,287 @@ impl_scalar_binops!(Div.div() with Div, inv_scale());
 impl_scalar_binops!(InvScale.inv_scale() with Div, inv_scale());
 
 impl_forward_scalar_binops!(impl<T:AllocBlade,N,G> Mul.mul() for SimpleBlade);
+
+//
+// Versor inversion
+//
+
+macro_rules! impl_inv {
+    (impl<T:$Alloc:ident,$($N:ident),*> Inv for $Ty:ident $(where T:Clone+$($where:tt)*)?) => {
+        impl<T,$($N:Dim),*> Inv for $Ty<T,$($N),*> where
+            T: $Alloc<$($N),*>,
+            T: Neg<Output=T> $(+ Clone + $($where)*)?
+        {
+            type Output = $Ty<T,$($N),*>;
+            fn inv(self) -> $Ty<T,$($N),*> { self.inverse() }
+        }
+
+        //NOTE: this _probably optimizes away the extra clone in most cases,
+        //but we may want to do a better impl of this
+        impl<'a,T,$($N:Dim),*> Inv for &'a $Ty<T,$($N),*> where
+            T: $Alloc<$($N),*>,
+            T: Clone + Neg<Output=T> $(+ $($where)*)?,
+            //TODO: remove this when we change the Clone impls
+            $Ty<T,$($N),*>: Clone
+        {
+            type Output = $Ty<T,$($N),*>;
+            fn inv(self) -> $Ty<T,$($N),*> { (*self).clone().inverse() }
+        }
+
+    };
+}
+
+impl_inv!(impl<T:AllocBlade,N,G> Inv for SimpleBlade where T:Clone+Zero+Add<Output=T>+RefMul<T,Output=T>+Div<T,Output=T>);
+impl_inv!(impl<T:AllocBlade,N,G> Inv for UnitBlade);
+impl_inv!(impl<T:AllocEven,N> Inv for Rotor);
+impl_inv!(impl<T:AllocOdd,N> Inv for Reflector);
+impl_inv!(impl<T:AllocVersor,N> Inv for Versor);
+
+//
+// Versor multiplication
+//
+
+macro_rules! impl_mul {
+
+    (
+        $Ty1:ident<T:$Alloc1:ident, N $(,$G1:ident)*> * $Ty2:ident<T:$Alloc2:ident, N $(,$G2:ident)*> ==
+            $Ty3:ident<T:$Alloc3:ident,N>;
+        $($a:lifetime)?; $($b:lifetime)?
+    ) => {
+
+        impl<$($a,)? $($b,)? T, U, N:Dim, $($G1:Dim,)* $($G2:Dim),* >
+            Mul<$(&$b)? $Ty2<T,N $(,$G2)*>> for $(&$a)? $Ty1<T,N $(,$G1)*>
+        where
+            T: $Alloc1<N,$($G1),*> + $Alloc2<N,$($G2),*> + RefMul<T, Output=U>,
+            U: $Alloc3<N> + AddGroup,
+            $(&$a)? T: Mul<$(&$b)? T, Output=U>
+        {
+
+            type Output = $Ty3<U,N>;
+
+            fn mul(self, rhs: $(&$b)? $Ty2<T,N,$($G2)*>) -> $Ty3<U,N> {
+                let n = self.dim_generic();
+                $Ty3 {
+                    data: mul_selected(
+                        maybe_ref!(self.data; $($a)?), maybe_ref!(rhs.data; $($b)?), n
+                    )
+                }
+            }
+
+        }
+
+    };
+
+    ($(
+        $Ty1:ident<T:$Alloc1:ident,N $(,$G1:ident)*> * $Ty2:ident<T:$Alloc2:ident,N $(,$G2:ident)*> ==
+        $Ty3:ident<T:$Alloc3:ident,N>;
+    )*) => {
+        $(
+            impl_mul!($Ty1<T:$Alloc1,N $(,$G1)*> * $Ty2<T:$Alloc2,N $(,$G2)*> == $Ty3<T:$Alloc3,N>;   ;   );
+            impl_mul!($Ty1<T:$Alloc1,N $(,$G1)*> * $Ty2<T:$Alloc2,N $(,$G2)*> == $Ty3<T:$Alloc3,N>; 'a;   );
+            impl_mul!($Ty1<T:$Alloc1,N $(,$G1)*> * $Ty2<T:$Alloc2,N $(,$G2)*> == $Ty3<T:$Alloc3,N>;   ; 'b);
+            impl_mul!($Ty1<T:$Alloc1,N $(,$G1)*> * $Ty2<T:$Alloc2,N $(,$G2)*> == $Ty3<T:$Alloc3,N>; 'a; 'b);
+        )*
+    };
+
+}
+
+impl_mul!{
+
+    Rotor<T:AllocEven,N>    * Rotor<T:AllocEven,N>    == Rotor<T:AllocEven,N>;
+    Rotor<T:AllocEven,N>    * Reflector<T:AllocOdd,N> == Reflector<T:AllocOdd,N>;
+    Reflector<T:AllocOdd,N> * Rotor<T:AllocEven,N>    == Reflector<T:AllocOdd,N>;
+    Reflector<T:AllocOdd,N> * Reflector<T:AllocOdd,N> == Rotor<T:AllocEven,N>;
+
+}
+
+macro_rules! impl_unit_blade_mul {
+    (
+        $Ty1:ident<T:$Alloc1:ident, N $(,$G1:ident)*> * $Ty2:ident<T:$Alloc2:ident, N $(,$G2:ident)*>;
+        $($a:lifetime)?; $($b:lifetime)?
+    ) => {
+
+        impl<$($a,)? $($b,)? T, U, N:Dim, $($G1:Dim,)* $($G2:Dim),* >
+            Mul<$(&$b)? $Ty2<T,N $(,$G2)*>> for $(&$a)? $Ty1<T,N $(,$G1)*>
+        where
+            T: $Alloc1<N,$($G1),*> + $Alloc2<N,$($G2),*> + RefMul<T, Output=U>,
+            U: AllocVersor<N> + AddGroup,
+            $(&$a)? T: Mul<$(&$b)? T, Output=U>
+        {
+
+            type Output = Versor<U,N>;
+
+            fn mul(self, rhs: $(&$b)? $Ty2<T,N,$($G2)*>) -> Versor<U,N> {
+                let n = self.dim_generic();
+
+                if self.even() ^ rhs.even() {
+                    Versor::Odd(Reflector {
+                        data: mul_selected(
+                            maybe_ref!(self.data; $($a)?), maybe_ref!(rhs.data; $($b)?), n
+                        )
+                    })
+                } else {
+                    Versor::Even(Rotor {
+                        data: mul_selected(
+                            maybe_ref!(self.data; $($a)?), maybe_ref!(rhs.data; $($b)?), n
+                        )
+                    })
+                }
+            }
+
+        }
+
+    };
+
+    ($(
+        $Ty1:ident<T:$Alloc1:ident, N $(,$G1:ident)*> * $Ty2:ident<T:$Alloc2:ident, N $(,$G2:ident)*>;
+    )*) => {
+        $(
+            impl_unit_blade_mul!($Ty1<T:$Alloc1,N $(,$G1)*> * $Ty2<T:$Alloc2,N $(,$G2)*>;   ;   );
+            impl_unit_blade_mul!($Ty1<T:$Alloc1,N $(,$G1)*> * $Ty2<T:$Alloc2,N $(,$G2)*>; 'a;   );
+            impl_unit_blade_mul!($Ty1<T:$Alloc1,N $(,$G1)*> * $Ty2<T:$Alloc2,N $(,$G2)*>;   ; 'b);
+            impl_unit_blade_mul!($Ty1<T:$Alloc1,N $(,$G1)*> * $Ty2<T:$Alloc2,N $(,$G2)*>; 'a; 'b);
+        )*
+    }
+
+}
+
+impl_unit_blade_mul!{
+    UnitBlade<T:AllocBlade,N,G1> * UnitBlade<T:AllocBlade,N,G2>;
+    UnitBlade<T:AllocBlade,N,G> * Rotor<T:AllocEven,N>;
+    UnitBlade<T:AllocBlade,N,G> * Reflector<T:AllocOdd,N>;
+    Rotor<T:AllocEven,N>        * UnitBlade<T:AllocBlade,N,G>;
+    Reflector<T:AllocOdd,N>     * UnitBlade<T:AllocBlade,N,G>;
+}
+
+macro_rules! impl_versor_mul {
+    (
+        $Ty1:ident<T:$Alloc1:ident, N $(,$G1:ident)*> * $Ty2:ident<T:$Alloc2:ident, N $(,$G2:ident)*>;
+        |$self:ident, $rhs:ident, $r:ident| $versor:ident, $even:expr, $odd:expr;
+        $($a:lifetime)?; $($b:lifetime)?
+    ) => {
+
+        impl<$($a,)? $($b,)? T, U, N:Dim, $($G1:Dim,)* $($G2:Dim),* >
+            Mul<$(&$b)? $Ty2<T,N $(,$G2)*>> for $(&$a)? $Ty1<T,N $(,$G1)*>
+        where
+            T: $Alloc1<N,$($G1),*> + $Alloc2<N,$($G2),*> + RefMul<T, Output=U>,
+            U: AllocVersor<N> + AddGroup,
+            $(&$a)? T: Mul<$(&$b)? T, Output=U>
+        {
+
+            type Output = Versor<U,N>;
+
+            fn mul($self, $rhs: $(&$b)? $Ty2<T,N,$($G2)*>) -> Versor<U,N> {
+                use Versor::*;
+                match $versor {
+                    Even($r) => $even,
+                    Odd($r) => $odd,
+                }
+            }
+
+        }
+
+    };
+
+    ($(
+        $Ty1:ident<T:$Alloc1:ident, N $(,$G1:ident)*> * $Ty2:ident<T:$Alloc2:ident, N $(,$G2:ident)*>;
+        |$self:ident, $rhs:ident, $r:ident| $versor:ident, $even:expr, $odd:expr;
+    )*) => {
+        $(
+            impl_versor_mul!(
+                $Ty1<T:$Alloc1,N $(,$G1)*> * $Ty2<T:$Alloc2,N $(,$G2)*>;
+                |$self, $rhs, $r| $versor, $even, $odd;;
+            );
+            impl_versor_mul!(
+                $Ty1<T:$Alloc1,N $(,$G1)*> * $Ty2<T:$Alloc2,N $(,$G2)*>;
+                |$self, $rhs, $r| $versor, $even, $odd; 'a;
+            );
+            impl_versor_mul!(
+                $Ty1<T:$Alloc1,N $(,$G1)*> * $Ty2<T:$Alloc2,N $(,$G2)*>;
+                |$self, $rhs, $r| $versor, $even, $odd; ; 'b
+            );
+            impl_versor_mul!(
+                $Ty1<T:$Alloc1,N $(,$G1)*> * $Ty2<T:$Alloc2,N $(,$G2)*>;
+                |$self, $rhs, $r| $versor, $even, $odd; 'a; 'b
+            );
+        )*
+    }
+}
+
+impl_versor_mul!{
+    Versor<T:AllocVersor,N> * Versor<T:AllocVersor,N>;     |self,rhs,r| self, r*rhs, r*rhs;
+    Versor<T:AllocVersor,N> * UnitBlade<T:AllocBlade,N,G>; |self,rhs,r| self, r*rhs, r*rhs;
+    Versor<T:AllocVersor,N> * Rotor<T:AllocEven,N>;        |self,rhs,r| self, Even(r*rhs), Odd(r*rhs);
+    Versor<T:AllocVersor,N> * Reflector<T:AllocVersor,N>;  |self,rhs,r| self, Odd(r*rhs), Even(r*rhs);
+
+    UnitBlade<T:AllocBlade,N,G> * Versor<T:AllocVersor,N>; |self,rhs,r| rhs, self*r, self*r;
+    Rotor<T:AllocEven,N>        * Versor<T:AllocVersor,N>; |self,rhs,r| rhs, Even(self*r), Odd(self*r);
+    Reflector<T:AllocOdd,N>     * Versor<T:AllocVersor,N>; |self,rhs,r| rhs, Odd(self*r), Even(self*r);
+}
+
+//
+// Division
+//
+
+macro_rules! impl_div {
+    (
+        $Ty1:ident<T:$Alloc1:ident, N $(,$G1:ident)*> / $Ty2:ident<T:$Alloc2:ident, N $(,$G2:ident)*> ==
+            $Ty3:ident<T:$Alloc3:ident,N>;
+        $($a:lifetime)?; $($b:lifetime)?
+    ) => {
+
+        impl<$($a,)? $($b,)? T, U, N:Dim, $($G1:Dim,)* $($G2:Dim),* >
+            Div<$(&$b)? $Ty2<T,N $(,$G2)*>> for $(&$a)? $Ty1<T,N $(,$G1)*>
+        where
+            T: $Alloc1<N,$($G1),*> + $Alloc2<N,$($G2),*> + Clone + Neg<Output=T> + RefMul<T, Output=U>,
+            U: $Alloc3<N> + AddGroup,
+            $(&$a)? T: Mul<T, Output=U>,
+            $Ty2<T,N $(,$G2)*>: Clone
+        {
+
+            type Output = $Ty3<U,N>;
+
+            fn div(self, rhs: $(&$b)? $Ty2<T,N,$($G2)*>) -> $Ty3<U,N> {
+                self * Inv::inv(rhs)
+            }
+
+        }
+
+    };
+
+    ($(
+        $Ty1:ident<T:$Alloc1:ident,N $(,$G1:ident)*> / $Ty2:ident<T:$Alloc2:ident,N $(,$G2:ident)*> ==
+        $Ty3:ident<T:$Alloc3:ident,N>;
+    )*) => {
+        $(
+            impl_div!($Ty1<T:$Alloc1,N $(,$G1)*> / $Ty2<T:$Alloc2,N $(,$G2)*> == $Ty3<T:$Alloc3,N>;   ;   );
+            impl_div!($Ty1<T:$Alloc1,N $(,$G1)*> / $Ty2<T:$Alloc2,N $(,$G2)*> == $Ty3<T:$Alloc3,N>; 'a;   );
+            impl_div!($Ty1<T:$Alloc1,N $(,$G1)*> / $Ty2<T:$Alloc2,N $(,$G2)*> == $Ty3<T:$Alloc3,N>;   ; 'b);
+            impl_div!($Ty1<T:$Alloc1,N $(,$G1)*> / $Ty2<T:$Alloc2,N $(,$G2)*> == $Ty3<T:$Alloc3,N>; 'a; 'b);
+        )*
+    };
+}
+
+impl_div!{
+
+    UnitBlade<T:AllocBlade,N,G1> / UnitBlade<T:AllocBlade,N,G2> == Versor<T:AllocVersor,N>;
+    UnitBlade<T:AllocBlade,N,G>  / Rotor<T:AllocEven,N>         == Versor<T:AllocVersor,N>;
+    UnitBlade<T:AllocBlade,N,G>  / Reflector<T:AllocOdd,N>      == Versor<T:AllocVersor,N>;
+    UnitBlade<T:AllocBlade,N,G>  / Versor<T:AllocVersor,N>      == Versor<T:AllocVersor,N>;
+
+    Rotor<T:AllocEven,N> / UnitBlade<T:AllocBlade,N,G> == Versor<T:AllocVersor,N>;
+    Rotor<T:AllocEven,N> / Rotor<T:AllocEven,N>        == Rotor<T:AllocEven,N>;
+    Rotor<T:AllocEven,N> / Reflector<T:AllocOdd,N>     == Reflector<T:AllocOdd,N>;
+    Rotor<T:AllocEven,N> / Versor<T:AllocVersor,N>     == Versor<T:AllocVersor,N>;
+
+    Reflector<T:AllocOdd,N> / UnitBlade<T:AllocBlade,N,G> == Versor<T:AllocVersor,N>;
+    Reflector<T:AllocOdd,N> / Rotor<T:AllocEven,N>        == Reflector<T:AllocOdd,N>;
+    Reflector<T:AllocOdd,N> / Reflector<T:AllocOdd,N>     == Rotor<T:AllocEven,N>;
+    Reflector<T:AllocOdd,N> / Versor<T:AllocVersor,N>     == Versor<T:AllocVersor,N>;
+
+    Versor<T:AllocVersor,N> / UnitBlade<T:AllocBlade,N,G> == Versor<T:AllocVersor,N>;
+    Versor<T:AllocVersor,N> / Rotor<T:AllocEven,N>        == Versor<T:AllocVersor,N>;
+    Versor<T:AllocVersor,N> / Reflector<T:AllocOdd,N>     == Versor<T:AllocVersor,N>;
+    Versor<T:AllocVersor,N> / Versor<T:AllocVersor,N>     == Versor<T:AllocVersor,N>;
+
+}

@@ -28,7 +28,7 @@ use crate::base::dim::{
 
 use crate::basis_blade::BasisBlade;
 use crate::{
-    RefMul, Scale, InvScale,
+    RefMul, Scale, InvScale, AddGroup,
     binom, components_of, even_components_of, odd_components_of
 };
 

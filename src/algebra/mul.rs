@@ -2,7 +2,7 @@
 use super::*;
 
 #[derive(Clone, Copy, Debug)]
-pub(super) enum Subspace {
+pub(crate) enum Subspace {
     Blade(usize, usize),
     Even(usize),
     Odd(usize),
@@ -20,7 +20,7 @@ impl Subspace {
     }
 }
 
-pub(super) trait MultivectorSrc:IntoIterator {
+pub(crate) trait MultivectorSrc:IntoIterator {
 
     type Scalar;
     type Dim: Dim;
@@ -35,7 +35,7 @@ pub(super) trait MultivectorSrc:IntoIterator {
     fn basis(&self, i:usize) -> BasisBlade;
 }
 
-pub(super) trait MultivectorDst: MultivectorSrc {
+pub(crate) trait MultivectorDst: MultivectorSrc {
 
     type Uninit: UninitStorage<Self::Scalar>;
 
@@ -222,14 +222,14 @@ fn check_dim<B1,B2,B3>(b1: &B1, b2: &B2, shape: B3::Shape) -> usize where
     n1
 }
 
-fn mul_selected<B1,B2,B3,N:Dim>(b1:B1, b2:B2, shape:B3::Shape) -> B3
+pub(crate) fn mul_selected<B1,B2,B3,N:Dim>(b1:B1, b2:B2, shape:B3::Shape) -> B3
 where
     B1: MultivectorSrc<Dim=N>,
     B2: MultivectorSrc<Dim=N>,
     B3: MultivectorDst<Dim=N>,
     B1::Scalar: RefMul<B2::Scalar, Output=B3::Scalar>,
     B1::Item: Mul<B2::Item, Output=B3::Scalar>,
-    B3::Scalar: ClosedAdd + ClosedSub + Neg<Output=B3::Scalar> + Zero,
+    B3::Scalar: AddGroup,
 {
 
     let n = check_dim::<_,_,B3>(&b1,&b2,shape);
@@ -335,7 +335,7 @@ where
     B3: MultivectorDst<Dim=N>,
     B1::Scalar: RefMul<B2::Scalar>,
     <B1::Scalar as RefMul<B2::Scalar>>::Output: for<'a> Mul<&'a B1::Scalar, Output=B3::Scalar>,
-    B3::Scalar: ClosedAdd + ClosedSub + Neg<Output=B3::Scalar> + Zero,
+    B3::Scalar: AddGroup,
 {
 
     check_dim::<_,_,B3>(&b1, &b2, shape);
@@ -457,7 +457,7 @@ macro_rules! impl_geometric_mul {
         GeometricMul<$(&$b)? $Ty2<T2,N $(,$G2)*>> for $(&$a)? $Ty1<T1,N $(,$G1)*> where
             T1: $Alloc1<N $(, $G1)*> + RefMul<T2, Output=U>,
             T2: $Alloc2<N $(, $G2)*>,
-            U: for<'c> Mul<&'c T1, Output=U> + ClosedAdd + ClosedSub + Neg<Output=U> + Zero,
+            U: for<'c> Mul<&'c T1, Output=U> + AddGroup,
             $(&$a)? T1: Mul<$(&$b)? T2, Output=U>
         {
             type OutputScalar = U;
@@ -532,7 +532,7 @@ macro_rules! impl_geometric_mul {
         impl<$($a, )? $($b, )? T, U, N:Dim $(, $G1:Dim)* $(, $G2:Dim)*>
         Mul<$(&$b)? $Ty2<T,N $(,$G2)*>> for $(&$a)? $Ty1<T,N $(,$G1)*> where
             T: $Alloc1<N $(, $G1)*> + $Alloc2<N $(, $G2)*> + RefMul<T, Output=U>,
-            U: $Alloc3<N> + ClosedAdd + ClosedSub + Neg<Output=U> + Zero,
+            U: $Alloc3<N> + AddGroup,
             $(&$a)? T: Mul<$(&$b)? T, Output=U>
         {
 
@@ -599,7 +599,7 @@ macro_rules! impl_wedge_dot {
             T2: AllocBlade<N,G2>,
             G1: DimAdd<G2>,
             $(&$a)? T1: Mul<$(&$b)? T2,Output=U>,
-            U: AllocBlade<N, DimSum<G1, G2>> + ClosedAdd + ClosedSub + Neg<Output=U> + Zero,
+            U: AllocBlade<N, DimSum<G1, G2>> + AddGroup,
         {
             type Output = Blade<U,N,DimSum<G1, G2>>;
             fn bitxor(self, rhs: $(&$b)? Blade<T2,N,G2>) -> Self::Output {
@@ -615,7 +615,7 @@ macro_rules! impl_wedge_dot {
             T2: AllocBlade<N,G2>,
             G2: DimSymSub<G1>,
             $(&$a)? T1: Mul<$(&$b)? T2,Output=U>,
-            U: AllocBlade<N, DimSymDiff<G2, G1>> + ClosedAdd + ClosedSub + Neg<Output=U> + Zero,
+            U: AllocBlade<N, DimSymDiff<G2, G1>> + AddGroup,
         {
             type Output = Blade<U,N,DimSymDiff<G2,G1>>;
             fn rem(self, rhs: $(&$b)? Blade<T2,N,G2>) -> Self::Output {

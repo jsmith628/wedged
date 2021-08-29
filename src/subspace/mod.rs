@@ -15,12 +15,12 @@ use std::fmt::{
     Debug, Display, Binary, Octal, LowerHex, UpperHex, LowerExp, UpperExp
 };
 
-use num_traits::{Zero};
+use num_traits::{Zero, One, Inv};
 
 use na::{ClosedAdd, ClosedSub};
 
-use crate::{RefMul, Scale, InvScale};
-use crate::algebra::{Blade, Even, Odd};
+use crate::{RefMul, Scale, InvScale, AddGroup};
+use crate::algebra::{Blade, Even, Odd, mul_selected};
 use crate::base::alloc::{AllocBlade, AllocEven, AllocOdd, AllocVersor};
 use crate::base::dim::{
     Dim, DimName, ToTypenum,

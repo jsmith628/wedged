@@ -190,6 +190,9 @@ impl<T1:?Sized,T2:?Sized,U> RefMul<T2> for T1 where for<'a,'b> &'a T1: std::ops:
     fn ref_mul<'a,'b>(&'a self, rhs:&'b T2) -> U { self * rhs }
 }
 
+pub trait AddGroup: na::ClosedAdd + na::ClosedSub + std::ops::Neg<Output=Self> + num_traits::Zero {}
+impl<T:na::ClosedAdd + na::ClosedSub + std::ops::Neg<Output=Self> + num_traits::Zero> AddGroup for T {}
+
 pub trait Scale<Rhs=Self> {
     type Output;
     fn scale(self, rhs:Rhs) -> Self::Output;
