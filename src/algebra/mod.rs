@@ -17,7 +17,7 @@ use std::iter::IntoIterator;
 
 use num_traits::{Zero, One};
 
-use na::{ClosedAdd, ClosedSub, ComplexField};
+use na::ComplexField;
 
 use crate::base::storage::*;
 use crate::base::alloc::*;
@@ -29,7 +29,8 @@ use crate::base::dim::{
 use crate::basis_blade::BasisBlade;
 use crate::{
     RefMul, Scale, InvScale, AddGroup,
-    binom, components_of, even_components_of, odd_components_of
+    binom, components_of, even_components_of, odd_components_of,
+    grade_index_in_versor, grade_index_in_multivector
 };
 
 
@@ -62,6 +63,7 @@ pub use self::ops::*;
 pub use self::mul::*;
 pub use self::dual::*;
 pub use self::dim_cast::*;
+pub use self::grade_cast::*;
 pub use self::constructors::*;
 pub use self::aliases::*;
 pub use self::fmt::*;
@@ -72,6 +74,7 @@ mod ops;
 mod mul;
 mod dual;
 mod dim_cast;
+mod grade_cast;
 mod constructors;
 mod aliases;
 mod fmt;

@@ -3,7 +3,7 @@ use std::borrow::{Borrow, BorrowMut};
 use std::convert::{AsRef, AsMut};
 use std::iter::IntoIterator;
 use std::cmp::{PartialEq, Eq};
-use std::hash::{Hash, Hasher};
+use std::hash::Hash;
 use std::ops::{
     Index, IndexMut,
     Deref, DerefMut,
@@ -16,8 +16,6 @@ use std::fmt::{
 };
 
 use num_traits::{Zero, One, Inv};
-
-use na::{ClosedAdd, ClosedSub};
 
 use crate::{RefMul, Scale, InvScale, AddGroup};
 use crate::algebra::{

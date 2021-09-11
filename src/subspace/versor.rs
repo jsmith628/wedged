@@ -164,3 +164,11 @@ versor_mul_versor!(
     Reflector<T:AllocOdd,N>;
     Versor<T:AllocVersor,N>;
 );
+
+impl<T:AllocEven<N>, N:Dim> Rotor<T,N> {
+
+    pub fn rot<'a,M>(&'a self, m:M) -> <&'a Self as VersorMul<M>>::Output where &'a Self: VersorMul<M> {
+        self.versor_mul(m)
+    }
+
+}

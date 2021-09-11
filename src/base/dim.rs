@@ -1,7 +1,7 @@
 
 pub use na::dimension::*;
 
-use std::ops::{Sub, Mul, Div};
+use std::ops::Sub;
 use typenum::{
     Max, Min,
     Diff, Maximum, Minimum

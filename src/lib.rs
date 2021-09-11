@@ -109,6 +109,17 @@ pub const fn multivector_elements(n:u32) -> usize {
     2usize.pow(n)
 }
 
+pub const fn grade_index_in_versor(n:usize, g:usize) -> usize {
+    if g<=1 { return 0; }
+    binom(n, g-2) + grade_index_in_versor(n, g-2)
+}
+
+pub const fn grade_index_in_multivector(n:usize, g:usize) -> usize {
+    if g==0 { return 0; }
+    binom(n, g-1) + grade_index_in_multivector(n, g-1)
+}
+
+
 ///
 /// Iterates over the number of elements of each blade in the given dimension
 ///
