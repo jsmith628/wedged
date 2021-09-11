@@ -235,11 +235,12 @@ where
     let n = check_dim::<_,_,B3>(&b1,&b2,shape);
 
     //
-    //The *slow* method
+    // Some optimizations
     //
 
     //create an unitialized value
     let mut dest = B3::uninit(shape);
+    if dest.elements() == 0 { unsafe { return B3::assume_init(dest); } }
 
     //special cases where we can apply certain optimization
     use Subspace::*;
@@ -249,6 +250,9 @@ where
         (Blade(_,g), Blade(_,g2), Blade(_,0)) if g==g2 => {
 
             let dot = b1.into_iter().zip(b2).map(|(t1,t2)| t1*t2).fold(B3::Scalar::zero(), |d,t| d+t);
+
+            // let e = b1.elements();
+            // let dot = (0..e).map(|i| b1.get(i).ref_mul(b2.get(i))).fold(B3::Scalar::zero(), |d,t| d+t);
 
             dest[0] = MaybeUninit::new(
                 //do `(-1)^(g*(g-1)/2) * dot`
@@ -282,6 +286,11 @@ where
         // },
         _ => (),
     }
+
+
+    //
+    //The *slow* method
+    //
 
     //TODO: optimize a little. We don't always need to initialize beforehand
     for i in 0..dest.elements() {
@@ -328,7 +337,7 @@ where
     unsafe { B3::assume_init(dest) }
 }
 
-fn verser_mul_selected<B1,B2,B3,N:Dim>(b1:B1, b2:B2, shape:B3::Shape) -> B3
+pub(crate) fn versor_mul_selected<B1,B2,B3,N:Dim>(b1:B1, b2:B2, shape:B3::Shape) -> B3
 where
     B1: MultivectorSrc<Dim=N>,
     B2: MultivectorSrc<Dim=N>,
@@ -388,7 +397,7 @@ where
 //TODO: when we have specialization, we'll use this to impl optimized varients for each
 //statically sized type instead of using if statements in mul_selected
 
-pub trait GeometricMul<Rhs>: Sized {
+pub trait SelectedGeometricMul<Rhs>: Sized {
     type OutputScalar;
     type N: Dim;
 
@@ -414,26 +423,33 @@ pub trait GeometricMul<Rhs>: Sized {
     fn mul_full(self, rhs: Rhs) -> Multivector<Self::OutputScalar, Self::N>
     where Self::OutputScalar: AllocMultivector<Self::N>;
 
-    fn verser_mul_grade_generic<G:Dim>(self, rhs: Rhs, g:G) -> Blade<Self::OutputScalar, Self::N, G>
+}
+
+pub trait SelectedVersorMul<Rhs>: Sized {
+
+    type OutputScalar;
+    type N: Dim;
+
+    fn versor_mul_grade_generic<G:Dim>(self, rhs: Rhs, g:G) -> Blade<Self::OutputScalar, Self::N, G>
     where Self::OutputScalar: AllocBlade<Self::N, G>;
 
-    fn verser_mul_dyn_grade(self, rhs: Rhs, g:usize) -> Blade<Self::OutputScalar, Self::N, Dynamic>
+    fn versor_mul_dyn_grade(self, rhs: Rhs, g:usize) -> Blade<Self::OutputScalar, Self::N, Dynamic>
     where Self::OutputScalar: AllocBlade<Self::N, Dynamic> {
-        self.verser_mul_grade_generic(rhs, Dynamic::new(g))
+        self.versor_mul_grade_generic(rhs, Dynamic::new(g))
     }
 
-    fn verser_mul_grade<G:DimName>(self, rhs: Rhs) -> Blade<Self::OutputScalar, Self::N, G>
+    fn versor_mul_grade<G:DimName>(self, rhs: Rhs) -> Blade<Self::OutputScalar, Self::N, G>
     where Self::OutputScalar: AllocBlade<Self::N, G> {
-        self.verser_mul_grade_generic(rhs, G::name())
+        self.versor_mul_grade_generic(rhs, G::name())
     }
 
-    fn verser_mul_even(self, rhs: Rhs) -> Even<Self::OutputScalar, Self::N>
+    fn versor_mul_even(self, rhs: Rhs) -> Even<Self::OutputScalar, Self::N>
     where Self::OutputScalar: AllocEven<Self::N>;
 
-    fn verser_mul_odd(self, rhs: Rhs) -> Odd<Self::OutputScalar, Self::N>
+    fn versor_mul_odd(self, rhs: Rhs) -> Odd<Self::OutputScalar, Self::N>
     where Self::OutputScalar: AllocOdd<Self::N>;
 
-    fn verser_mul_full(self, rhs: Rhs) -> Multivector<Self::OutputScalar, Self::N>
+    fn versor_mul_full(self, rhs: Rhs) -> Multivector<Self::OutputScalar, Self::N>
     where Self::OutputScalar: AllocMultivector<Self::N>;
 
 }
@@ -454,10 +470,10 @@ macro_rules! impl_geometric_mul {
     ) => {
 
         impl<$($a, )? $($b, )? T1, T2, U, N:Dim $(, $G1:Dim)* $(, $G2:Dim)*>
-        GeometricMul<$(&$b)? $Ty2<T2,N $(,$G2)*>> for $(&$a)? $Ty1<T1,N $(,$G1)*> where
+        SelectedGeometricMul<$(&$b)? $Ty2<T2,N $(,$G2)*>> for $(&$a)? $Ty1<T1,N $(,$G1)*> where
             T1: $Alloc1<N $(, $G1)*> + RefMul<T2, Output=U>,
             T2: $Alloc2<N $(, $G2)*>,
-            U: for<'c> Mul<&'c T1, Output=U> + AddGroup,
+            U: AddGroup,
             $(&$a)? T1: Mul<$(&$b)? T2, Output=U>
         {
             type OutputScalar = U;
@@ -491,32 +507,44 @@ macro_rules! impl_geometric_mul {
                 mul_selected(self, rhs, n)
             }
 
-            fn verser_mul_grade_generic<G:Dim>(self, rhs: $(&$b)? $Ty2<T2,N $(,$G2)*>, g:G) -> Blade<U, N, G>
+        }
+
+        impl<$($a, )? $($b, )? T1, T2, U, N:Dim $(, $G1:Dim)* $(, $G2:Dim)*>
+        SelectedVersorMul<$(&$b)? $Ty2<T2,N $(,$G2)*>> for $(&$a)? $Ty1<T1,N $(,$G1)*> where
+            T1: $Alloc1<N $(, $G1)*> + RefMul<T2, Output=U>,
+            T2: $Alloc2<N $(, $G2)*>,
+            U: for<'c> Mul<&'c T1, Output=U> + AddGroup,
+            $(&$a)? T1: Mul<$(&$b)? T2, Output=U>
+        {
+            type OutputScalar = U;
+            type N = N;
+
+            fn versor_mul_grade_generic<G:Dim>(self, rhs: $(&$b)? $Ty2<T2,N $(,$G2)*>, g:G) -> Blade<U, N, G>
             where U: AllocBlade<Self::N, G>
             {
                 let shape = (self.dim_generic(), g);
-                verser_mul_selected(self, rhs, shape)
+                versor_mul_selected(self, rhs, shape)
             }
 
-            fn verser_mul_even(self, rhs: $(&$b)? $Ty2<T2,N $(,$G2)*>) -> Even<U, N>
+            fn versor_mul_even(self, rhs: $(&$b)? $Ty2<T2,N $(,$G2)*>) -> Even<U, N>
             where U: AllocEven<N>
             {
                 let n = self.dim_generic();
-                verser_mul_selected(self, rhs, n)
+                versor_mul_selected(self, rhs, n)
             }
 
-            fn verser_mul_odd(self, rhs: $(&$b)? $Ty2<T2,N $(,$G2)*>) -> Odd<U, N>
+            fn versor_mul_odd(self, rhs: $(&$b)? $Ty2<T2,N $(,$G2)*>) -> Odd<U, N>
             where U: AllocOdd<N>
             {
                 let n = self.dim_generic();
-                verser_mul_selected(self, rhs, n)
+                versor_mul_selected(self, rhs, n)
             }
 
-            fn verser_mul_full(self, rhs: $(&$b)? $Ty2<T2,N $(,$G2)*>) -> Multivector<U, N>
+            fn versor_mul_full(self, rhs: $(&$b)? $Ty2<T2,N $(,$G2)*>) -> Multivector<U, N>
             where U: AllocMultivector<N>
             {
                 let n = self.dim_generic();
-                verser_mul_selected(self, rhs, n)
+                versor_mul_selected(self, rhs, n)
             }
 
         }
@@ -602,6 +630,8 @@ macro_rules! impl_wedge_dot {
             U: AllocBlade<N, DimSum<G1, G2>> + AddGroup,
         {
             type Output = Blade<U,N,DimSum<G1, G2>>;
+
+            #[inline(always)]
             fn bitxor(self, rhs: $(&$b)? Blade<T2,N,G2>) -> Self::Output {
                 let (n, g) = (self.dim_generic(), self.grade_generic().add(rhs.grade_generic()));
                 mul_selected(self, rhs, (n, g))
@@ -618,6 +648,8 @@ macro_rules! impl_wedge_dot {
             U: AllocBlade<N, DimSymDiff<G2, G1>> + AddGroup,
         {
             type Output = Blade<U,N,DimSymDiff<G2,G1>>;
+
+            #[inline(always)]
             fn rem(self, rhs: $(&$b)? Blade<T2,N,G2>) -> Self::Output {
                 let (n, g) = (self.dim_generic(), rhs.grade_generic().sym_sub(self.grade_generic()));
                 mul_selected(self, rhs, (n, g))
@@ -678,10 +710,12 @@ mod benches {
                 #[bench]
                 fn $fun(b: &mut Bencher) {
                     b.iter(
-                        || black_box(
-                            //since we have `black_box()` we just fill each operand with some value
-                            black_box($ty1::from_element($x)) $op black_box($ty1::from_element($x))
-                        )
+                        || for _ in 0..1000 {
+                            black_box(
+                                //since we have `black_box()` we just fill each operand with some value
+                                black_box($ty1::from_element($x)) $op black_box($ty1::from_element($x))
+                            );
+                        }
                     )
                 }
             )*

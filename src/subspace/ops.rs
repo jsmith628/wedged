@@ -1,13 +1,6 @@
 
 use super::*;
 
-
-
-macro_rules! maybe_ref {
-    ($e:expr; ) => { $e };
-    ($e:expr; $a:lifetime) => { &$e };
-}
-
 //
 // Addition ops
 //

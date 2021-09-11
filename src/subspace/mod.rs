@@ -20,8 +20,14 @@ use num_traits::{Zero, One, Inv};
 use na::{ClosedAdd, ClosedSub};
 
 use crate::{RefMul, Scale, InvScale, AddGroup};
-use crate::algebra::{Blade, Even, Odd, mul_selected};
-use crate::base::alloc::{AllocBlade, AllocEven, AllocOdd, AllocVersor};
+use crate::algebra::{
+    Blade, Even, Odd, Multivector,
+    MultivectorSrc, MultivectorDst, Subspace,
+    mul_selected, versor_mul_selected
+};
+
+use crate::basis_blade::BasisBlade;
+use crate::base::alloc::{AllocBlade, AllocEven, AllocOdd, AllocVersor, AllocMultivector};
 use crate::base::dim::{
     Dim, DimName, ToTypenum,
     DimDiff, DimNameDiff,
@@ -78,10 +84,16 @@ pub enum Versor<T:AllocVersor<N>, N:Dim> {
     Odd(Reflector<T,N>)
 }
 
+macro_rules! maybe_ref {
+    ($e:expr; ) => { $e };
+    ($e:expr; $a:lifetime) => { &$e };
+}
+
 pub use self::common::*;
 pub use self::mutable::*;
 pub use self::involute::*;
 pub use self::ops::*;
+pub use self::versor::*;
 pub use self::aliases::*;
 pub use self::constructors::*;
 
@@ -89,5 +101,6 @@ mod common;
 mod mutable;
 mod involute;
 mod ops;
+mod versor;
 mod aliases;
 mod constructors;

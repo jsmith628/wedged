@@ -72,6 +72,61 @@ macro_rules! impl_common {
                 fn from(x: &'a mut $Ty<T,$($N),*>) -> &'a mut $Target<T,$($N),*> { &mut x.data }
             }
 
+            impl<T:$Alloc<$($N),*>, $($N:Dim),*> MultivectorSrc for $Ty<T,$($N),*> {
+
+                type Scalar = T;
+                type Dim = N;
+                type Shape = <$Target<T,$($N),*> as MultivectorSrc>::Shape;
+
+                fn dim(&self) -> Self::Dim { self.data.dim_generic() }
+                fn elements(&self) -> usize { self.data.elements() }
+                fn subspace(&self) -> Subspace { self.data.subspace() }
+                fn shape(&self) -> Self::Shape { self.data.shape() }
+
+                fn get(&self, i:usize) -> &Self::Scalar { self.data.get(i) }
+                fn basis(&self, i:usize) -> BasisBlade { self.data.basis(i) }
+
+            }
+
+            impl<'a, T:$Alloc<$($N),*>, $($N:Dim),*> MultivectorSrc for &'a $Ty<T,$($N),*> {
+
+                type Scalar = T;
+                type Dim = N;
+                type Shape = <$Target<T,$($N),*> as MultivectorSrc>::Shape;
+
+                fn dim(&self) -> Self::Dim { self.data.dim_generic() }
+                fn elements(&self) -> usize { self.data.elements() }
+                fn subspace(&self) -> Subspace { self.data.subspace() }
+                fn shape(&self) -> Self::Shape { self.data.shape() }
+
+                fn get(&self, i:usize) -> &Self::Scalar { self.data.get(i) }
+                fn basis(&self, i:usize) -> BasisBlade { self.data.basis(i) }
+
+            }
+
+            impl<T:$Alloc<$($N),*>, $($N:Dim),*> MultivectorDst for $Ty<T,$($N),*> {
+
+                type Uninit = <$Target<T,$($N),*> as MultivectorDst>::Uninit;
+
+                fn subspace_of(shape: Self::Shape) -> Subspace {
+                    <$Target<T,$($N),*> as MultivectorDst>::subspace_of(shape)
+                }
+
+                fn uninit(shape: Self::Shape) -> Self::Uninit {
+                    <$Target<T,$($N),*> as MultivectorDst>::uninit(shape)
+                }
+
+                unsafe fn assume_init(uninit: Self::Uninit) -> Self {
+                    Self { data: <$Target<T,$($N),*> as MultivectorDst>::assume_init(uninit) }
+                }
+
+                fn index_of(basis: BasisBlade, shape: Self::Shape) -> Option<(usize, bool)> {
+                    <$Target<T,$($N),*> as MultivectorDst>::index_of(basis, shape)
+                }
+
+            }
+
+
         )*
 
     }
@@ -112,18 +167,21 @@ impl_fmt!(
 );
 
 impl<T:AllocVersor<N>, N:Dim> Versor<T,N> {
-    fn even(&self) -> bool {
+
+    pub fn even(&self) -> bool {
         match self {
             Versor::Even(_) => true,
             Versor::Odd(_) => false,
         }
     }
-    fn odd(&self) -> bool {
+
+    pub fn odd(&self) -> bool {
         match self {
             Versor::Even(_) => false,
             Versor::Odd(_) => true,
         }
     }
+    
 }
 
 impl<T:AllocVersor<N>+Eq, N:Dim> Eq for Versor<T,N> {}
