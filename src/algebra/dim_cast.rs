@@ -147,7 +147,7 @@ mod tests {
     #[test]
     fn upcast_downcast_idempotence() {
 
-        for n1 in 1..=16 {
+        for n1 in 0..=16 {
             for n2 in n1..=16 {
 
                 for g in 0..=16 {
@@ -173,7 +173,67 @@ mod tests {
 
         }
 
+        dim_name_test_loop!(
+            |$N1, $N2| if $N2::dim() >= $N1::dim() {
+
+                dim_name_test_loop!(
+                    |$G| {
+                        let b1 = Blade::<_,$N1,$G>::from_iterator(1..);
+                        let b2 = b1.clone().cast_dim::<$N2>().cast_dim::<$N1>();
+                        assert_eq!(b1, b2);
+                    }
+                );
+
+                let m1 = Even::<_,$N1>::from_iterator(1..);
+                let m2 = m1.clone().cast_dim::<$N2>().cast_dim::<$N1>();
+                assert_eq!(m1, m2);
+
+                let m1 = Odd::<_,$N1>::from_iterator(1..);
+                let m2 = m1.clone().cast_dim::<$N2>().cast_dim::<$N1>();
+                assert_eq!(m1, m2);
+
+                let m1 = Multivector::<_,$N1>::from_iterator(1..);
+                let m2 = m1.clone().cast_dim::<$N2>().cast_dim::<$N1>();
+                assert_eq!(m1, m2);
+
+            }
+        );
+
     }
 
+    #[test]
+    fn vector_dim_cast() {
+
+        for n1 in 0..=16 {
+            for n2 in 0..=16 {
+
+                let v1 = VecD::from_element(n1, 6.28);
+                let v2 = v1.clone().cast_dim_dyn(n2);
+
+                if n1 <= n2 {
+                    assert_eq!(v1.as_slice(), &v2.as_slice()[0..n1]);
+                } else {
+                    assert_eq!(&v1.as_slice()[0..n2], v2.as_slice());
+                }
+
+            }
+        }
+
+        dim_name_test_loop!(
+            |$N1, $N2| {
+                let (n1, n2) = ($N1::dim(), $N2::dim());
+
+                let v1 = VecN::<_, $N1>::from_element(6.28);
+                let v2 = v1.clone().cast_dim::<$N2>();
+
+                if n1 <= n2 {
+                    assert_eq!(v1.as_slice(), &v2.as_slice()[0..n1]);
+                } else {
+                    assert_eq!(&v1.as_slice()[0..n2], v2.as_slice());
+                }
+            }
+        );
+
+    }
 
 }

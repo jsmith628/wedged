@@ -37,6 +37,51 @@ macro_rules! impl_forward_scalar_binops {
     };
 }
 
+#[cfg(test)]
+macro_rules! dim_name_test_loop {
+    (@run ; $callback:ident) => {};
+    (@run $N0:ident $($N:ident)*; $callback:ident) => {
+        $callback!($N0);
+        dim_name_test_loop!(@run $($N)*; $callback);
+    };
+
+    //$d must be the $ token
+    (|$d:tt $N:ident| $($expr:tt)*) => {
+        {
+
+            #[allow(unused_imports)]
+            use na::dimension::{
+                DimName,
+                U0, U1, U2, U3, U4, U5, U6, U7, U8, U9, U10
+            };
+
+            macro_rules! _dim_name_test_loop_callback {
+                ($d $N:ident) => {
+                    $($expr)*
+                };
+            }
+
+            //if we do any more than U14, then we get stack overflows from the values being too large
+            //for 64bit scalars
+            //Also, compilation times get pretty long for this stuff, so we lower it down to U10
+            //instead
+            dim_name_test_loop!(
+                @run U0 U1 U2 U3 U4 U5 U6 U7 U8 U9 U10;
+                _dim_name_test_loop_callback
+            );
+
+        }
+    };
+
+    (|$d0:tt $N0:ident $(, $d:tt $N:ident)+| $($expr:tt)*) => {
+        dim_name_test_loop!(
+            |$d0 $N0| dim_name_test_loop!(|$($d $N),+| $($expr)*);
+        );
+    }
+
+
+}
+
 
 pub mod base;
 
@@ -102,7 +147,7 @@ pub const fn even_elements(n:u32) -> usize {
 }
 
 pub const fn odd_elements(n:u32) -> usize {
-    2usize.pow(n.saturating_sub(1))
+    if n==0 { 0 } else { 2usize.pow(n.saturating_sub(1)) }
 }
 
 pub const fn multivector_elements(n:u32) -> usize {

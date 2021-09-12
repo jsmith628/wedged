@@ -411,7 +411,7 @@ mod tests{
     const N: usize = 16;
 
     #[test]
-    fn dyn_grade() {
+    fn grade() {
 
         for n in 0..=N {
             for g in 0..=N {
@@ -419,10 +419,18 @@ mod tests{
                 assert_eq!(b.grade(), g);
             }
         }
+
+        dim_name_test_loop!(
+            |$N, $G| {
+                let b = Blade::<_,$N,$G>::from_element(0);
+                assert_eq!(b.grade(), $G::dim());
+            }
+        );
     }
 
     #[test]
-    fn dyn_dim() {
+    fn dim() {
+
         for n in 0..=N {
             for g in 0..=N {
                 assert_eq!(BladeD::from_element(n,g,0).dim(), n);
@@ -431,18 +439,51 @@ mod tests{
             assert_eq!(OddD::from_element(n,0).dim(), n);
             assert_eq!(MultivectorD::from_element(n,0).dim(), n);
         }
+
+        dim_name_test_loop!(
+            |$N, $G| {
+                let n = $N::dim();
+                assert_eq!(Blade::<_,$N,$G>::from_element(0).dim(), n);
+            }
+        );
+
+        dim_name_test_loop!(
+            |$N| {
+                let n = $N::dim();
+                assert_eq!(Even::<_,$N>::from_element(0).dim(), n);
+                assert_eq!(Odd::<_,$N>::from_element(0).dim(), n);
+                assert_eq!(Multivector::<_,$N>::from_element(0).dim(), n);
+            }
+        );
     }
 
     #[test]
-    fn dyn_elements() {
+    fn elements() {
+
         for n in 0..=N {
             for g in 0..=N {
                 assert_eq!(BladeD::from_element(n,g,0).elements(), binom(n,g));
             }
             assert_eq!(EvenD::from_element(n,0).elements(), if n==0 {1} else {1 << (n-1)} );
-            assert_eq!(OddD::from_element(n,0).elements(), if n==0 {1} else {1 << (n-1)} );
+            assert_eq!(OddD::from_element(n,0).elements(), if n==0 {0} else {1 << (n-1)} );
             assert_eq!(MultivectorD::from_element(n,0).elements(), 1<<n);
         }
+
+        dim_name_test_loop!(
+            |$N, $G| {
+                let (n, g) = ($N::dim(), $G::dim());
+                assert_eq!(Blade::<_,$N,$G>::from_element(0).elements(), binom(n, g));
+            }
+        );
+
+        dim_name_test_loop!(
+            |$N| {
+                let n = $N::dim();
+                assert_eq!(Even::<_,$N>::from_element(0).elements(), if n==0 {1} else {1 << (n-1)} );
+                assert_eq!(Odd::<_,$N>::from_element(0).elements(), if n==0 {0} else {1 << (n-1)} );
+                assert_eq!(Multivector::<_,$N>::from_element(0).elements(), 1<<n);
+            }
+        );
     }
 
 

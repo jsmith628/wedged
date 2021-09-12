@@ -290,22 +290,57 @@ impl<T:AllocMultivector<Dynamic>> MultivectorD<T> {
     );
 }
 
-macro_rules! impl_specific_constructors {
-    ($($ty:ident::new($($arg:ident),*);)*) => {
-        $(
-            impl<T> $ty<T> {
-                #[doc = concat!(
-                    "Constructs a [`", stringify!($ty), "`] directly from components"
-                )]
-                pub const fn new($($arg: T),*) -> $ty<T> {
-                    $ty { data: [ $($arg),* ] }
-                }
+macro_rules! impl_new {
+
+    //starts the loop
+    ($($ty:ident::new($($arg:ident),*);)*) => { $(impl_new!(@vals 0 $($arg)*; $ty);)* };
+
+    //picks out the numbers that will be used in the doc test
+    (@vals 0  $arg:ident $($tt:tt)*) => { impl_new!(@vals 1  $($tt)* $arg 6); };
+    (@vals 1  $arg:ident $($tt:tt)*) => { impl_new!(@vals 2  $($tt)* $arg 2); };
+    (@vals 2  $arg:ident $($tt:tt)*) => { impl_new!(@vals 3  $($tt)* $arg 8); };
+    (@vals 3  $arg:ident $($tt:tt)*) => { impl_new!(@vals 4  $($tt)* $arg 3); };
+    (@vals 4  $arg:ident $($tt:tt)*) => { impl_new!(@vals 5  $($tt)* $arg 1); };
+    (@vals 5  $arg:ident $($tt:tt)*) => { impl_new!(@vals 6  $($tt)* $arg 8); };
+    (@vals 6  $arg:ident $($tt:tt)*) => { impl_new!(@vals 7  $($tt)* $arg 5); };
+    (@vals 7  $arg:ident $($tt:tt)*) => { impl_new!(@vals 8  $($tt)* $arg 3); };
+    (@vals 8  $arg:ident $($tt:tt)*) => { impl_new!(@vals 9  $($tt)* $arg 0); };
+    (@vals 9  $arg:ident $($tt:tt)*) => { impl_new!(@vals 10 $($tt)* $arg 7); };
+    (@vals 10 $arg:ident $($tt:tt)*) => { impl_new!(@vals 11 $($tt)* $arg 1); };
+    (@vals 11 $arg:ident $($tt:tt)*) => { impl_new!(@vals 12 $($tt)* $arg 7); };
+    (@vals 12 $arg:ident $($tt:tt)*) => { impl_new!(@vals 13 $($tt)* $arg 9); };
+    (@vals 13 $arg:ident $($tt:tt)*) => { impl_new!(@vals 14 $($tt)* $arg 5); };
+    (@vals 14 $arg:ident $($tt:tt)*) => { impl_new!(@vals 15 $($tt)* $arg 8); };
+    (@vals 15 $arg:ident $($tt:tt)*) => { impl_new!(@vals 16 $($tt)* $arg 6); };
+    (@vals 16 $arg:ident $($tt:tt)*) => { impl_new!(@vals 17 $($tt)* $arg 4); };
+    (@vals 17 $arg:ident $($tt:tt)*) => { impl_new!(@vals 18 $($tt)* $arg 7); };
+    (@vals 18 $arg:ident $($tt:tt)*) => { impl_new!(@vals 19 $($tt)* $arg 6); };
+    (@vals 19 $arg:ident $($tt:tt)*) => { impl_new!(@vals 20 $($tt)* $arg 9); };
+
+    //creates the function at the end of the vals loop
+    (@vals $n:literal; $ty:ident $($arg:ident $val:literal)*) => {
+        impl<T> $ty<T> {
+            #[doc = concat!(
+                //yes, this is kinda gross, but it *does* work
+                "Constructs a [`", stringify!($ty), "`] directly from components\n",
+                "\n",
+                " # Examples\n",
+                "```\n",
+                " # use galgebra::algebra::*;",
+                "let x = ", stringify!($ty), "::new(", stringify!($($val),*), ");\n",
+                "let arr = [", stringify!($($val),*), "];\n",
+                "\n",
+                "assert_eq!(x.as_slice(), &arr);\n",
+                "```"
+            )]
+            pub const fn new($($arg: T),*) -> $ty<T> {
+                $ty { data: [ $($arg),* ] }
             }
-        )*
+        }
     }
 }
 
-impl_specific_constructors!{
+impl_new!{
 
     Vec1::new(x);
     Vec2::new(x,y);
