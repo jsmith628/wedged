@@ -49,6 +49,11 @@ impl<T:AllocBlade<N,G>, N:Dim, G:Dim> Blade<T,N,G> {
 
 impl<T:AllocEven<N>, N:Dim> Even<T,N> {
     impl_generic_constructors!( pub fn new(n:N) -> Self { } );
+
+    pub fn one_generic(n: N) -> Self where T:One+Zero {
+        Self::from_iter_generic(n, once_with(T::one).chain(repeat_with(T::zero)))
+    }
+
 }
 
 impl<T:AllocOdd<N>, N:Dim> Odd<T,N> {
@@ -57,6 +62,10 @@ impl<T:AllocOdd<N>, N:Dim> Odd<T,N> {
 
 impl<T:AllocMultivector<N>, N:Dim> Multivector<T,N> {
     impl_generic_constructors!( pub fn new(n:N) -> Self { } );
+
+    pub fn one_generic(n: N) -> Self where T:One+Zero {
+        Self::from_iter_generic(n, once_with(T::one).chain(repeat_with(T::zero)))
+    }
 }
 
 //TODO: fix the documentation
@@ -252,6 +261,10 @@ impl<T:AllocEven<Dynamic>> EvenD<T> {
             Self::new_generic(Dynamic::new(n))
         }
     );
+
+    pub fn one_dyn(n: usize) -> Self where T:One+Zero {
+        Self::one_generic(Dynamic::new(n))
+    }
 }
 
 //Constructors for statically sized odd-values
@@ -288,6 +301,10 @@ impl<T:AllocMultivector<Dynamic>> MultivectorD<T> {
             Self::new_generic(Dynamic::new(n))
         }
     );
+
+    pub fn one_dyn(n: usize) -> Self where T:One+Zero {
+        Self::one_generic(Dynamic::new(n))
+    }
 }
 
 macro_rules! impl_new {

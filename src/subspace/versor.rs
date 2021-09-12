@@ -167,8 +167,47 @@ versor_mul_versor!(
 
 impl<T:AllocEven<N>, N:Dim> Rotor<T,N> {
 
+    pub fn one_generic(n: N) -> Self where T: One+Zero {
+        Rotor { data: Even::one_generic(n) }
+    }
+
+    pub fn from_simple_scaled_plane(plane: SimpleBiVecN<T, N>) -> Self where
+        T: AllocBlade<N,U2> + RefMul<T,Output=T> + ComplexField
+    {
+        let angle = plane.norm();
+        if angle.is_zero() {
+            Self::one_generic(plane.dim_generic())
+        } else {
+            Self::from_plane_angle(angle, UnitBlade::from_inner_unchecked((plane/angle).into_inner()))
+        }
+    }
+
+    pub fn from_plane_angle(angle: T, plane: UnitBiVecN<T, N>) -> Self where
+        T: AllocBlade<N,U2> + RefMul<T,Output=T> + ComplexField
+    {
+
+        //get both the sine and cosine of the angle
+        let (s, c) = angle.sin_cos();
+
+        //create an even of the form `cos(angle) + plane*sin(angle)`
+        let mut r = Even::from(plane.into_inner() * s);
+        r[0] = c;
+
+        //return
+        Self::from_inner_unchecked(r)
+
+    }
+
     pub fn rot<'a,M>(&'a self, m:M) -> <&'a Self as VersorMul<M>>::Output where &'a Self: VersorMul<M> {
         self.versor_mul(m)
+    }
+
+}
+
+impl<T:AllocEven<Dynamic>> RotorD<T> {
+
+    pub fn one_dyn(n: usize) -> Rotor<T,Dynamic> where T: One+Zero {
+        Self::one_generic(Dynamic::new(n))
     }
 
 }

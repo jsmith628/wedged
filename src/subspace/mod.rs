@@ -16,6 +16,7 @@ use std::fmt::{
 };
 
 use num_traits::{Zero, One, Inv};
+use na::ComplexField;
 
 use crate::{RefMul, Scale, InvScale, AddGroup};
 use crate::algebra::{
@@ -91,6 +92,7 @@ pub use self::common::*;
 pub use self::mutable::*;
 pub use self::involute::*;
 pub use self::ops::*;
+pub use self::blade::*;
 pub use self::versor::*;
 pub use self::aliases::*;
 pub use self::constructors::*;
@@ -99,6 +101,7 @@ mod common;
 mod mutable;
 mod involute;
 mod ops;
+mod blade;
 mod versor;
 mod aliases;
 mod constructors;

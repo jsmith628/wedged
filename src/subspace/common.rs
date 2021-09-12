@@ -14,7 +14,7 @@ macro_rules! impl_common {
 
                 pub fn into_inner(self) -> $Target<T,$($N),*> { self.data }
                 pub fn as_inner(&self) -> &$Target<T,$($N),*> { &self.data }
-                pub fn from_unchecked(b: $Target<T,$($N),*>) -> Self { Self { data: b } }
+                pub fn from_inner_unchecked(b: $Target<T,$($N),*>) -> Self { Self { data: b } }
 
             }
 
@@ -166,6 +166,10 @@ impl_fmt!(
     Reflector<T:AllocOdd,N>
 );
 
+impl<T:AllocBlade<N,G>, N:Dim, G:Dim> From<UnitBlade<T,N,G>> for SimpleBlade<T,N,G> {
+    fn from(b: UnitBlade<T,N,G>) -> SimpleBlade<T,N,G> { b.as_simple_blade() }
+}
+
 impl<T:AllocVersor<N>, N:Dim> Versor<T,N> {
 
     pub fn even(&self) -> bool {
@@ -181,7 +185,7 @@ impl<T:AllocVersor<N>, N:Dim> Versor<T,N> {
             Versor::Odd(_) => true,
         }
     }
-    
+
 }
 
 impl<T:AllocVersor<N>+Eq, N:Dim> Eq for Versor<T,N> {}
