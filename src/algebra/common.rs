@@ -115,7 +115,6 @@ macro_rules! common_functions {
         pub fn grade(&self) -> usize { self.grade_generic().value() }
     };
 
-
     ($do_grade:tt $ty:ident) => {
 
         ///
@@ -315,61 +314,19 @@ impl_basic_traits!(
     impl<T:AllocMultivector, N> Multivector {}
 );
 
-impl<T, U, N1:Dim, N2:Dim, G1:Dim, G2:Dim> PartialEq<Blade<U,N2,G2>> for Blade<T,N1,G1>
-where
-    T: AllocBlade<N1,G1> + PartialEq<U>,
-    U: AllocBlade<N2,G2>
-{
-    fn eq(&self, rhs:&Blade<U,N2,G2>) -> bool {
-        self.dim() == rhs.dim() && self.grade() == rhs.grade() && self.as_slice() == rhs.as_slice()
-    }
+impl_eq!(
+    Blade<T:AllocBlade,N1,G1>          == Blade<T:AllocBlade,N2,G2> with
+    |self, rhs| self.shape_eq(rhs), self.as_slice(), rhs.as_slice();
 
-    fn ne(&self, rhs:&Blade<U,N2,G2>) -> bool {
-        self.dim() != rhs.dim() || self.grade() != rhs.grade() || self.as_slice() != rhs.as_slice()
-    }
-}
+    Even<T:AllocEven,N1>               == Even<T:AllocEven,N2> with
+    |self, rhs| self.shape_eq(rhs), self.as_slice(), rhs.as_slice();
 
-impl<T, U, N1:Dim, N2:Dim> PartialEq<Even<U,N2>> for Even<T,N1>
-where
-    T: AllocEven<N1> + PartialEq<U>,
-    U: AllocEven<N2>
-{
-    fn eq(&self, rhs:&Even<U,N2>) -> bool {
-        self.dim() == rhs.dim() && self.as_slice() == rhs.as_slice()
-    }
+    Odd<T:AllocOdd,N1>                 == Odd<T:AllocOdd,N2> with
+    |self, rhs| self.shape_eq(rhs), self.as_slice(), rhs.as_slice();
 
-    fn ne(&self, rhs:&Even<U,N2>) -> bool {
-        self.dim() != rhs.dim() || self.as_slice() != rhs.as_slice()
-    }
-}
-
-impl<T, U, N1:Dim, N2:Dim> PartialEq<Odd<U,N2>> for Odd<T,N1>
-where
-    T: AllocOdd<N1> + PartialEq<U>,
-    U: AllocOdd<N2>
-{
-    fn eq(&self, rhs:&Odd<U,N2>) -> bool {
-        self.dim() == rhs.dim() && self.as_slice() == rhs.as_slice()
-    }
-
-    fn ne(&self, rhs:&Odd<U,N2>) -> bool {
-        self.dim() != rhs.dim() || self.as_slice() != rhs.as_slice()
-    }
-}
-
-impl<T, U, N1:Dim, N2:Dim> PartialEq<Multivector<U,N2>> for Multivector<T,N1>
-where
-    T: AllocMultivector<N1> + PartialEq<U>,
-    U: AllocMultivector<N2>
-{
-    fn eq(&self, rhs:&Multivector<U,N2>) -> bool {
-        self.dim() == rhs.dim() && self.as_slice() == rhs.as_slice()
-    }
-
-    fn ne(&self, rhs:&Multivector<U,N2>) -> bool {
-        self.dim() != rhs.dim() || self.as_slice() != rhs.as_slice()
-    }
-}
+    Multivector<T:AllocMultivector,N1> == Multivector<T:AllocMultivector,N2> with
+    |self, rhs| self.shape_eq(rhs), self.as_slice(), rhs.as_slice();
+);
 
 impl<T:AllocBlade<N,G>, N:Dim, G:Dim> Blade<T,N,G> {
 
@@ -378,6 +335,14 @@ impl<T:AllocBlade<N,G>, N:Dim, G:Dim> Blade<T,N,G> {
 
     /// True if the grade of this blade is odd
     pub fn odd(&self) -> bool { self.grade()%2 == 1 }
+
+}
+
+impl<T1:AllocBlade<N1,G1>, N1:Dim, G1:Dim> Blade<T1,N1,G1> {
+
+    pub fn shape_eq<T2:AllocBlade<N2,G2>, N2:Dim, G2:Dim>(&self, rhs: &Blade<T2,N2,G2>) -> bool {
+        self.dim()==rhs.dim() && self.grade()==rhs.grade()
+    }
 
 }
 
@@ -391,6 +356,14 @@ impl<T:AllocEven<N>, N:Dim> Even<T,N> {
 
 }
 
+impl<T1:AllocEven<N1>, N1:Dim> Even<T1,N1> {
+
+    pub fn shape_eq<T2:AllocEven<N2>, N2:Dim>(&self, rhs: &Even<T2,N2>) -> bool {
+        self.dim()==rhs.dim()
+    }
+
+}
+
 impl<T:AllocOdd<N>, N:Dim> Odd<T,N> {
 
     /// Always false, but useful for macros
@@ -398,6 +371,22 @@ impl<T:AllocOdd<N>, N:Dim> Odd<T,N> {
 
     /// Always true, but useful for macros
     pub fn odd(&self) -> bool { true }
+
+}
+
+impl<T1:AllocOdd<N1>, N1:Dim> Odd<T1,N1> {
+
+    pub fn shape_eq<T2:AllocOdd<N2>, N2:Dim>(&self, rhs: &Odd<T2,N2>) -> bool {
+        self.dim()==rhs.dim()
+    }
+
+}
+
+impl<T1:AllocMultivector<N1>, N1:Dim> Multivector<T1,N1> {
+
+    pub fn shape_eq<T2:AllocMultivector<N2>, N2:Dim>(&self, rhs: &Multivector<T2,N2>) -> bool {
+        self.dim()==rhs.dim()
+    }
 
 }
 

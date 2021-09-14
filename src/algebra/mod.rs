@@ -18,6 +18,7 @@ use std::iter::IntoIterator;
 use num_traits::{Zero, One};
 
 use na::ComplexField;
+use approx::{AbsDiffEq, RelativeEq, UlpsEq};
 
 use crate::base::storage::*;
 use crate::base::alloc::*;

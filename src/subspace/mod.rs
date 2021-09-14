@@ -15,6 +15,7 @@ use std::fmt::{
     Debug, Display, Binary, Octal, LowerHex, UpperHex, LowerExp, UpperExp
 };
 
+use approx::{AbsDiffEq, RelativeEq, UlpsEq};
 use num_traits::{Zero, One, Inv};
 use na::ComplexField;
 

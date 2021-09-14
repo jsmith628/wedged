@@ -8,6 +8,7 @@ derivative = "^2.2"
 typenum = "^1.13"
 nalgebra = "^0.27"
 num-traits = "^0.2"
+approx = "^0.5"
 
 [dev-dependencies]
 rayon = "^1.5"

@@ -19,13 +19,6 @@ macro_rules! impl_common {
             }
 
             impl<T:$Alloc<$($N),*>+Eq, $($N:Dim),*> Eq for $Ty<T,$($N),*> {}
-            impl<T, U, $($N:Dim),*> PartialEq<$Ty<U,$($N),*>> for $Ty<T,$($N),*> where
-                T:$Alloc<$($N),*>+PartialEq<U>,
-                U:$Alloc<$($N),*>
-            {
-                fn eq(&self, rhs:&$Ty<U,$($N),*>) -> bool { self.data.eq(&rhs.data) }
-                fn ne(&self, rhs:&$Ty<U,$($N),*>) -> bool { self.data.ne(&rhs.data) }
-            }
 
             impl<T:$Alloc<$($N),*>, $($N:Dim),*> Index<usize> for $Ty<T,$($N),*> {
                 type Output = T;
@@ -164,6 +157,51 @@ impl_fmt!(
     UnitBlade<T:AllocBlade,N,G>
     Rotor<T:AllocEven,N>
     Reflector<T:AllocOdd,N>
+);
+
+impl_eq!(
+
+    Blade<T:AllocBlade,N1,G1>       == SimpleBlade<T:AllocBlade,N2,G2> with
+    |self, rhs| true, self, &rhs.data;
+
+    Blade<T:AllocBlade,N1,G1>       == UnitBlade<T:AllocBlade,N2,G2> with
+    |self, rhs| true, self, &rhs.data;
+
+    SimpleBlade<T:AllocBlade,N1,G1> == Blade<T:AllocBlade,N2,G2> with
+    |self, rhs| true, self.data, rhs;
+
+    SimpleBlade<T:AllocBlade,N1,G1> == SimpleBlade<T:AllocBlade,N2,G2> with
+    |self, rhs| true, self.data, &rhs.data;
+
+    SimpleBlade<T:AllocBlade,N1,G1> == UnitBlade<T:AllocBlade,N2,G2> with
+    |self, rhs| true, self.data, &rhs.data;
+
+    UnitBlade<T:AllocBlade,N1,G1>   == Blade<T:AllocBlade,N2,G2> with
+    |self, rhs| true, self.data, rhs;
+
+    UnitBlade<T:AllocBlade,N1,G1>   == SimpleBlade<T:AllocBlade,N2,G2> with
+    |self, rhs| true, self.data, &rhs.data;
+
+    UnitBlade<T:AllocBlade,N1,G1>   == UnitBlade<T:AllocBlade,N2,G2> with
+    |self, rhs| true, self.data, &rhs.data;
+
+    Even<T:AllocEven,N1>            == Rotor<T:AllocEven,N2> with
+    |self, rhs| true, self, &rhs.data;
+
+    Rotor<T:AllocEven,N1>           == Even<T:AllocEven,N2> with
+    |self, rhs| true, self.data, rhs;
+
+    Rotor<T:AllocEven,N1>           == Rotor<T:AllocEven,N2> with
+    |self, rhs| true, self.data, &rhs.data;
+
+    Odd<T:AllocOdd,N1>              == Reflector<T:AllocOdd,N2> with
+    |self, rhs| true, self, &rhs.data;
+
+    Reflector<T:AllocOdd,N1>        == Odd<T:AllocOdd,N2> with
+    |self, rhs| true, self.data, rhs;
+
+    Reflector<T:AllocOdd,N1>        == Reflector<T:AllocOdd,N2> with
+    |self, rhs| true, self.data, &rhs.data;
 );
 
 impl<T:AllocBlade<N,G>, N:Dim, G:Dim> From<UnitBlade<T,N,G>> for SimpleBlade<T,N,G> {
