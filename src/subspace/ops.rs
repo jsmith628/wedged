@@ -484,6 +484,66 @@ impl_div!{
 }
 
 //
+// Mul and Div assign
+//
+
+macro_rules! impl_mul_div_assign {
+
+    (
+        $Ty1:ident<T:$Alloc1:ident, N $(,$G1:ident)*> *= $Ty2:ident<T:$Alloc2:ident, N $(,$G2:ident)*>;
+        $($b:lifetime)?
+    ) => {
+
+        impl<$($b,)? T1, T2, N:Dim, $($G1:Dim,)* $($G2:Dim),* >
+            MulAssign<$(&$b)? $Ty2<T2,N $(,$G2)*>> for $Ty1<T1,N $(,$G1)*>
+        where
+            T1: $Alloc1<N,$($G1),*> + RefMul<T2, Output=T1> + AddGroup,
+            T2: $Alloc2<N,$($G2),*>,
+            for<'b> &'b T1: Mul<$(&$b)? T2, Output=T1>
+        {
+            fn mul_assign(&mut self, rhs: $(&$b)? $Ty2<T2,N,$($G2)*>) {
+                *self = &*self * rhs
+            }
+        }
+
+        impl<$($b,)? T1, T2, N:Dim, $($G1:Dim,)* $($G2:Dim),* >
+            DivAssign<$(&$b)? $Ty2<T2,N $(,$G2)*>> for $Ty1<T1,N $(,$G1)*>
+        where
+            T1: $Alloc1<N,$($G1),*> + RefMul<T2, Output=T1> + AddGroup,
+            T2: $Alloc2<N,$($G2),*> + Clone + Neg<Output=T2>,
+            for<'b> &'b T1: Mul<T2, Output=T1>
+        {
+            fn div_assign(&mut self, rhs: $(&$b)? $Ty2<T2,N,$($G2)*>) {
+                *self = Div::div(&*self, rhs)
+            }
+        }
+
+    };
+
+    ($(
+        $Ty1:ident<T:$Alloc1:ident,N $(,$G1:ident)*> *= $Ty2:ident<T:$Alloc2:ident,N $(,$G2:ident)*>;
+    )*) => {
+        $(
+            impl_mul_div_assign!($Ty1<T:$Alloc1,N $(,$G1)*> *= $Ty2<T:$Alloc2,N $(,$G2)*>;   );
+            impl_mul_div_assign!($Ty1<T:$Alloc1,N $(,$G1)*> *= $Ty2<T:$Alloc2,N $(,$G2)*>; 'a);
+        )*
+    };
+
+}
+
+impl_mul_div_assign!(
+
+    Rotor<T:AllocEven, N>    *= Rotor<T:AllocEven, N>;
+    Reflector<T:AllocOdd, N> *= Rotor<T:AllocEven, N>;
+
+    Versor<T:AllocVersor, N> *= UnitBlade<T:AllocBlade, N, G>;
+    Versor<T:AllocVersor, N> *= Rotor<T:AllocEven, N>;
+    Versor<T:AllocVersor, N> *= Reflector<T:AllocOdd, N>;
+    Versor<T:AllocVersor, N> *= Versor<T:AllocVersor, N>;
+
+);
+
+//
 // One
 //
 
