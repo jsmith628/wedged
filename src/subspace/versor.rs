@@ -226,16 +226,15 @@ impl<T:AllocEven<U2>> Rotor2<T> {
 mod tests {
 
     use super::*;
-    use crate::algebra::*;
     use approx::*;
 
     #[test]
-    fn circle_fractions_2D() {
+    fn circle_fractions_2d() {
 
         for n in 1..=360 {
 
             let rot32 = Rotor2::from_angle(2.0*std::f32::consts::PI / n as f32);
-            let rot64 = Rotor2::from_angle(2.0*std::f32::consts::PI / n as f32);
+            let rot64 = Rotor2::from_angle(2.0*std::f64::consts::PI / n as f64);
 
             let mut final_rot32 = Rotor2::<f32>::one();
             let mut final_rot64 = Rotor2::<f64>::one();
