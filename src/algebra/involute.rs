@@ -24,6 +24,15 @@ macro_rules! norm_methods {
             self / &l
         }
 
+        /// Divides `self` by its Euclidean norm
+        pub fn norm_and_normalize(self) -> (T, Self) where
+            T: RefMul<T,Output=T> + for<'a> Div<&'a T, Output=T> + ComplexField
+        {
+            let l = self.norm();
+            let normalized = self / &l;
+            (l, normalized)
+        }
+
     }
 }
 

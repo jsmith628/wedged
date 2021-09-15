@@ -172,13 +172,13 @@ impl<T:AllocEven<N>, N:Dim> Rotor<T,N> {
     }
 
     pub fn from_scaled_plane(plane: SimpleBiVecN<T, N>) -> Self where
-        T: AllocBlade<N,U2> + RefMul<T,Output=T> + ComplexField + Debug
+        T: AllocBlade<N,U2> + RefMul<T,Output=T> + for<'a> Div<&'a T, Output=T> + ComplexField + Debug
     {
-        let angle = plane.norm();
+        let (angle, plane) = plane.norm_and_normalize();
         if angle.is_zero() {
             Self::one_generic(plane.dim_generic())
         } else {
-            Self::from_plane_angle(UnitBlade::from_inner_unchecked((plane/angle).into_inner()), angle)
+            Self::from_plane_angle(plane, angle)
         }
     }
 
