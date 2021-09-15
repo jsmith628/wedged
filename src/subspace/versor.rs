@@ -171,23 +171,25 @@ impl<T:AllocEven<N>, N:Dim> Rotor<T,N> {
         Rotor { data: Even::one_generic(n) }
     }
 
-    pub fn from_simple_scaled_plane(plane: SimpleBiVecN<T, N>) -> Self where
-        T: AllocBlade<N,U2> + RefMul<T,Output=T> + ComplexField
+    pub fn from_scaled_plane(plane: SimpleBiVecN<T, N>) -> Self where
+        T: AllocBlade<N,U2> + RefMul<T,Output=T> + ComplexField + Debug
     {
         let angle = plane.norm();
         if angle.is_zero() {
             Self::one_generic(plane.dim_generic())
         } else {
-            Self::from_plane_angle(angle, UnitBlade::from_inner_unchecked((plane/angle).into_inner()))
+            Self::from_plane_angle(UnitBlade::from_inner_unchecked((plane/angle).into_inner()), angle)
         }
     }
 
-    pub fn from_plane_angle(angle: T, plane: UnitBiVecN<T, N>) -> Self where
-        T: AllocBlade<N,U2> + RefMul<T,Output=T> + ComplexField
+    pub fn from_plane_angle(plane: UnitBiVecN<T, N>, angle: T) -> Self where
+        T: AllocBlade<N,U2> + RefMul<T,Output=T> + ComplexField + Debug
     {
 
         //get both the sine and cosine of the angle
         let (s, c) = angle.sin_cos();
+
+        println!("sin({:?}) = {:?}, cos({:?})={:?}", angle, s, angle, c);
 
         //create an even of the form `cos(angle) + plane*sin(angle)`
         let mut r = Even::from(plane.into_inner() * s);
@@ -208,6 +210,43 @@ impl<T:AllocEven<Dynamic>> RotorD<T> {
 
     pub fn one_dyn(n: usize) -> Rotor<T,Dynamic> where T: One+Zero {
         Self::one_generic(Dynamic::new(n))
+    }
+
+}
+
+#[cfg(test)]
+mod tests {
+
+    use super::*;
+    use crate::algebra::*;
+    use approx::*;
+
+    #[test]
+    fn circle_fractions_2D() {
+
+        for n in 1..=360 {
+
+            let rot32 = Rotor2::from_plane_angle(
+                UnitBlade::from_inner_unchecked(BiVec2::new(1.0)), 2.0*std::f32::consts::PI / n as f32
+            );
+
+            let rot64 = Rotor2::from_plane_angle(
+                UnitBlade::from_inner_unchecked(BiVec2::new(1.0)), 2.0*std::f64::consts::PI / n as f64
+            );
+
+            let mut final_rot32 = Rotor2::<f32>::one();
+            let mut final_rot64 = Rotor2::<f64>::one();
+            for _ in 0..n {
+                final_rot32 *= rot32;
+                final_rot64 *= rot64;
+            }
+
+            assert_abs_diff_eq!(Rotor2::<f32>::one(), final_rot32, epsilon=0.000015);
+            assert_abs_diff_eq!(Rotor2::<f64>::one(), final_rot64, epsilon=0.0000000000002);
+
+        }
+
+
     }
 
 }
