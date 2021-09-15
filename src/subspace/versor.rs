@@ -214,6 +214,14 @@ impl<T:AllocEven<Dynamic>> RotorD<T> {
 
 }
 
+impl<T:AllocEven<U2>> Rotor2<T> {
+    pub fn from_angle(angle:T) -> Self where
+        T: AllocBlade<U2,U2> + RefMul<T,Output=T> + ComplexField + Debug
+    {
+        Self::from_plane_angle(UnitBiVec2::unit_psuedoscalar(), angle)
+    }
+}
+
 #[cfg(test)]
 mod tests {
 
@@ -226,13 +234,8 @@ mod tests {
 
         for n in 1..=360 {
 
-            let rot32 = Rotor2::from_plane_angle(
-                UnitBlade::from_inner_unchecked(BiVec2::new(1.0)), 2.0*std::f32::consts::PI / n as f32
-            );
-
-            let rot64 = Rotor2::from_plane_angle(
-                UnitBlade::from_inner_unchecked(BiVec2::new(1.0)), 2.0*std::f64::consts::PI / n as f64
-            );
+            let rot32 = Rotor2::from_angle(2.0*std::f32::consts::PI / n as f32);
+            let rot64 = Rotor2::from_angle(2.0*std::f32::consts::PI / n as f32);
 
             let mut final_rot32 = Rotor2::<f32>::one();
             let mut final_rot64 = Rotor2::<f64>::one();

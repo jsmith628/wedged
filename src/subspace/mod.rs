@@ -23,7 +23,8 @@ use crate::{RefMul, Scale, InvScale, AddGroup};
 use crate::algebra::{
     Blade, Even, Odd, Multivector,
     MultivectorSrc, MultivectorDst, Subspace,
-    mul_selected, versor_mul_selected
+    mul_selected, versor_mul_selected,
+    Scalar, PsuedoScalar
 };
 
 use crate::basis_blade::BasisBlade;

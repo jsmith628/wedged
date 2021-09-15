@@ -16,14 +16,6 @@ macro_rules! impl_specific_constructors {
     }
 }
 
-
-impl<T:AllocBlade<N,U0>, N:DimName> SimpleScalar<T,N> {
-    /// Constructs a scalar directly from components
-    pub fn new(x:T) -> SimpleScalar<T,N> {
-        Self { data: crate::algebra::Scalar::new(x) }
-    }
-}
-
 impl_specific_constructors!{
 
     SimpleVec1::new(x);
@@ -43,5 +35,33 @@ impl_specific_constructors!{
     SimpleQuadVec4::new(x);
     SimplePentVec5::new(x);
     SimpleHexVec6::new(x);
+
+}
+
+impl<T:AllocBlade<N,U0>, N:DimName> SimpleScalar<T,N> {
+
+    pub fn new(x:T) -> Self {
+        Self::from_inner_unchecked(Scalar::new(x))
+    }
+
+}
+
+impl<T:AllocBlade<N,N>, N:DimName> SimplePsuedoScalar<T,N> {
+
+    pub fn new_psuedoscalar(x:T) -> Self {
+        Self::from_inner_unchecked(PsuedoScalar::new_psuedoscalar(x))
+    }
+
+    pub fn unit_psuedoscalar() -> Self where T:One {
+        Self::from_inner_unchecked(PsuedoScalar::unit_psuedoscalar())
+    }
+
+}
+
+impl<T:AllocBlade<N,N>, N:DimName> UnitPsuedoScalar<T,N> {
+
+    pub fn unit_psuedoscalar() -> Self where T:One {
+        Self::from_inner_unchecked(PsuedoScalar::unit_psuedoscalar())
+    }
 
 }

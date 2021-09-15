@@ -404,8 +404,20 @@ impl_new!{
 
 impl<T:AllocBlade<N,U0>, N:DimName> Scalar<T,N> {
 
-    pub fn new(x:T) -> Scalar<T,N> {
+    pub fn new(x:T) -> Self {
         Self::from_iterator(std::iter::once(x))
+    }
+
+}
+
+impl<T:AllocBlade<N,N>, N:DimName> PsuedoScalar<T,N> {
+
+    pub fn new_psuedoscalar(x:T) -> Self {
+        Self::from_iterator(std::iter::once(x))
+    }
+
+    pub fn unit_psuedoscalar() -> Self where T:One {
+        Self::from_iterator(repeat_with(|| T::one()))
     }
 
 }
