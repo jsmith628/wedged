@@ -44,6 +44,7 @@ pub(crate) trait MultivectorDst: MultivectorSrc {
     fn uninit(shape: Self::Shape) -> Self::Uninit;
     unsafe fn assume_init(uninit:Self::Uninit) -> Self;
 
+    fn set(&mut self, i:usize, x: Self::Scalar);
     fn index_of(basis:BasisBlade, shape:Self::Shape) -> Option<(usize, bool)>;
 
 }
@@ -153,6 +154,7 @@ impl<T:AllocBlade<N,G>, N:Dim, G:Dim> MultivectorDst for Blade<T,N,G> {
     fn uninit((n,g): (N,G)) -> Self::Uninit { AllocateBlade::<T,N,G>::uninit(n,g) }
     unsafe fn assume_init(uninit: Self::Uninit) -> Self { Blade { data: uninit.assume_init() } }
 
+    fn set(&mut self, i:usize, x: Self::Scalar) { self[i] = x }
     fn index_of(basis:BasisBlade, (n,g): (N,G)) -> Option<(usize, bool)> {
         if basis.grade() == g.value() { Some(basis.blade_index_sign(n.value())) } else { None }
     }
@@ -167,6 +169,7 @@ impl<T:AllocEven<N>, N:Dim> MultivectorDst for Even<T,N> {
     fn uninit(n: N) -> Self::Uninit { AllocateEven::<T,N>::uninit(n) }
     unsafe fn assume_init(uninit: Self::Uninit) -> Self { Even { data: uninit.assume_init() } }
 
+    fn set(&mut self, i:usize, x: Self::Scalar) { self[i] = x }
     fn index_of(basis:BasisBlade, n:N) -> Option<(usize, bool)> {
         if basis.grade()%2 == 0 { Some(basis.even_index_sign(n.value())) } else { None }
     }
@@ -181,6 +184,7 @@ impl<T:AllocOdd<N>, N:Dim> MultivectorDst for Odd<T,N> {
     fn uninit(n: N) -> Self::Uninit { AllocateOdd::<T,N>::uninit(n) }
     unsafe fn assume_init(uninit: Self::Uninit) -> Self { Odd { data: uninit.assume_init() } }
 
+    fn set(&mut self, i:usize, x: Self::Scalar) { self[i] = x }
     fn index_of(basis:BasisBlade, n:N) -> Option<(usize, bool)> {
         if basis.grade()%2 == 0 { Some(basis.odd_index_sign(n.value())) } else { None }
     }
@@ -195,6 +199,7 @@ impl<T:AllocMultivector<N>, N:Dim> MultivectorDst for Multivector<T,N> {
     fn uninit(n: N) -> Self::Uninit { AllocateMultivector::<T,N>::uninit(n) }
     unsafe fn assume_init(uninit: Self::Uninit) -> Self { Multivector { data: uninit.assume_init() } }
 
+    fn set(&mut self, i:usize, x: Self::Scalar) { self[i] = x }
     fn index_of(basis:BasisBlade, n:N) -> Option<(usize, bool)> {
         Some(basis.multivector_index_sign(n.value()))
     }

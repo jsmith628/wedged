@@ -113,6 +113,8 @@ macro_rules! impl_common {
                     Self { data: <$Target<T,$($N),*> as MultivectorDst>::assume_init(uninit) }
                 }
 
+                fn set(&mut self, i: usize, x: T) { self.data[i] = x; }
+
                 fn index_of(basis: BasisBlade, shape: Self::Shape) -> Option<(usize, bool)> {
                     <$Target<T,$($N),*> as MultivectorDst>::index_of(basis, shape)
                 }
