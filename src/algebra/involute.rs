@@ -119,7 +119,7 @@ impl<T:AllocEven<N>, N:Dim> Even<T,N> {
         involution!(
             self,
             AllocateEven::<T,N>::uninit(self.dim_generic()),
-            even_components_of(n), 0b10
+            even_components_of(n), 0b1 //the iterator skips the odd grades, so we only need to have 0b1 as the mask
         )
     }
 
