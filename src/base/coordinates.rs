@@ -10,34 +10,34 @@ pub use na::base::coordinates::*;
 #[repr(C)]
 #[derive(Clone, Copy, PartialEq, Eq, Hash, Debug)]
 pub struct ScalarCoords<T:Scalar> {
-    value: T,
+    pub value: T,
 }
 
 #[repr(C)]
 #[derive(Clone, Copy, PartialEq, Eq, Hash, Debug)]
 pub struct BiVec4Coords<T:Scalar> {
-    yz: T,
-    zx: T,
-    xy: T,
-    xw: T,
-    yw: T,
-    zw: T,
+    pub yz: T,
+    pub zx: T,
+    pub xy: T,
+    pub xw: T,
+    pub yw: T,
+    pub zw: T,
 }
 
 #[repr(C)]
 #[derive(Clone, Copy, PartialEq, Eq, Hash, Debug)]
 pub struct ReIm<T:Scalar> {
-    re:T,
-    im:T,
+    pub re:T,
+    pub im:T,
 }
 
 #[repr(C)]
 #[derive(Clone, Copy, PartialEq, Eq, Hash, Debug)]
 pub struct WIJK<T:Scalar> {
-    w:T,
-    i:T,
-    j:T,
-    k:T
+    pub w:T,
+    pub i:T,
+    pub j:T,
+    pub k:T
 }
 
 macro_rules! impl_coords {
