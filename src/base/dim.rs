@@ -7,7 +7,7 @@ use typenum::{
     Diff, Maximum, Minimum
 };
 
-use crate::binom;
+use crate::base::count::binom;
 
 pub trait DimName: na::dimension::DimName {}
 impl<const N: usize> DimName for na::dimension::Const<N> {}

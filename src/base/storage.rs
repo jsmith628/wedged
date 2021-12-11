@@ -5,7 +5,7 @@ use std::convert::{AsRef, AsMut, TryInto};
 use std::iter::{IntoIterator, FromIterator, FusedIterator};
 use std::mem::{MaybeUninit, transmute, transmute_copy};
 
-use crate::binom;
+use crate::base::count::*;
 
 use na::dimension::{Dim};
 
@@ -205,11 +205,6 @@ unsafe impl<T,N:Dim,G:Dim> BladeStorage<T,N,G> for DynBladeStorage<T,N,G> {
 
 }
 
-#[inline(always)]
-fn even_elements(n:usize) -> usize {
-    crate::even_elements(n.try_into().unwrap())
-}
-
 unsafe impl<T,N:Dim> UninitStorage<T> for DynEvenStorage<MaybeUninit<T>,N> {
     type Init = DynEvenStorage<T,N>;
 
@@ -238,11 +233,6 @@ unsafe impl<T,N:Dim> EvenStorage<T,N> for DynEvenStorage<T,N> {
         }
     }
 
-}
-
-#[inline(always)]
-fn odd_elements(n:usize) -> usize {
-    crate::odd_elements(n.try_into().unwrap())
 }
 
 unsafe impl<T,N:Dim> UninitStorage<T> for DynOddStorage<MaybeUninit<T>,N> {

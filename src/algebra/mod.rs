@@ -23,13 +23,10 @@ use approx::{AbsDiffEq, RelativeEq, UlpsEq};
 use crate::base::storage::*;
 use crate::base::alloc::*;
 use crate::base::dim::*;
+use crate::base::count::*;
+use crate::base::ops::{RefAdd, RefSub, RefMul, RefDiv, RefNeg, AllRefMul, Scale, InvScale, AddGroup};
 
 use crate::basis_blade::BasisBlade;
-use crate::base::ops::{RefAdd, RefSub, RefMul, RefDiv, RefNeg, AllRefMul, Scale, InvScale, AddGroup};
-use crate::{
-    binom, components_of, even_components_of, odd_components_of,
-    grade_index_in_versor, grade_index_in_multivector
-};
 
 
 pub type Iter<'a, T> = std::slice::Iter<'a, T>;

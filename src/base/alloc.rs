@@ -5,7 +5,7 @@ use std::iter::Iterator;
 use na::dimension::{Dim, Const, Dynamic};
 
 use crate::base::storage::*;
-use crate::{binom, even_elements, odd_elements};
+use crate::base::count::*;
 
 pub struct DefaultAllocator;
 
