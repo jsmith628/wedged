@@ -19,7 +19,7 @@ use approx::{AbsDiffEq, RelativeEq, UlpsEq};
 use num_traits::{Zero, One, Inv};
 use na::ComplexField;
 
-use crate::{RefMul, Scale, InvScale, AddGroup};
+use crate::base::ops::{RefAdd, RefSub, RefMul, RefDiv, RefNeg, AllRefMul, Scale, InvScale, AddGroup};
 use crate::algebra::{
     Blade, Even, Odd, Multivector,
     MultivectorSrc, MultivectorDst, Subspace,

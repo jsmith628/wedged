@@ -20,7 +20,7 @@ macro_rules! impl_versor_mul {
         impl<$($a,)? $($b,)? T1, T2, U, N:Dim $(, $G1:Dim)* $(, $G2:Dim)*>
             VersorMul<$(&$b)? $Ty2<T2,N $(,$G2)?>> for $(&$a)? $Ty1<T1,N $(,$G1)?>
         where
-            T1: $Alloc1<N $(,$G1)*> + RefMul<T2, Output=U>,
+            T1: $Alloc1<N $(,$G1)*> + AllRefMul<T2, AllOutput=U>,
             T2: $Alloc2<N $(,$G2)*>,
             U: $Alloc2<N $(,$G2)*> + for<'c> Mul<&'c T1, Output=U> + AddGroup,
         {
@@ -88,7 +88,7 @@ macro_rules! versor_versor_mul {
         impl<$($a,)? $($b,)? T1, T2, U, N:Dim $(, $G:Dim)*>
             VersorMul<$(&$b)? $Ty<T2,N $(,$G)?>> for $(&$a)? Versor<T1,N>
         where
-            T1: AllocVersor<N> + RefMul<T2, Output=U>,
+            T1: AllocVersor<N> + AllRefMul<T2, AllOutput=U>,
             T2: $Alloc<N $(,$G)*>,
             U: $Alloc<N $(,$G)*> + for<'c> Mul<&'c T1, Output=U> + AddGroup,
         {
@@ -132,7 +132,7 @@ macro_rules! versor_mul_versor {
         impl<$($a,)? $($b,)? T1, T2, U, N:Dim $(, $G:Dim)*>
             VersorMul<$(&$b)? Versor<T2,N>> for $(&$a)? $Ty<T1,N $(,$G)?>
         where
-            T1: $Alloc<N $(,$G)*> + RefMul<T2, Output=U>,
+            T1: $Alloc<N $(,$G)*> + AllRefMul<T2, AllOutput=U>,
             T2: AllocVersor<N>,
             U: AllocVersor<N> + for<'c> Mul<&'c T1, Output=U> + AddGroup,
         {
@@ -172,7 +172,7 @@ impl<T:AllocEven<N>, N:Dim> Rotor<T,N> {
     }
 
     pub fn from_scaled_plane(plane: SimpleBiVecN<T, N>) -> Self where
-        T: AllocBlade<N,U2> + RefMul<T,Output=T> + for<'a> Div<&'a T, Output=T> + ComplexField + Debug
+        T: AllocBlade<N,U2> + AllRefMul<T,AllOutput=T> + for<'a> Div<&'a T, Output=T> + ComplexField + Debug
     {
         let (angle, plane) = plane.norm_and_normalize();
         if angle.is_zero() {
@@ -183,7 +183,7 @@ impl<T:AllocEven<N>, N:Dim> Rotor<T,N> {
     }
 
     pub fn from_plane_angle(plane: UnitBiVecN<T, N>, angle: T) -> Self where
-        T: AllocBlade<N,U2> + RefMul<T,Output=T> + ComplexField + Debug
+        T: AllocBlade<N,U2> + AllRefMul<T,AllOutput=T> + ComplexField + Debug
     {
 
         //get both the sine and cosine of the angle
@@ -216,7 +216,7 @@ impl<T:AllocEven<Dynamic>> RotorD<T> {
 
 impl<T:AllocEven<U2>> Rotor2<T> {
     pub fn from_angle(angle:T) -> Self where
-        T: AllocBlade<U2,U2> + RefMul<T,Output=T> + ComplexField + Debug
+        T: AllocBlade<U2,U2> + AllRefMul<T,AllOutput=T> + ComplexField + Debug
     {
         Self::from_plane_angle(UnitBiVec2::unit_psuedoscalar(), angle)
     }

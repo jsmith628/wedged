@@ -71,51 +71,6 @@ macro_rules! uninit {
     };
 }
 
-macro_rules! impl_binops {
-
-    //implements operation with optional references
-    (
-        impl<T:$Alloc:ident,$($N:ident),*> $Op:ident.$op:ident() for $Ty:ident;
-        $($a:lifetime)?; $($b:lifetime)?
-    ) => {
-
-        impl<$($a,)? $($b,)? T1,T2,U,$($N:Dim),*> $Op<$(&$b)? $Ty<T2,$($N),*>> for $(&$a)? $Ty<T1,$($N),*>
-        where
-            T1: $Alloc<$($N),*>,
-            T2: $Alloc<$($N),*>,
-            U: $Alloc<$($N),*>,
-            $(&$a)? T1: $Op<$(&$b)? T2, Output=U>
-        {
-
-            type Output = $Ty<U,$($N),*>;
-
-            fn $op(self, rhs: $(&$b)? $Ty<T2,$($N),*>) -> $Ty<U,$($N),*> {
-
-                check!(self, rhs, $Ty);
-
-                let mut dest = uninit!(self, Self::Output);
-                for ((t1, t2), u) in self.into_iter().zip(rhs).zip(dest.borrow_mut()) {
-                    *u = MaybeUninit::new(t1.$op(t2));
-                }
-
-                $Ty { data: unsafe { dest.assume_init() } }
-
-            }
-
-        }
-
-    };
-
-    //do every combination of reference and value
-    (impl<T:$Alloc:ident,$($N:ident),*> $Op:ident.$op:ident() for $Ty:ident) => {
-        impl_binops!(impl<T:$Alloc,$($N),*> $Op.$op() for $Ty;   ;   );
-        impl_binops!(impl<T:$Alloc,$($N),*> $Op.$op() for $Ty; 'a;   );
-        impl_binops!(impl<T:$Alloc,$($N),*> $Op.$op() for $Ty;   ; 'b);
-        impl_binops!(impl<T:$Alloc,$($N),*> $Op.$op() for $Ty; 'a; 'b);
-    };
-
-}
-
 macro_rules! impl_assign_binops {
 
     //implements operation with an optional reference
@@ -150,23 +105,64 @@ macro_rules! impl_assign_binops {
 
 }
 
-impl_binops!(impl<T:AllocBlade,N,G> Add.add() for Blade);
-impl_binops!(impl<T:AllocBlade,N,G> Sub.sub() for Blade);
-impl_binops!(impl<T:AllocEven,N> Add.add() for Even);
-impl_binops!(impl<T:AllocEven,N> Sub.sub() for Even);
-impl_binops!(impl<T:AllocOdd,N> Add.add() for Odd);
-impl_binops!(impl<T:AllocOdd,N> Sub.sub() for Odd);
-impl_binops!(impl<T:AllocMultivector,N> Add.add() for Multivector);
-impl_binops!(impl<T:AllocMultivector,N> Sub.sub() for Multivector);
+macro_rules! impl_binops {
 
-impl_assign_binops!(impl<T:AllocBlade,N,G> AddAssign.add_assign() for Blade);
-impl_assign_binops!(impl<T:AllocBlade,N,G> SubAssign.sub_assign() for Blade);
-impl_assign_binops!(impl<T:AllocEven,N> AddAssign.add_assign() for Even);
-impl_assign_binops!(impl<T:AllocEven,N> SubAssign.sub_assign() for Even);
-impl_assign_binops!(impl<T:AllocOdd,N> AddAssign.add_assign() for Odd);
-impl_assign_binops!(impl<T:AllocOdd,N> SubAssign.sub_assign() for Odd);
-impl_assign_binops!(impl<T:AllocMultivector,N> AddAssign.add_assign() for Multivector);
-impl_assign_binops!(impl<T:AllocMultivector,N> SubAssign.sub_assign() for Multivector);
+    //implements operation with optional references
+    (
+        impl<T:$Alloc:ident,$($N:ident),*> $Op:ident.$op:ident() for $Ty:ident
+        with $Op2:ident.$op2:ident();
+        $($a:lifetime)?; $($b:lifetime)?
+    ) => {
+
+        impl<$($a,)? $($b,)? T1,T2,U,$($N:Dim),*> $Op<$(&$b)? $Ty<T2,$($N),*>> for $(&$a)? $Ty<T1,$($N),*>
+        where
+            T1: $Alloc<$($N),*>,
+            T2: $Alloc<$($N),*>,
+            U: $Alloc<$($N),*>,
+            T1: $Op2<$($a, )? $(&$b)? T2, Output=U>
+        {
+
+            type Output = $Ty<U,$($N),*>;
+
+            fn $op(self, rhs: $(&$b)? $Ty<T2,$($N),*>) -> $Ty<U,$($N),*> {
+
+                check!(self, rhs, $Ty);
+
+                let mut dest = uninit!(self, Self::Output);
+                for ((t1, t2), u) in self.into_iter().zip(rhs).zip(dest.borrow_mut()) {
+                    *u = MaybeUninit::new(t1.$op2(t2));
+                }
+
+                $Ty { data: unsafe { dest.assume_init() } }
+
+            }
+
+        }
+
+    };
+
+    //do every combination of reference and value
+    (impl<T:$Alloc:ident,$($N:ident),*> $Op:ident.$op:ident() for $Ty:ident with $Ref:ident.$ref:ident()) => {
+        impl_binops!(impl<T:$Alloc,$($N),*> $Op.$op() for $Ty with $Op.$op()  ;   ;   );
+        impl_binops!(impl<T:$Alloc,$($N),*> $Op.$op() for $Ty with $Ref.$ref(); 'a;   );
+        impl_binops!(impl<T:$Alloc,$($N),*> $Op.$op() for $Ty with $Op.$op()  ;   ; 'b);
+        impl_binops!(impl<T:$Alloc,$($N),*> $Op.$op() for $Ty with $Ref.$ref(); 'a; 'b);
+    };
+
+    //impl for Add, AddAssign, Sub, and SubAssign
+    (impl<T:$Alloc:ident,$($N:ident),*> for $Ty:ident) => {
+        impl_binops!(impl<T:$Alloc,$($N),*> Add.add() for $Ty with RefAdd.ref_add());
+        impl_binops!(impl<T:$Alloc,$($N),*> Sub.sub() for $Ty with RefSub.ref_sub());
+        impl_assign_binops!(impl<T:$Alloc,$($N),*> AddAssign.add_assign() for $Ty);
+        impl_assign_binops!(impl<T:$Alloc,$($N),*> SubAssign.sub_assign() for $Ty);
+    };
+
+}
+
+impl_binops!(impl<T:AllocBlade,N,G> for Blade);
+impl_binops!(impl<T:AllocEven,N> for Even);
+impl_binops!(impl<T:AllocOdd,N> for Odd);
+impl_binops!(impl<T:AllocMultivector,N> for Multivector);
 
 //TODO do Sum
 
@@ -207,14 +203,15 @@ impl<T:AllocMultivector<N>+Zero, N:DimName> Zero for Multivector<T,N> {
 
 macro_rules! impl_unary_ops {
     (
-        impl<T:$Alloc:ident,$($N:ident),*> $Op:ident.$op:ident() for $Ty:ident;
+        impl<T:$Alloc:ident,$($N:ident),*> $Op:ident.$op:ident() for $Ty:ident
+        with $Op2:ident.$op2:ident();
         $($a:lifetime)?
     ) => {
         impl<$($a,)? T, U, $($N:Dim),*> $Op for $(&$a)? $Ty<T,$($N),*>
         where
             T: $Alloc<$($N),*>,
             U: $Alloc<$($N),*>,
-            $(& $a)? T: $Op<Output=U>
+            T: $Op2<$($a, )? Output=U>
         {
 
             type Output = $Ty<U,$($N),*>;
@@ -222,7 +219,7 @@ macro_rules! impl_unary_ops {
             fn $op(self) -> $Ty<U,$($N),*> {
                 let mut dest = uninit!(self, Self::Output);
                 for (t, u) in self.into_iter().zip(dest.borrow_mut()) {
-                    *u = MaybeUninit::new(t.$op());
+                    *u = MaybeUninit::new(t.$op2());
                 }
 
                 $Ty { data: unsafe { dest.assume_init() } }
@@ -233,16 +230,16 @@ macro_rules! impl_unary_ops {
     };
 
     //do for value and reference
-    (impl<T:$Alloc:ident,$($N:ident),*> $Op:ident.$op:ident() for $Ty:ident) => {
-        impl_unary_ops!(impl<T:$Alloc,$($N),*> $Op.$op() for $Ty;   );
-        impl_unary_ops!(impl<T:$Alloc,$($N),*> $Op.$op() for $Ty; 'a);
+    (impl<T:$Alloc:ident,$($N:ident),*> $Op:ident.$op:ident() for $Ty:ident with $Ref:ident.$ref:ident()) => {
+        impl_unary_ops!(impl<T:$Alloc,$($N),*> $Op.$op() for $Ty with $Op.$op()  ;   );
+        impl_unary_ops!(impl<T:$Alloc,$($N),*> $Op.$op() for $Ty with $Ref.$ref(); 'a);
     };
 }
 
-impl_unary_ops!(impl<T:AllocBlade,N,G> Neg.neg() for Blade);
-impl_unary_ops!(impl<T:AllocEven,N> Neg.neg() for Even);
-impl_unary_ops!(impl<T:AllocOdd,N> Neg.neg() for Odd);
-impl_unary_ops!(impl<T:AllocMultivector,N> Neg.neg() for Multivector);
+impl_unary_ops!(impl<T:AllocBlade,N,G> Neg.neg() for Blade with RefNeg.ref_neg());
+impl_unary_ops!(impl<T:AllocEven,N> Neg.neg() for Even with RefNeg.ref_neg());
+impl_unary_ops!(impl<T:AllocOdd,N> Neg.neg() for Odd with RefNeg.ref_neg());
+impl_unary_ops!(impl<T:AllocMultivector,N> Neg.neg() for Multivector with RefNeg.ref_neg());
 
 //
 //Scalar Multiplication and Division
@@ -252,7 +249,8 @@ macro_rules! impl_scalar_ops {
 
     (
         impl<T:$Alloc:ident, $($N:ident),*>
-            $Op:ident.$op:ident(), $Scale:ident.$scale:ident() for $Ty:ident; $($a:lifetime)?
+            $Op:ident.$op:ident(), $Scale:ident.$scale:ident(), $Op2:ident.$op2:ident()
+        for $Ty:ident; $($a:lifetime)?
     ) => {
 
         impl<$($a,)? T1,T2,U,$($N:Dim),*> $Scale<T2> for $(&$a)? $Ty<T1,$($N),*>
@@ -260,7 +258,7 @@ macro_rules! impl_scalar_ops {
             T1: $Alloc<$($N),*>,
             T2: Clone,
             U: $Alloc<$($N),*>,
-            $(&$a)? T1: $Op<T2, Output=U>,
+            T1: $Op2<$($a, )? T2, Output=U>,
         {
 
             type Output = $Ty<U,$($N),*>;
@@ -268,7 +266,7 @@ macro_rules! impl_scalar_ops {
             fn $scale(self, t2: T2) -> $Ty<U,$($N),*> {
                 let mut dest = uninit!(self, Self::Output);
                 for (t1, u) in self.into_iter().zip(dest.borrow_mut()) {
-                    *u = MaybeUninit::new(t1.$op(t2.clone()));
+                    *u = MaybeUninit::new(t1.$op2(t2.clone()));
                 }
 
                 $Ty { data: unsafe { dest.assume_init() } }
@@ -280,7 +278,7 @@ macro_rules! impl_scalar_ops {
         where
             T: $Alloc<$($N),*>+Clone,
             U: $Alloc<$($N),*>,
-            $(&$a)? T: $Op<T, Output=U>
+            T: $Op2<$($a, )? T, Output=U>
         {
             type Output = $Ty<U,$($N),*>;
             fn $op(self, t2: T) -> $Ty<U,$($N),*> { self.$scale(t2) }
@@ -290,7 +288,7 @@ macro_rules! impl_scalar_ops {
         where
             T: $Alloc<$($N),*>,
             U: $Alloc<$($N),*>,
-            $(&$a)? T: $Op<&'b T, Output=U>,
+            T: $Op2<$($a, )? &'b T, Output=U>
         {
             type Output = $Ty<U,$($N),*>;
             fn $op(self, t2: &'b T) -> $Ty<U,$($N),*> { self.$scale(t2) }
@@ -299,21 +297,26 @@ macro_rules! impl_scalar_ops {
     };
 
     //do every combination of reference and value
-    (impl<T:$Alloc:ident, $($N:ident),*> $Op:ident.$op:ident(), $Scale:ident.$scale:ident() for $Ty:ident) => {
-        impl_scalar_ops!(impl<T:$Alloc, $($N),*> $Op.$op(), $Scale.$scale() for $Ty;);
-        impl_scalar_ops!(impl<T:$Alloc, $($N),*> $Op.$op(), $Scale.$scale() for $Ty; 'a);
+    (
+        impl<T:$Alloc:ident, $($N:ident),*>
+            $Op:ident.$op:ident(), $Scale:ident.$scale:ident(), $Ref:ident.$ref:ident()
+            for $Ty:ident
+    ) => {
+        impl_scalar_ops!(impl<T:$Alloc, $($N),*> $Op.$op(), $Scale.$scale(), $Op.$op() for $Ty;);
+        impl_scalar_ops!(impl<T:$Alloc, $($N),*> $Op.$op(), $Scale.$scale(), $Ref.$ref() for $Ty; 'a);
+    };
+
+    (impl<T:$Alloc:ident, $($N:ident),*> for $Ty:ident) => {
+        impl_scalar_ops!(impl<T:$Alloc, $($N),*> Mul.mul(), Scale.scale(), RefMul.ref_mul() for $Ty);
+        impl_scalar_ops!(impl<T:$Alloc, $($N),*> Div.div(), InvScale.inv_scale(), RefDiv.ref_div() for $Ty);
     };
 
 }
 
-impl_scalar_ops!(impl<T:AllocBlade,N,G> Mul.mul(), Scale.scale() for Blade);
-impl_scalar_ops!(impl<T:AllocBlade,N,G> Div.div(), InvScale.inv_scale() for Blade);
-impl_scalar_ops!(impl<T:AllocEven,N> Mul.mul(), Scale.scale() for Even);
-impl_scalar_ops!(impl<T:AllocEven,N> Div.div(), InvScale.inv_scale() for Even);
-impl_scalar_ops!(impl<T:AllocOdd,N> Mul.mul(), Scale.scale() for Odd);
-impl_scalar_ops!(impl<T:AllocOdd,N> Div.div(), InvScale.inv_scale() for Odd);
-impl_scalar_ops!(impl<T:AllocMultivector,N> Mul.mul(), Scale.scale() for Multivector);
-impl_scalar_ops!(impl<T:AllocMultivector,N> Div.div(), InvScale.inv_scale() for Multivector);
+impl_scalar_ops!(impl<T:AllocBlade,N,G> for Blade);
+impl_scalar_ops!(impl<T:AllocEven,N> for Even);
+impl_scalar_ops!(impl<T:AllocOdd,N> for Odd);
+impl_scalar_ops!(impl<T:AllocMultivector,N> for Multivector);
 
 macro_rules! impl_scalar_assign_binops {
     (impl<T:$Alloc:ident, $($N:ident),*> $Op:ident.$op:ident() for $Ty:ident) => {

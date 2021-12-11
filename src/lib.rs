@@ -316,26 +316,3 @@ pub fn even_components_of(n: usize) -> impl std::iter::Iterator<Item=usize> {
 pub fn odd_components_of(n: usize) -> impl std::iter::Iterator<Item=usize> {
     components_of(n).skip(1).step_by(2)
 }
-
-pub trait RefMul<Rhs:?Sized> {
-    type Output;
-    fn ref_mul<'a,'b>(&'a self, rhs:&'b Rhs) -> Self::Output;
-}
-
-impl<T1:?Sized,T2:?Sized,U> RefMul<T2> for T1 where for<'a,'b> &'a T1: std::ops::Mul<&'b T2,Output=U> {
-    type Output = U;
-    fn ref_mul<'a,'b>(&'a self, rhs:&'b T2) -> U { self * rhs }
-}
-
-pub trait AddGroup: na::ClosedAdd + na::ClosedSub + std::ops::Neg<Output=Self> + num_traits::Zero {}
-impl<T:na::ClosedAdd + na::ClosedSub + std::ops::Neg<Output=Self> + num_traits::Zero> AddGroup for T {}
-
-pub trait Scale<Rhs=Self> {
-    type Output;
-    fn scale(self, rhs:Rhs) -> Self::Output;
-}
-
-pub trait InvScale<Rhs=Self> {
-    type Output;
-    fn inv_scale(self, rhs:Rhs) -> Self::Output;
-}

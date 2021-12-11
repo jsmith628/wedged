@@ -6,31 +6,29 @@ use super::*;
 //
 
 macro_rules! impl_add_ops {
-    ($Op:ident.$op:ident(); $($a:lifetime)?; $($b:lifetime)?) => {
+    ($Op:ident.$op:ident(), $Op2:ident.$op2:ident(); $($a:lifetime)?; $($b:lifetime)?) => {
         impl<$($a,)? $($b,)? T1,T2,U,N:Dim,G:Dim>
             $Op<$(&$b)? SimpleBlade<T2,N,G>> for $(&$a)? SimpleBlade<T1,N,G>
         where
             T1: AllocBlade<N,G>,
             T2: AllocBlade<N,G>,
             U: AllocBlade<N,G>,
-            $(&$a)? T1: $Op<$(&$b)? T2, Output=U>,
+            T1: $Op2<$($a, )? $(&$b)? T2, Output=U>,
             Self: MutSimpleBlade
         {
             type Output = SimpleBlade<U,N,G>;
             fn $op(self, rhs: $(&$b)? SimpleBlade<T2,N,G>) -> SimpleBlade<U,N,G> {
-                //the `into` here implicitly handles the switch between unwrapping
-                //`data` by value or by reference
-                SimpleBlade { data: self.data.$op(maybe_ref!(rhs.data; $($b)?)) }
+                SimpleBlade { data: self.data.$op2(maybe_ref!(rhs.data; $($b)?)) }
             }
         }
     };
 
-    ($($Op:ident.$op:ident()),*) => {
+    ($($Op:ident.$op:ident() $Ref:ident.$ref:ident()),*) => {
         $(
-            impl_add_ops!($Op.$op();   ;   );
-            impl_add_ops!($Op.$op(); 'a;   );
-            impl_add_ops!($Op.$op();   ; 'b);
-            impl_add_ops!($Op.$op(); 'a; 'b);
+            impl_add_ops!($Op.$op(), $Op.$op()  ;   ;   );
+            impl_add_ops!($Op.$op(), $Ref.$ref(); 'a;   );
+            impl_add_ops!($Op.$op(), $Op.$op()  ;   ; 'b);
+            impl_add_ops!($Op.$op(), $Ref.$ref(); 'a; 'b);
         )*
     }
 }
@@ -56,24 +54,24 @@ macro_rules! impl_add_assign_ops {
     }
 }
 
-impl_add_ops!(Add.add(), Sub.sub());
+impl_add_ops!(Add.add() RefAdd.ref_add(), Sub.sub() RefSub.ref_sub());
 impl_add_assign_ops!(AddAssign.add_assign(), SubAssign.sub_assign());
 
 macro_rules! impl_neg {
-    (impl<T:$Alloc:ident,$($N:ident),*> Neg for $Ty:ident; $($a:lifetime)?) => {
+    (impl<T:$Alloc:ident,$($N:ident),*> Neg, $Op2:ident.$fun:ident() for $Ty:ident; $($a:lifetime)?) => {
         impl<$($a,)? T,U,$($N:Dim),*> Neg for $(&$a)? $Ty<T,$($N),*> where
             T: $Alloc<$($N),*>,
             U: $Alloc<$($N),*>,
-            $(&$a)? T: Neg<Output=U>
+            T: $Op2<$($a,)? Output=U>
         {
             type Output = $Ty<U,$($N),*>;
-            fn neg(self) -> $Ty<U,$($N),*> { $Ty { data: -maybe_ref!(self.data; $($a)?) } }
+            fn neg(self) -> $Ty<U,$($N),*> { $Ty { data: maybe_ref!(self.data; $($a)?).$fun() } }
         }
     };
 
     (impl<T:$Alloc:ident,$($N:ident),*> Neg for $Ty:ident) => {
-        impl_neg!(impl<T:$Alloc,$($N),*> Neg for $Ty;   );
-        impl_neg!(impl<T:$Alloc,$($N),*> Neg for $Ty; 'a);
+        impl_neg!(impl<T:$Alloc,$($N),*> Neg, Neg.neg()       for $Ty;   );
+        impl_neg!(impl<T:$Alloc,$($N),*> Neg, RefNeg.ref_neg() for $Ty; 'a);
     }
 }
 
@@ -98,13 +96,13 @@ impl<T,U,N:Dim> Neg for Versor<T,N> where
 impl<'a,T,U,N:Dim> Neg for &'a Versor<T,N> where
     T: AllocVersor<N>,
     U: AllocVersor<N>,
-    &'a T: Neg<Output=U>
+    T: RefNeg<'a, Output=U>
 {
     type Output = Versor<U,N>;
     fn neg(self) -> Versor<U,N> {
         match self {
-            Versor::Even(r) => Versor::Even(-r),
-            Versor::Odd(r) => Versor::Odd(-r),
+            Versor::Even(r) => Versor::Even(r.ref_neg()),
+            Versor::Odd(r) => Versor::Odd(r.ref_neg()),
         }
     }
 }
@@ -128,7 +126,7 @@ macro_rules! impl_blade_op {
         impl<$($a,)? $($b,)? T1,T2,U,N:Dim,G1:Dim,G2:Dim>
             $Op<$(&$b)? SimpleBlade<T2,N,G2>> for $(&$a)? SimpleBlade<T1,N,G1>
         where
-            T1: AllocBlade<N,G1> + RefMul<T2,Output=U>,
+            T1: AllocBlade<N,G1> + AllRefMul<T2,AllOutput=U>,
             T2: AllocBlade<N,G2>,
             $G1: $DimOp<$G2>,
             $(&$a)? T1: Mul<$(&$b)? T2, Output=U>,
@@ -172,7 +170,7 @@ macro_rules! impl_scalar_binops {
             T1: AllocBlade<N,G>,
             T2: Clone,
             U: AllocBlade<N,G>,
-            $(&$a)? T1: $Scale<T2, Output=U>
+            T1: $Scale<$($a, )? T2, Output=U>
         {
             type Output = SimpleBlade<U,N,G>;
             fn $op(self, rhs: T2) -> SimpleBlade<U,N,G> {
@@ -182,17 +180,17 @@ macro_rules! impl_scalar_binops {
 
     };
 
-    ($Op:ident.$op:ident() with $Scale:ident, $scale:ident()) => {
-        impl_scalar_binops!($Op.$op() with $Scale, $scale();   );
-        impl_scalar_binops!($Op.$op() with $Scale, $scale(); 'a);
+    ($Op:ident.$op:ident() with $Scale:ident, $RefScale:ident, $scale:ident()) => {
+        impl_scalar_binops!($Op.$op() with $Scale, $scale()   ;   );
+        impl_scalar_binops!($Op.$op() with $RefScale, $scale(); 'a);
     }
 
 }
 
-impl_scalar_binops!(Mul.mul() with Mul, scale());
-impl_scalar_binops!(Scale.scale() with Mul, scale());
-impl_scalar_binops!(Div.div() with Div, inv_scale());
-impl_scalar_binops!(InvScale.inv_scale() with Div, inv_scale());
+impl_scalar_binops!(Mul.mul() with Mul, RefMul, scale());
+impl_scalar_binops!(Scale.scale() with Mul, RefMul, scale());
+impl_scalar_binops!(Div.div() with Div, RefDiv, inv_scale());
+impl_scalar_binops!(InvScale.inv_scale() with Div, RefDiv, inv_scale());
 
 impl_forward_scalar_binops!(impl<T:AllocBlade,N,G> Mul.mul() for SimpleBlade);
 
@@ -225,7 +223,7 @@ macro_rules! impl_inv {
     };
 }
 
-impl_inv!(impl<T:AllocBlade,N,G> Inv for SimpleBlade where T:Clone+Zero+Add<Output=T>+RefMul<T,Output=T>+Div<T,Output=T>);
+impl_inv!(impl<T:AllocBlade,N,G> Inv for SimpleBlade where T:Clone+Zero+Add<Output=T>+AllRefMul<T,AllOutput=T>+Div<T,Output=T>);
 impl_inv!(impl<T:AllocBlade,N,G> Inv for UnitBlade);
 impl_inv!(impl<T:AllocEven,N> Inv for Rotor);
 impl_inv!(impl<T:AllocOdd,N> Inv for Reflector);
@@ -246,7 +244,7 @@ macro_rules! impl_mul {
         impl<$($a,)? $($b,)? T1, T2, U, N:Dim, $($G1:Dim,)* $($G2:Dim),* >
             Mul<$(&$b)? $Ty2<T2,N $(,$G2)*>> for $(&$a)? $Ty1<T1,N $(,$G1)*>
         where
-            T1: $Alloc1<N,$($G1),*> + RefMul<T2, Output=U>,
+            T1: $Alloc1<N,$($G1),*> + AllRefMul<T2, AllOutput=U>,
             T2: $Alloc2<N,$($G2),*>,
             U: $Alloc3<N> + AddGroup,
             $(&$a)? T1: Mul<$(&$b)? T2, Output=U>
@@ -299,7 +297,7 @@ macro_rules! impl_unit_blade_mul {
         impl<$($a,)? $($b,)? T1, T2, U, N:Dim, $($G1:Dim,)* $($G2:Dim),* >
             Mul<$(&$b)? $Ty2<T2,N $(,$G2)*>> for $(&$a)? $Ty1<T1,N $(,$G1)*>
         where
-            T1: $Alloc1<N,$($G1),*> + RefMul<T2, Output=U>,
+            T1: $Alloc1<N,$($G1),*> + AllRefMul<T2, AllOutput=U>,
             T2: $Alloc2<N,$($G2),*>,
             U: AllocVersor<N> + AddGroup,
             $(&$a)? T1: Mul<$(&$b)? T2, Output=U>
@@ -360,7 +358,7 @@ macro_rules! impl_versor_mul {
         impl<$($a,)? $($b,)? T1, T2, U, N:Dim, $($G1:Dim,)* $($G2:Dim),* >
             Mul<$(&$b)? $Ty2<T2,N $(,$G2)*>> for $(&$a)? $Ty1<T1,N $(,$G1)*>
         where
-            T1: $Alloc1<N,$($G1),*> + RefMul<T2, Output=U>,
+            T1: $Alloc1<N,$($G1),*> + AllRefMul<T2, AllOutput=U>,
             T2: $Alloc2<N,$($G2),*>,
             U: AllocVersor<N> + AddGroup,
             $(&$a)? T1: Mul<$(&$b)? T2, Output=U>
@@ -430,7 +428,7 @@ macro_rules! impl_div {
         impl<$($a,)? $($b,)? T1, T2, U, N:Dim, $($G1:Dim,)* $($G2:Dim),* >
             Div<$(&$b)? $Ty2<T2,N $(,$G2)*>> for $(&$a)? $Ty1<T1,N $(,$G1)*>
         where
-            T1: $Alloc1<N,$($G1),*> + RefMul<T2, Output=U>,
+            T1: $Alloc1<N,$($G1),*> + AllRefMul<T2, AllOutput=U>,
             T2: $Alloc2<N,$($G2),*> + Clone + Neg<Output=T2>,
             U: $Alloc3<N> + AddGroup,
             $(&$a)? T1: Mul<T2, Output=U>,
@@ -497,7 +495,7 @@ macro_rules! impl_mul_div_assign {
         impl<$($b,)? T1, T2, N:Dim, $($G1:Dim,)* $($G2:Dim),* >
             MulAssign<$(&$b)? $Ty2<T2,N $(,$G2)*>> for $Ty1<T1,N $(,$G1)*>
         where
-            T1: $Alloc1<N,$($G1),*> + RefMul<T2, Output=T1> + AddGroup,
+            T1: $Alloc1<N,$($G1),*> + AllRefMul<T2, AllOutput=T1> + AddGroup,
             T2: $Alloc2<N,$($G2),*>,
             for<'b> &'b T1: Mul<$(&$b)? T2, Output=T1>
         {
@@ -509,7 +507,7 @@ macro_rules! impl_mul_div_assign {
         impl<$($b,)? T1, T2, N:Dim, $($G1:Dim,)* $($G2:Dim),* >
             DivAssign<$(&$b)? $Ty2<T2,N $(,$G2)*>> for $Ty1<T1,N $(,$G1)*>
         where
-            T1: $Alloc1<N,$($G1),*> + RefMul<T2, Output=T1> + AddGroup,
+            T1: $Alloc1<N,$($G1),*> + AllRefMul<T2, AllOutput=T1> + AddGroup,
             T2: $Alloc2<N,$($G2),*> + Clone + Neg<Output=T2>,
             for<'b> &'b T1: Mul<T2, Output=T1>
         {
@@ -547,7 +545,7 @@ impl_mul_div_assign!(
 // One
 //
 
-impl<T:AllocEven<N>+AddGroup+Mul<Output=T>+RefMul<T,Output=T>+One+PartialEq, N:DimName> One for Rotor<T,N> {
+impl<T:AllocEven<N>+AddGroup+Mul<Output=T>+AllRefMul<T,AllOutput=T>+One+PartialEq, N:DimName> One for Rotor<T,N> {
     //TODO: maybe optimize with the assumption the norm is one
     //There are _some_ complications with negative signatures, but we should be able to check that
     fn is_one(&self) -> bool { self.data.is_one() }
@@ -555,7 +553,7 @@ impl<T:AllocEven<N>+AddGroup+Mul<Output=T>+RefMul<T,Output=T>+One+PartialEq, N:D
     fn one() -> Self { Rotor { data: Even::one() } }
 }
 
-impl<T:AllocVersor<N>+AddGroup+Mul<Output=T>+RefMul<T,Output=T>+One+PartialEq, N:DimName> One for Versor<T,N> {
+impl<T:AllocVersor<N>+AddGroup+Mul<Output=T>+AllRefMul<T,AllOutput=T>+One+PartialEq, N:DimName> One for Versor<T,N> {
     fn one() -> Self { Versor::Even(Rotor::one()) }
     fn is_one(&self) -> bool {
         match self {

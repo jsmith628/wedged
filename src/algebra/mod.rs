@@ -28,8 +28,8 @@ use crate::base::dim::{
 };
 
 use crate::basis_blade::BasisBlade;
+use crate::base::ops::{RefAdd, RefSub, RefMul, RefDiv, RefNeg, AllRefMul, Scale, InvScale, AddGroup};
 use crate::{
-    RefMul, Scale, InvScale, AddGroup,
     binom, components_of, even_components_of, odd_components_of,
     grade_index_in_versor, grade_index_in_multivector
 };

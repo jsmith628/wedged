@@ -5,20 +5,20 @@ macro_rules! norm_methods {
     () => {
 
         /// The sum of squares of each element
-        pub fn norm_sqrd(&self) -> T::Output where
-            T: RefMul<T>, T::Output: Zero + Add<Output=T::Output>
+        pub fn norm_sqrd(&self) -> T::AllOutput where
+            T: AllRefMul<T>, T::AllOutput: Zero + Add<Output=T::AllOutput>
         {
-            self.iter().map(|t| t.ref_mul(t)).fold(T::Output::zero(), |c,t| c+t)
+            self.iter().map(|t| t.ref_mul(t)).fold(T::AllOutput::zero(), |c,t| c+t)
         }
 
         /// The Euclidean norm of this `self`
-        pub fn norm(&self) -> T where T: RefMul<T,Output=T> + ComplexField {
+        pub fn norm(&self) -> T where T: AllRefMul<T,AllOutput=T> + ComplexField {
             self.norm_sqrd().sqrt()
         }
 
         /// Divides `self` by its Euclidean norm
         pub fn normalize(self) -> Self where
-            T: RefMul<T,Output=T> + for<'a> Div<&'a T, Output=T> + ComplexField
+            T: AllRefMul<T,AllOutput=T> + for<'a> Div<&'a T, Output=T> + ComplexField
         {
             let l = self.norm();
             self / &l
@@ -26,7 +26,7 @@ macro_rules! norm_methods {
 
         /// Divides `self` by its Euclidean norm
         pub fn norm_and_normalize(self) -> (T, Self) where
-            T: RefMul<T,Output=T> + for<'a> Div<&'a T, Output=T> + ComplexField
+            T: AllRefMul<T,AllOutput=T> + for<'a> Div<&'a T, Output=T> + ComplexField
         {
             let l = self.norm();
             let normalized = self / &l;

@@ -232,7 +232,7 @@ where
     B1: MultivectorSrc<Dim=N>,
     B2: MultivectorSrc<Dim=N>,
     B3: MultivectorDst<Dim=N>,
-    B1::Scalar: RefMul<B2::Scalar, Output=B3::Scalar>,
+    B1::Scalar: AllRefMul<B2::Scalar, AllOutput=B3::Scalar>,
     B1::Item: Mul<B2::Item, Output=B3::Scalar>,
     B3::Scalar: AddGroup,
 {
@@ -347,8 +347,8 @@ where
     B1: MultivectorSrc<Dim=N>,
     B2: MultivectorSrc<Dim=N>,
     B3: MultivectorDst<Dim=N>,
-    B1::Scalar: RefMul<B2::Scalar>,
-    <B1::Scalar as RefMul<B2::Scalar>>::Output: for<'a> Mul<&'a B1::Scalar, Output=B3::Scalar>,
+    B1::Scalar: AllRefMul<B2::Scalar>,
+    <B1::Scalar as AllRefMul<B2::Scalar>>::AllOutput: for<'a> Mul<&'a B1::Scalar, Output=B3::Scalar>,
     B3::Scalar: AddGroup,
 {
 
@@ -476,7 +476,7 @@ macro_rules! impl_geometric_mul {
 
         impl<$($a, )? $($b, )? T1, T2, U, N:Dim $(, $G1:Dim)* $(, $G2:Dim)*>
         SelectedGeometricMul<$(&$b)? $Ty2<T2,N $(,$G2)*>> for $(&$a)? $Ty1<T1,N $(,$G1)*> where
-            T1: $Alloc1<N $(, $G1)*> + RefMul<T2, Output=U>,
+            T1: $Alloc1<N $(, $G1)*> + AllRefMul<T2, AllOutput=U>,
             T2: $Alloc2<N $(, $G2)*>,
             U: AddGroup,
             $(&$a)? T1: Mul<$(&$b)? T2, Output=U>
@@ -516,7 +516,7 @@ macro_rules! impl_geometric_mul {
 
         impl<$($a, )? $($b, )? T1, T2, U, N:Dim $(, $G1:Dim)* $(, $G2:Dim)*>
         SelectedVersorMul<$(&$b)? $Ty2<T2,N $(,$G2)*>> for $(&$a)? $Ty1<T1,N $(,$G1)*> where
-            T1: $Alloc1<N $(, $G1)*> + RefMul<T2, Output=U>,
+            T1: $Alloc1<N $(, $G1)*> + AllRefMul<T2, AllOutput=U>,
             T2: $Alloc2<N $(, $G2)*>,
             U: for<'c> Mul<&'c T1, Output=U> + AddGroup,
             $(&$a)? T1: Mul<$(&$b)? T2, Output=U>
@@ -564,7 +564,7 @@ macro_rules! impl_geometric_mul {
 
         impl<$($a, )? $($b, )? T, U, N:Dim $(, $G1:Dim)* $(, $G2:Dim)*>
         Mul<$(&$b)? $Ty2<T,N $(,$G2)*>> for $(&$a)? $Ty1<T,N $(,$G1)*> where
-            T: $Alloc1<N $(, $G1)*> + $Alloc2<N $(, $G2)*> + RefMul<T, Output=U>,
+            T: $Alloc1<N $(, $G1)*> + $Alloc2<N $(, $G2)*> + AllRefMul<T, AllOutput=U>,
             U: $Alloc3<N> + AddGroup,
             $(&$a)? T: Mul<$(&$b)? T, Output=U>
         {
@@ -628,7 +628,7 @@ macro_rules! impl_wedge_dot {
         impl<$($a,)? $($b,)? T1,T2,U,N:Dim,G1:Dim,G2:Dim>
             BitXor<$(&$b)? Blade<T2,N,G2>> for $(&$a)? Blade<T1,N,G1>
         where
-            T1: AllocBlade<N,G1> + RefMul<T2,Output=U>,
+            T1: AllocBlade<N,G1> + AllRefMul<T2,AllOutput=U>,
             T2: AllocBlade<N,G2>,
             G1: DimAdd<G2>,
             $(&$a)? T1: Mul<$(&$b)? T2,Output=U>,
@@ -646,7 +646,7 @@ macro_rules! impl_wedge_dot {
         impl<$($a,)? $($b,)? T1,T2,U,N:Dim,G1:Dim,G2:Dim>
             Rem<$(&$b)? Blade<T2,N,G2>> for $(&$a)? Blade<T1,N,G1>
         where
-            T1: AllocBlade<N,G1> + RefMul<T2,Output=U>,
+            T1: AllocBlade<N,G1> + AllRefMul<T2,AllOutput=U>,
             T2: AllocBlade<N,G2>,
             G2: DimSymSub<G1>,
             $(&$a)? T1: Mul<$(&$b)? T2,Output=U>,
@@ -668,7 +668,7 @@ impl_wedge_dot!('a;   );
 impl_wedge_dot!(  ; 'b);
 impl_wedge_dot!('a; 'b);
 
-impl<T:AllocEven<N>+AddGroup+Mul<Output=T>+RefMul<T,Output=T>+One+PartialEq, N:DimName> One for Even<T,N> {
+impl<T:AllocEven<N>+AddGroup+Mul<Output=T>+AllRefMul<T,AllOutput=T>+One+PartialEq, N:DimName> One for Even<T,N> {
     fn is_one(&self) -> bool {
         self[0].is_one() &&
         self.iter().skip(1).all(|x| x.is_zero())
@@ -684,7 +684,7 @@ impl<T:AllocEven<N>+AddGroup+Mul<Output=T>+RefMul<T,Output=T>+One+PartialEq, N:D
     }
 }
 
-impl<T:AllocMultivector<N>+AddGroup+Mul<Output=T>+RefMul<T,Output=T>+One+PartialEq, N:DimName> One for Multivector<T,N>
+impl<T:AllocMultivector<N>+AddGroup+Mul<Output=T>+AllRefMul<T,AllOutput=T>+One+PartialEq, N:DimName> One for Multivector<T,N>
 {
     fn is_one(&self) -> bool {
         self[0].is_one() &&

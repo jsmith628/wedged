@@ -4,7 +4,7 @@ use super::*;
 pub(crate) fn exp_selected<B1,B2,T:RealField,N:Dim>(x:B1, shape: B2::Shape, epsilon:T) -> B2 where
     B1: MultivectorSrc<Scalar=T,Item=T,Dim=N>+Clone+DivAssign<T> + Debug,
     B2: MultivectorSrc<Scalar=T,Item=T,Dim=N>+MultivectorDst+Clone+AddAssign+DivAssign<T>+One + Debug,
-    T: RefMul<T, Output=T> + Debug,
+    T: AllRefMul<T, AllOutput=T> + Debug,
 {
 
     //
@@ -83,7 +83,7 @@ pub(crate) fn exp_selected<B1,B2,T:RealField,N:Dim>(x:B1, shape: B2::Shape, epsi
 pub(crate) fn log_selected<B1,B2,T:RealField,N:Dim>(x:B1, shape: B2::Shape, epsilon:T) -> B2 where
     B1: MultivectorSrc<Scalar=T,Item=T,Dim=N>+Clone+DivAssign<T>+SubAssign + Display +One,
     B2: MultivectorSrc<Scalar=T,Item=T,Dim=N>+MultivectorDst+Div<T,Output=B2>+Mul<T,Output=B2>+Clone+SubAssign+AddAssign+MulAssign<T>+DivAssign<T>+One+Zero + Display,
-    T: RefMul<T, Output=T> + Debug,
+    T: AllRefMul<T, AllOutput=T> + Debug,
 {
 
     let two = T::one() + T::one();

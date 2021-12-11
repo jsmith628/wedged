@@ -8,14 +8,14 @@ macro_rules! wrap_involute {
         pub fn involute(self) -> Self { Self { data: self.data.involute() } }
 
         pub fn inverse($self) -> Self
-        $(where T: Clone+Zero+Add<Output=T>+$ref_mul<T,Output=T>+Div<T,Output=T>)?
+        $(where T: Clone+Zero+Add<Output=T>+$ref_mul<T,AllOutput=T>+Div<T,Output=T>)?
         { $inv }
 
     }
 }
 
 impl<T:AllocBlade<N,G>+Neg<Output=T>, N:Dim, G:Dim> SimpleBlade<T,N,G> {
-    wrap_involute!(RefMul |self| {let l=self.norm_sqrd(); self.reverse() / l} );
+    wrap_involute!(AllRefMul |self| {let l=self.norm_sqrd(); self.reverse() / l} );
 }
 
 impl<T:AllocBlade<N,G>+Neg<Output=T>, N:Dim, G:Dim> UnitBlade<T,N,G> { wrap_involute!(|self| self.reverse()); }
