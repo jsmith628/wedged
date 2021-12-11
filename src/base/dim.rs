@@ -231,7 +231,7 @@ pub mod private {
                     $(
                         assert_eq!(
                             <Binom::<$Un, $Uk> as ToInt<usize>>::to_int(),
-                            crate::binom($Un::to_int(), $Uk::to_int())
+                            crate::base::count::binom($Un::to_int(), $Uk::to_int())
                         );
 
                         // println!(

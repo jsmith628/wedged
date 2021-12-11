@@ -11,7 +11,7 @@
 /// # Examples
 ///
 ///```
-/// # use galgebra::binom;
+/// # use galgebra::base::count::binom;
 ///
 /// //The first three rows of Pascal's triangle
 ///
@@ -41,6 +41,20 @@
 ///
 pub const fn binom(n:usize, k:usize) -> usize {
 
+    //LUTs for the win!
+    const LUT: &[&[usize]] = &[
+        &[1, 0,  0,  0,  0, 0, 0],
+        &[1, 1,  0,  0,  0, 0, 0],
+        &[1, 2,  1,  0,  0, 0, 0],
+        &[1, 3,  3,  1,  0, 0, 0],
+        &[1, 4,  6,  4,  1, 0, 0],
+        &[1, 5, 10, 10,  5, 1, 0],
+        &[1, 6, 15, 20, 15, 6, 1],
+    ];
+
+    //should make some stuff run a little faster
+    if n<=6 && k<=6 { return LUT[n][k]; }
+
     //base cases
     if k>n { return 0; }
     if k==0 { return 1; }
@@ -64,12 +78,12 @@ pub const fn multivector_elements(n:usize) -> usize {
     1 << n
 }
 
-pub(crate) const fn grade_index_in_versor(n:usize, g:usize) -> usize {
+pub const fn grade_index_in_versor(n:usize, g:usize) -> usize {
     if g<=1 { return 0; }
     binom(n, g-2) + grade_index_in_versor(n, g-2)
 }
 
-pub(crate) const fn grade_index_in_multivector(n:usize, g:usize) -> usize {
+pub const fn grade_index_in_multivector(n:usize, g:usize) -> usize {
     if g==0 { return 0; }
     binom(n, g-1) + grade_index_in_multivector(n, g-1)
 }
@@ -80,7 +94,7 @@ pub(crate) const fn grade_index_in_multivector(n:usize, g:usize) -> usize {
 ///
 /// # Examples
 /// ```
-/// # use galgebra::components_of;
+/// # use galgebra::base::count::components_of;
 ///
 /// assert_eq!(components_of(0).collect::<Vec<_>>(), vec![1]);
 /// assert_eq!(components_of(1).collect::<Vec<_>>(), vec![1, 1]);
@@ -92,7 +106,7 @@ pub(crate) const fn grade_index_in_multivector(n:usize, g:usize) -> usize {
 ///
 /// ```
 ///
-pub(crate) fn components_of(n: usize) -> impl std::iter::Iterator<Item=usize> {
+pub fn components_of(n: usize) -> impl std::iter::Iterator<Item=usize> {
     let mut binom = 1;
     (0..=n).map(
         move |g| {
@@ -109,7 +123,7 @@ pub(crate) fn components_of(n: usize) -> impl std::iter::Iterator<Item=usize> {
 ///
 /// # Examples
 /// ```
-/// # use galgebra::even_components_of;
+/// # use galgebra::base::count::even_components_of;
 ///
 /// assert_eq!(even_components_of(0).collect::<Vec<_>>(), vec![1]);
 /// assert_eq!(even_components_of(1).collect::<Vec<_>>(), vec![1]);
@@ -121,7 +135,7 @@ pub(crate) fn components_of(n: usize) -> impl std::iter::Iterator<Item=usize> {
 ///
 /// ```
 ///
-pub(crate) fn even_components_of(n: usize) -> impl std::iter::Iterator<Item=usize> {
+pub fn even_components_of(n: usize) -> impl std::iter::Iterator<Item=usize> {
     components_of(n).step_by(2)
 }
 
@@ -130,7 +144,7 @@ pub(crate) fn even_components_of(n: usize) -> impl std::iter::Iterator<Item=usiz
 ///
 /// # Examples
 /// ```
-/// # use galgebra::odd_components_of;
+/// # use galgebra::base::count::odd_components_of;
 ///
 /// assert_eq!(odd_components_of(0).collect::<Vec<_>>(), vec![]);
 /// assert_eq!(odd_components_of(1).collect::<Vec<_>>(), vec![1]);
@@ -142,6 +156,6 @@ pub(crate) fn even_components_of(n: usize) -> impl std::iter::Iterator<Item=usiz
 ///
 /// ```
 ///
-pub(crate) fn odd_components_of(n: usize) -> impl std::iter::Iterator<Item=usize> {
+pub fn odd_components_of(n: usize) -> impl std::iter::Iterator<Item=usize> {
     components_of(n).skip(1).step_by(2)
 }
