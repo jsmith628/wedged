@@ -23,7 +23,7 @@ use crate::base::count::*;
 use na::dimension::{Dim};
 
 /// Contains all the array-like functionality we need for backing buffers for the algebraic types
-pub unsafe trait Storage<T>:
+pub trait Storage<T>:
     Index<usize, Output=T> + IndexMut<usize> +
     AsRef<[T]> + AsMut<[T]> +
     Borrow<[T]> + BorrowMut<[T]> +
@@ -68,7 +68,7 @@ pub unsafe trait Storage<T>:
 ///
 /// This allows us to follow the  [`std::mem::MaybeUninit`] design when constructing the algebraic
 /// structs and still have access to individual elements of the buffer
-pub unsafe trait UninitStorage<T>: Storage<MaybeUninit<T>> {
+pub trait UninitStorage<T>: Storage<MaybeUninit<T>> {
     /// The initialized storage that we can trasmute this type into
     type Init: Storage<T,Uninit=Self>;
 
@@ -140,7 +140,7 @@ pub unsafe trait MultivectorStorage<T,N:Dim>: Storage<T> {
 //Statically sized arrays
 //
 
-unsafe impl<T, const L: usize> Storage<T> for [T;L] {
+impl<T, const L: usize> Storage<T> for [T;L] {
     type Uninit = [MaybeUninit<T>; L];
     type Iter = <Self as IntoIterator>::IntoIter;
     fn elements(&self) -> usize { L }
@@ -148,7 +148,7 @@ unsafe impl<T, const L: usize> Storage<T> for [T;L] {
     fn clone_from_storage(&mut self, other: &Self) where T:Clone { self.clone_from(other) }
 }
 
-unsafe impl<T, const L: usize> UninitStorage<T> for [MaybeUninit<T>;L] {
+impl<T, const L: usize> UninitStorage<T> for [MaybeUninit<T>;L] {
     type Init = [T; L];
     unsafe fn assume_init(self) -> Self::Init {
         //TODO: use `MaybeUninit::assume_init_array(self)` when stabilized
@@ -248,7 +248,7 @@ macro_rules! impl_dyn_storage {
                 }
             }
 
-            unsafe impl<T,$($N:Dim),*> Storage<T> for $Ty<T,$($N),*> {
+            impl<T,$($N:Dim),*> Storage<T> for $Ty<T,$($N),*> {
                 type Uninit = $Ty<MaybeUninit<T>,$($N),*>;
                 type Iter = <Self as IntoIterator>::IntoIter;
                 fn elements(&self) -> usize { self.data.len() }
@@ -264,7 +264,7 @@ impl_dyn_storage!(
     DynBladeStorage<T,N,G>; DynEvenStorage<T,N>; DynOddStorage<T,N>; DynMultivectorStorage<T,N>;
 );
 
-unsafe impl<T,N:Dim,G:Dim> UninitStorage<T> for DynBladeStorage<MaybeUninit<T>,N,G> {
+impl<T,N:Dim,G:Dim> UninitStorage<T> for DynBladeStorage<MaybeUninit<T>,N,G> {
     type Init = DynBladeStorage<T,N,G>;
 
     unsafe fn assume_init(self) -> Self::Init {
@@ -297,7 +297,7 @@ unsafe impl<T,N:Dim,G:Dim> BladeStorage<T,N,G> for DynBladeStorage<T,N,G> {
 
 }
 
-unsafe impl<T,N:Dim> UninitStorage<T> for DynEvenStorage<MaybeUninit<T>,N> {
+impl<T,N:Dim> UninitStorage<T> for DynEvenStorage<MaybeUninit<T>,N> {
     type Init = DynEvenStorage<T,N>;
 
     unsafe fn assume_init(self) -> Self::Init {
@@ -327,7 +327,7 @@ unsafe impl<T,N:Dim> EvenStorage<T,N> for DynEvenStorage<T,N> {
 
 }
 
-unsafe impl<T,N:Dim> UninitStorage<T> for DynOddStorage<MaybeUninit<T>,N> {
+impl<T,N:Dim> UninitStorage<T> for DynOddStorage<MaybeUninit<T>,N> {
     type Init = DynOddStorage<T,N>;
 
     unsafe fn assume_init(self) -> Self::Init {
@@ -358,7 +358,7 @@ unsafe impl<T,N:Dim> OddStorage<T,N> for DynOddStorage<T,N> {
 }
 
 
-unsafe impl<T,N:Dim> UninitStorage<T> for DynMultivectorStorage<MaybeUninit<T>,N> {
+impl<T,N:Dim> UninitStorage<T> for DynMultivectorStorage<MaybeUninit<T>,N> {
     type Init = DynMultivectorStorage<T,N>;
 
     unsafe fn assume_init(self) -> Self::Init {
