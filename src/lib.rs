@@ -1,3 +1,4 @@
+#![recursion_limit = "256"]
 #![cfg_attr(test, allow(soft_unstable))]
 #![cfg_attr(test, feature(test))]
 #![cfg_attr(feature = "fn_traits", feature(fn_traits, unboxed_closures))]
@@ -14,7 +15,8 @@ extern crate nalgebra as na;
 //TODO: add impls for Wrapping<T> and Saturating<T>
 macro_rules! impl_forward_scalar_binops {
     (
-        $prim:ident; impl<T:$Alloc:ident,$($N:ident),*> $Op:ident.$op:ident() for $Ty:ident;
+        @impl
+        $prim:ty; impl<T:$Alloc:ident,$($N:ident),*> $Op:ident.$op:ident() for $Ty:ident;
         $($a:lifetime)?; $($b:lifetime)?
     ) => {
         impl<$($a,)? $($b,)? $($N:Dim),*> $Op<$(&$b)? $Ty<$prim,$($N),*>> for $(&$a)? $prim where $prim:$Alloc<$($N),*> {
@@ -25,18 +27,30 @@ macro_rules! impl_forward_scalar_binops {
         }
     };
 
-    (; $($rest:tt)*) => {};
+    (@loop ; $($rest:tt)*) => {};
 
-    ($p:ident $($prim:ident)*; $($tt:tt)*) => {
-        impl_forward_scalar_binops!($p; $($tt)*;   ;   );
-        impl_forward_scalar_binops!($p; $($tt)*;   ; 'b);
-        impl_forward_scalar_binops!($p; $($tt)*; 'a;   );
-        impl_forward_scalar_binops!($p; $($tt)*; 'a; 'b);
-        impl_forward_scalar_binops!($($prim)*; $($tt)*);
+    (@loop $p:ty, $($prim:ty,)*; $($tt:tt)*) => {
+
+        impl_forward_scalar_binops!(@impl $p; $($tt)*;   ;   );
+        impl_forward_scalar_binops!(@impl $p; $($tt)*;   ; 'b);
+        impl_forward_scalar_binops!(@impl $p; $($tt)*; 'a;   );
+        impl_forward_scalar_binops!(@impl $p; $($tt)*; 'a; 'b);
+
+        impl_forward_scalar_binops!(@loop $($prim,)*; $($tt)*);
     };
 
     ($($tt:tt)*) => {
-        impl_forward_scalar_binops!(u8 i8 u16 i16 u32 i32 u64 i64 u128 i128 usize isize f32 f64; $($tt)*);
+        impl_forward_scalar_binops!(
+            @loop
+            u8, i8, u16, i16, u32, i32, u64, i64, u128, i128, usize, isize, f32, f64,
+            // ::std::num::Wrapping<u8>,    ::std::num::Wrapping<i8>,
+            // ::std::num::Wrapping<u16>,   ::std::num::Wrapping<i16>,
+            // ::std::num::Wrapping<u32>,   ::std::num::Wrapping<i32>,
+            // ::std::num::Wrapping<u64>,   ::std::num::Wrapping<i64>,
+            // ::std::num::Wrapping<u128>,  ::std::num::Wrapping<i128>,
+            // ::std::num::Wrapping<usize>, ::std::num::Wrapping<isize>,
+            ;$($tt)*
+        );
     };
 }
 
