@@ -5,13 +5,12 @@ use super::*;
 //Index Ops
 //
 
-//Currently, we just to indexing wrt `usize`. There may be additions in the future, but
-//unlike with Matrices or slices, ranges don't really make much sense, and while indexing wrt
-//basis blades _may_ make sense, it's slow *and* we have to deal with a potential minus sign.
-
-
 macro_rules! impl_index {
-    (impl<T:$Alloc:ident, $($N:ident),*> Index for $Ty:ident {}) => {
+    ($Ty:ident<T:$Alloc:ident, $($N:ident),*>) => {
+
+        //Currently, we just to indexing wrt `usize`. There may be additions in the future, but
+        //unlike with Matrices or slices, ranges don't really make much sense, and while indexing wrt
+        //basis blades _may_ make sense, it's slow *and* we have to deal with a potential minus sign.
 
         impl<T:$Alloc<$($N),*>, $($N:Dim),*> Index<usize> for $Ty<T,$($N),*> {
             type Output = T;
@@ -25,10 +24,10 @@ macro_rules! impl_index {
     }
 }
 
-impl_index!(impl<T:AllocBlade, N, G> Index for Blade {});
-impl_index!(impl<T:AllocEven, N> Index for Even {});
-impl_index!(impl<T:AllocOdd, N> Index for Odd {});
-impl_index!(impl<T:AllocMultivector, N> Index for Multivector {});
+impl_index!(Blade<T:AllocBlade, N, G>);
+impl_index!(Even<T:AllocEven, N>);
+impl_index!(Odd<T:AllocOdd, N>);
+impl_index!(Multivector<T:AllocMultivector, N>);
 
 //
 //Fn calls
@@ -41,7 +40,7 @@ mod fn_impl {
     use super::*;
 
     macro_rules! impl_fn {
-        (impl<T:$Alloc:ident, $($N:ident),*> Fn for $Ty:ident {}) => {
+        ($Ty:ident<T:$Alloc:ident, $($N:ident),*>) => {
 
             impl<T:$Alloc<$($N),*>, U:$Alloc<$($N),*>, $($N:Dim,)* Args> FnOnce<Args> for $Ty<T,$($N),*> where
                 T: FnOnce<Args, Output=U>,
@@ -86,10 +85,10 @@ mod fn_impl {
         }
     }
 
-    impl_fn!(impl<T:AllocBlade, N, G> Fn for Blade {});
-    impl_fn!(impl<T:AllocEven, N> Fn for Even {});
-    impl_fn!(impl<T:AllocOdd, N> Fn for Odd {});
-    impl_fn!(impl<T:AllocMultivector, N> Fn for Multivector {});
+    impl_fn!(Blade<T:AllocBlade, N, G>);
+    impl_fn!(Even<T:AllocEven, N>);
+    impl_fn!(Odd<T:AllocOdd, N>);
+    impl_fn!(Multivector<T:AllocMultivector, N>);
 
     #[cfg(test)]
     mod tests {
@@ -108,8 +107,6 @@ mod fn_impl {
                 assert_eq!(circle(t), Vec2::new(t.cos(), t.sin()))
             }
 
-
-
         }
 
     }
@@ -120,8 +117,7 @@ mod fn_impl {
 //Addition and Subtraction
 //
 
-//we do this as a macro to make it easier to do with self and rhs being both references and
-//values in the macro calls
+//we do this as a macro to make it easier to do with both references and values
 macro_rules! check {
     ($self:ident, $rhs:ident, Blade) => {
 
@@ -151,6 +147,7 @@ macro_rules! check {
     };
 }
 
+//to make the code shorter
 macro_rules! uninit {
     ($self:ident, $ty:ty) => {
         <DefaultAllocator as Alloc<$ty>>::uninit($self.shape())
@@ -287,12 +284,14 @@ impl<T:AllocMultivector<N>+Zero, N:DimName> Zero for Multivector<T,N> {
 //Neg
 //
 
+//don't really know what unary op we'd do besides neg, but here's a general macro anyway :)
 macro_rules! impl_unary_ops {
     (
         impl<T:$Alloc:ident,$($N:ident),*> $Op:ident.$op:ident() for $Ty:ident
         with $Op2:ident.$op2:ident();
         $($a:lifetime)?
     ) => {
+
         impl<$($a,)? T, U, $($N:Dim),*> $Op for $(&$a)? $Ty<T,$($N),*>
         where
             T: $Alloc<$($N),*>,

@@ -2,7 +2,9 @@
 use super::*;
 
 //
-// Addition ops
+// Addition ops. Only possible on SimpleBlade's that are scalars, vectors,
+// psuedovectors, and psuedoscalars. While it's kinda a pain to implement those exceptions,
+// it is rather convenient
 //
 
 macro_rules! impl_add_ops {
@@ -57,6 +59,20 @@ macro_rules! impl_add_assign_ops {
 impl_add_ops!(Add.add() RefAdd.ref_add(), Sub.sub() RefSub.ref_sub());
 impl_add_assign_ops!(AddAssign.add_assign(), SubAssign.sub_assign());
 
+//
+//Zero for SimpleBlade.
+//
+
+impl<T:AllocBlade<N,G>+Zero, N:DimName, G:DimName> Zero for SimpleBlade<T,N,G> where Self:MutSimpleBlade {
+    fn zero() -> Self { Self { data: Blade::zero() } }
+    fn is_zero(&self) -> bool { self.data.is_zero() }
+    fn set_zero(&mut self) { self.data.set_zero() }
+}
+
+//
+//Neg
+//
+
 macro_rules! impl_neg {
     (impl<T:$Alloc:ident,$($N:ident),*> Neg, $Op2:ident.$fun:ident() for $Ty:ident; $($a:lifetime)?) => {
         impl<$($a,)? T,U,$($N:Dim),*> Neg for $(&$a)? $Ty<T,$($N),*> where
@@ -107,14 +123,10 @@ impl<'a,T,U,N:Dim> Neg for &'a Versor<T,N> where
     }
 }
 
-impl<T:AllocBlade<N,G>+Zero, N:DimName, G:DimName> Zero for SimpleBlade<T,N,G> where Self:MutSimpleBlade {
-    fn zero() -> Self { Self { data: Blade::zero() } }
-    fn is_zero(&self) -> bool { self.data.is_zero() }
-    fn set_zero(&mut self) { self.data.set_zero() }
-}
-
 //
 // Wedge and Dot
+// Unlike for Mul, only works for SimpleBlade, since these ops *can* give a non unit blade
+// from units
 //
 
 macro_rules! impl_blade_op {
@@ -294,6 +306,14 @@ macro_rules! impl_unit_blade_mul {
         $($a:lifetime)?; $($b:lifetime)?
     ) => {
 
+        //
+        //Note: All of these products result in a Versor.
+        //Ideally, we'd have some sort of thing that could selectively pick either a Rotor or
+        //Reflector, but that gets.... messy. The trait bounds would get a little crazy and
+        //honestly it's a little bit easier to work with if the Output type is the same no matter
+        //the grade.
+        //
+
         impl<$($a,)? $($b,)? T1, T2, U, N:Dim, $($G1:Dim,)* $($G2:Dim),* >
             Mul<$(&$b)? $Ty2<T2,N $(,$G2)*>> for $(&$a)? $Ty1<T1,N $(,$G1)*>
         where
@@ -407,7 +427,7 @@ impl_versor_mul!{
     Versor<T:AllocVersor,N> * Versor<T:AllocVersor,N>;     |self,rhs,r| self, r*rhs, r*rhs;
     Versor<T:AllocVersor,N> * UnitBlade<T:AllocBlade,N,G>; |self,rhs,r| self, r*rhs, r*rhs;
     Versor<T:AllocVersor,N> * Rotor<T:AllocEven,N>;        |self,rhs,r| self, Even(r*rhs), Odd(r*rhs);
-    Versor<T:AllocVersor,N> * Reflector<T:AllocOdd,N>;  |self,rhs,r| self, Odd(r*rhs), Even(r*rhs);
+    Versor<T:AllocVersor,N> * Reflector<T:AllocOdd,N>;     |self,rhs,r| self, Odd(r*rhs), Even(r*rhs);
 
     UnitBlade<T:AllocBlade,N,G> * Versor<T:AllocVersor,N>; |self,rhs,r| rhs, self*r, self*r;
     Rotor<T:AllocEven,N>        * Versor<T:AllocVersor,N>; |self,rhs,r| rhs, Even(self*r), Odd(self*r);
