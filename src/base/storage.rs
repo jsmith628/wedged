@@ -1,66 +1,144 @@
+//!
+//! Traits and structs for the storage of vector-like data.
+//!
+//! The purpose of this module is to provide a system that unifies the different statically-sized
+//! arrays and dynamic arrays (like vec) in order to make managing the backing data of the algebras
+//! easier. Since the data in the algebra structs are given generically from
+//! [`Alloc`], we need a trait to bound that associated type that provides all
+//! the functionality we need.
+//!
 
 use std::borrow::{Borrow, BorrowMut};
 use std::ops::{Index, IndexMut};
-use std::convert::{AsRef, AsMut, TryInto};
+use std::convert::{AsRef, AsMut};
 use std::iter::{IntoIterator, FromIterator, FusedIterator};
 use std::mem::{MaybeUninit, transmute, transmute_copy};
+
+#[cfg(doc)] use crate::base::dim::*;
+#[cfg(doc)] use crate::base::alloc::*;
+#[cfg(doc)] use crate::algebra::*;
 
 use crate::base::count::*;
 
 use na::dimension::{Dim};
 
+/// Contains all the array-like functionality we need for backing buffers for the algebraic types
 pub unsafe trait Storage<T>:
     Index<usize, Output=T> + IndexMut<usize> +
     AsRef<[T]> + AsMut<[T]> +
     Borrow<[T]> + BorrowMut<[T]> +
     IntoIterator<Item=T, IntoIter=Self::Iter>
 {
+
+    ///The corresponding uninitialized storage that we can transmute into this type
     type Uninit: UninitStorage<T,Init=Self>;
 
-    //Add TrustedLen when stabilized
-    type Iter: Iterator<Item=T> + DoubleEndedIterator + ExactSizeIterator + FusedIterator;
+    ///
+    /// The iterator over this type. Wraps [`IntoIterator::IntoIter`]
+    ///
+    /// We need this so we can add extra trait bounds to the `IntoIterator::IntoIter`
+    /// implementation for `Self`.
+    type Iter: Iterator<Item=T> + DoubleEndedIterator + ExactSizeIterator + FusedIterator; //Add TrustedLen when stabilized
 
+    ///
+    /// The number of items in self.
+    ///
+    /// Note this takes in `&self` and can vary over time so that we can support [`Dynamic`] dimensions
     fn elements(&self) -> usize;
 
-    //so that we don't have to have Allocate<Self>: Clone bounds
+    ///
+    /// Wraps [`Clone::clone()`] whenever `T:Clone`
+    ///
+    /// This allows us to have `Clone` `impl`s that only require `T:Clone` and no bounds on
+    /// the underlying storage object.
     fn clone_storage(&self) -> Self where T:Clone;
+
+    ///
+    /// Wraps [`Clone::clone_from()`] whenever `T:Clone`
+    ///
+    /// This allows us to have `Clone` `impl`s that only require `T:Clone` and no bounds on
+    /// the underlying storage object.
     fn clone_from_storage(&mut self, other: &Self) where T:Clone;
 
 
 }
 
+///
+/// A [`Storage`] type that contains [`MaybeUninit<T>`] elements.
+///
+/// This allows us to follow the  [`std::mem::MaybeUninit`] design when constructing the algebraic
+/// structs and still have access to individual elements of the buffer
 pub unsafe trait UninitStorage<T>: Storage<MaybeUninit<T>> {
+    /// The initialized storage that we can trasmute this type into
     type Init: Storage<T,Uninit=Self>;
+
+    ///
+    /// Transmutes this buffer into one assumed to be initialized
+    ///
+    /// # Safety
+    /// Should follow all design considerations of [`MaybeUninit::assume_init()`]
     unsafe fn assume_init(self) -> Self::Init;
 }
 
+/// A [`Storage`] type that can contain a [`Blade`] of the given dimension and grade
 pub unsafe trait BladeStorage<T,N:Dim,G:Dim>: Storage<T> {
 
+    ///The dimension of `Blade` being stored. Can vary when using a [`Dynamic`] dimension
     fn dim(&self) -> N;
+
+    ///The dimension of `Blade` being stored. Can vary when using a [`Dynamic`] grade
     fn grade(&self) -> G;
 
+    ///Allocates a buffer to contain a `Blade` of the given dimension and grade
     fn uninit(n:N, g:G) -> Self::Uninit;
+
+    ///Allocates and initializes a buffer to contain a `Blade` of the given dimension and grade
     fn from_iterator<I:IntoIterator<Item=T>>(n:N, g:G, iter: I) -> Self;
 
 }
 
+/// A [`Storage`] type that can contain an [`Even`] of the given dimension
 pub unsafe trait EvenStorage<T,N:Dim>: Storage<T> {
+
+    ///The dimension of `Even` being stored. Can vary when using a [`Dynamic`] dimension
     fn dim(&self) -> N;
+
+    ///Allocates a buffer to contain a `Even` of the given dimension
     fn uninit(n:N) -> Self::Uninit;
+
+    ///Allocates and initializes a buffer to contain a `Even` of the given dimension
     fn from_iterator<I:IntoIterator<Item=T>>(n:N, iter: I) -> Self;
 }
 
+/// A [`Storage`] type that can contain an [`Odd`] of the given dimension
 pub unsafe trait OddStorage<T,N:Dim>: Storage<T> {
+
+    ///The dimension of `Odd` being stored. Can vary when using a [`Dynamic`] dimension
     fn dim(&self) -> N;
+
+    ///Allocates a buffer to contain a `Odd` of the given dimension
     fn uninit(n:N) -> Self::Uninit;
+
+    ///Allocates and initializes a buffer to contain a `Odd` of the given dimension
     fn from_iterator<I:IntoIterator<Item=T>>(n:N, iter: I) -> Self;
 }
 
+/// A [`Storage`] type that can contain a [`Multivector`] of the given dimension
 pub unsafe trait MultivectorStorage<T,N:Dim>: Storage<T> {
+
+    ///The dimension of `Multivector` being stored. Can vary when using a [`Dynamic`] dimension
     fn dim(&self) -> N;
+
+    ///Allocates a buffer to contain a `Multivector` of the given dimension
     fn uninit(n:N) -> Self::Uninit;
+
+    ///Allocates and initializes a buffer to contain a `Multivector` of the given dimension
     fn from_iterator<I:IntoIterator<Item=T>>(n:N, iter: I) -> Self;
 }
+
+//
+//Statically sized arrays
+//
 
 unsafe impl<T, const L: usize> Storage<T> for [T;L] {
     type Uninit = [MaybeUninit<T>; L];
@@ -79,8 +157,14 @@ unsafe impl<T, const L: usize> UninitStorage<T> for [MaybeUninit<T>;L] {
     }
 }
 
+//
+// Dynamic storage
+//
+
 #[inline(always)]
 fn vec_uninit<T>(count:usize) -> Vec<MaybeUninit<T>> {
+    //Ideally, there'd be a built-in function for this, but it *does* work within the guarrantees
+    //made by a Vec, so we're gonna do it anyway!
     let mut vec = Vec::with_capacity(count);
     unsafe { vec.set_len(count) };
     vec
@@ -95,6 +179,8 @@ fn vec_from_iter<T,I:IntoIterator<Item=T>>(count:usize, iter: I, kind:&str) -> V
     vec
 }
 
+/// Storage buffer for a [`Blade`] that can use a
+/// [`Dynamic`] dim to vary its size at runtime
 #[derive(Clone)]
 pub struct DynBladeStorage<T,N:Dim,G:Dim> {
     data: Vec<T>,
@@ -102,18 +188,24 @@ pub struct DynBladeStorage<T,N:Dim,G:Dim> {
     grade: G
 }
 
+/// Storage buffer for an [`Even`] that can use a
+/// [`Dynamic`] dim to vary its size at runtime
 #[derive(Clone)]
 pub struct DynEvenStorage<T,N:Dim> {
     data: Vec<T>,
     dim: N
 }
 
+/// Storage buffer for an [`Odd`] that can use a
+/// [`Dynamic`] dim to vary its size at runtime
 #[derive(Clone)]
 pub struct DynOddStorage<T,N:Dim> {
     data: Vec<T>,
     dim: N
 }
 
+/// Storage buffer for a [`Multivector`] that can use a
+/// [`Dynamic`] dim to vary its size at runtime
 #[derive(Clone)]
 pub struct DynMultivectorStorage<T,N:Dim> {
     data: Vec<T>,
@@ -274,11 +366,6 @@ unsafe impl<T,N:Dim> UninitStorage<T> for DynMultivectorStorage<MaybeUninit<T>,N
         DynMultivectorStorage { data: transmute(self.data), dim: self.dim }
     }
 
-}
-
-#[inline(always)]
-fn multivector_elements(n:usize) -> usize {
-    2_usize.pow(n.try_into().unwrap())
 }
 
 unsafe impl<T,N:Dim> MultivectorStorage<T,N> for DynMultivectorStorage<T,N> {

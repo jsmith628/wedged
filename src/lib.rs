@@ -12,7 +12,6 @@ extern crate approx;
 extern crate num_traits;
 extern crate nalgebra as na;
 
-//TODO: add impls for Wrapping<T> and Saturating<T>
 macro_rules! impl_forward_scalar_binops {
     (
         @impl
@@ -134,6 +133,7 @@ macro_rules! impl_eq {
 
 }
 
+//implements Sum and/or Product using fold()
 macro_rules! impl_fold {
     (
         impl<T:$Alloc2:ident,U:$Alloc1:ident,$($N:ident),*>
