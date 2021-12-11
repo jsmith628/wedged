@@ -17,7 +17,7 @@ use std::iter::IntoIterator;
 
 use num_traits::{Zero, One};
 
-use na::{ComplexField, RealField};
+use na::{ComplexField, /*RealField*/};
 use approx::{AbsDiffEq, RelativeEq, UlpsEq};
 
 use crate::base::storage::*;
@@ -62,7 +62,7 @@ pub use self::common::*;
 pub use self::involute::*;
 pub use self::ops::*;
 pub use self::mul::*;
-pub use self::exp::*;
+// pub use self::exp::*;
 pub use self::dual::*;
 pub use self::dim_cast::*;
 pub use self::grade_cast::*;
@@ -74,7 +74,7 @@ mod common;
 mod involute;
 mod ops;
 mod mul;
-mod exp;
+// mod exp;
 mod dual;
 mod dim_cast;
 mod grade_cast;
