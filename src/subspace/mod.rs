@@ -1,7 +1,7 @@
 
 use std::borrow::{Borrow, BorrowMut};
 use std::convert::{AsRef, AsMut};
-use std::iter::{IntoIterator, FromIterator};
+use std::iter::{IntoIterator, FromIterator, Sum, Product};
 use std::cmp::{PartialEq, Eq};
 use std::hash::Hash;
 use std::ops::{

@@ -134,6 +134,69 @@ macro_rules! impl_eq {
 
 }
 
+macro_rules! impl_fold {
+    (
+        impl<T:$Alloc2:ident,U:$Alloc1:ident,$($N:ident),*>
+        $Op:ident<$Ty2:ident<T,$($N2:ident),*>>.$op:ident() for $Ty1:ident<U,$($N1:ident),*>
+        with $Op2:ident.$op2:ident(), $Id:ident.$id:ident()
+        ; $($a:lifetime)? $(where $($tt:tt)*)?
+    ) => {
+
+        //
+        // There were a couple options for how to do this.
+        // One was to use Add and Mul with fold, and the other would be to split the
+        // iterator by index, use Sum, and recombine. Theoretically, there could be benefits to
+        // the latter in efficiency with more complex types and in correctness. But the added
+        // implementation and API complexity didn't quite seem worth it for probably only a very
+        // minor gain
+        //
+
+        impl<$($a,)? T,U,$($N:Dim),*> $Op<$(&$a)? $Ty2<T,$($N2),*>> for $Ty1<U,$($N1),*>
+        where
+            T: $Alloc2<$($N2),*>,
+            U: $Alloc1<$($N1),*>,
+            $Ty1<U,$($N1),*>: $Op2<$(&$a)? $Ty2<T,$($N2),*>, Output=$Ty1<U,$($N1),*>> + $Id
+            $(, $($tt)*)?
+        {
+            fn $op<I>(i:I) -> $Ty1<U,$($N1),*> where I: Iterator<Item=$(&$a)? $Ty2<T,$($N2),*>> {
+                i.fold($Id::$id(), |c,x| c.$op2(x))
+            }
+        }
+
+    };
+
+    (
+        impl<T:$Alloc1:ident,U:$Alloc2:ident,$($N:ident),*>
+        Sum<$Ty2:ident<T,$($N2:ident),*>> for $Ty1:ident<U,$($N1:ident),*>
+        $(where $($tt:tt)*)?
+    ) => {
+        impl_fold!(
+            impl<T:$Alloc1,U:$Alloc2,$($N),*> Sum<$Ty2<T,$($N2),*>>.sum() for $Ty1<U,$($N1),*>
+            with Add.add(), Zero.zero() ; $(where $($tt)*)?
+        );
+        impl_fold!(
+            impl<T:$Alloc1,U:$Alloc2,$($N),*> Sum<$Ty2<T,$($N2),*>>.sum() for $Ty1<U,$($N1),*>
+            with Add.add(), Zero.zero() ; 'a $(where $($tt)*)?
+        );
+    };
+
+    (
+        impl<T:$Alloc1:ident,U:$Alloc2:ident,$($N:ident),*>
+        Product<$Ty2:ident<T,$($N2:ident),*>> for $Ty1:ident<U,$($N1:ident),*>
+        $(where $($tt:tt)*)?
+    ) => {
+        impl_fold!(
+            impl<T:$Alloc1,U:$Alloc2,$($N),*> Product<$Ty2<T,$($N2),*>>.product() for $Ty1<U,$($N1),*>
+            with Mul.mul(), One.one() ; $(where $($tt)*)?
+        );
+        impl_fold!(
+            impl<T:$Alloc1,U:$Alloc2,$($N),*> Product<$Ty2<T,$($N2),*>>.product() for $Ty1<U,$($N1),*>
+            with Mul.mul(), One.one() ; 'a $(where $($tt)*)?
+        );
+    };
+
+}
+
 #[cfg(test)]
 macro_rules! dim_name_test_loop {
     (@run ; $callback:ident) => {};

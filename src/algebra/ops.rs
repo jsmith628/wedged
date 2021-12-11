@@ -247,7 +247,18 @@ impl_binops!(impl<T:AllocEven,N> for Even);
 impl_binops!(impl<T:AllocOdd,N> for Odd);
 impl_binops!(impl<T:AllocMultivector,N> for Multivector);
 
-//TODO do Sum
+//
+//Sum and Product
+//
+
+impl_fold!(impl<T:AllocBlade,U:AllocBlade,N,G> Sum<Blade<T,N,G>> for Blade<U,N,G>);
+impl_fold!(impl<T:AllocEven,U:AllocEven,N> Sum<Even<T,N>> for Even<U,N>);
+impl_fold!(impl<T:AllocOdd,U:AllocOdd,N> Sum<Odd<T,N>> for Odd<U,N>);
+impl_fold!(impl<T:AllocMultivector,U:AllocMultivector,N> Sum<Multivector<T,N>> for Multivector<U,N>);
+
+impl_fold!(impl<T:AllocEven,U:AllocEven,N> Product<Even<T,N>> for Even<U,N>);
+impl_fold!(impl<T:AllocBlade,U:AllocMultivector,N,G> Product<Blade<T,N,G>> for Multivector<U,N>);
+impl_fold!(impl<T:AllocMultivector,U:AllocMultivector,N> Product<Multivector<T,N>> for Multivector<U,N>);
 
 //
 //Zero

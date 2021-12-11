@@ -589,3 +589,17 @@ impl<T:AllocVersor<N>+AddGroup+Mul<Output=T>+AllRefMul<T,AllOutput=T>+One+Partia
     }
 
 }
+
+//
+// Iterator Ops
+//
+
+//only SimpleBlade can be summed
+//(note that we don't need the MutSimpleBlade bound since it's implicit when it checks for Add)
+impl_fold!(impl<T:AllocBlade,U:AllocBlade,N,G> Sum<SimpleBlade<T,N,G>> for SimpleBlade<U,N,G>);
+
+impl_fold!(impl<T:AllocEven,U:AllocEven,N> Product<Rotor<T,N>> for Rotor<U,N>);
+impl_fold!(impl<T:AllocBlade,U:AllocVersor,N,G> Product<UnitBlade<T,N,G>> for Versor<U,N>);
+impl_fold!(impl<T:AllocEven,U:AllocVersor,N> Product<Rotor<T,N>> for Versor<U,N>);
+impl_fold!(impl<T:AllocOdd,U:AllocVersor,N> Product<Reflector<T,N>> for Versor<U,N>);
+impl_fold!(impl<T:AllocVersor,U:AllocVersor,N> Product<Versor<T,N>> for Versor<U,N>);
