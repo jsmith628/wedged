@@ -22,10 +22,7 @@ use approx::{AbsDiffEq, RelativeEq, UlpsEq};
 
 use crate::base::storage::*;
 use crate::base::alloc::*;
-use crate::base::dim::{
-    Dim, DimName, DimAdd, DimSum, DimSub, DimDiff, DimNameDiff, DimSymSub, DimSymDiff,
-    Dynamic, U0, U1, U2, U3, U4, U5, U6
-};
+use crate::base::dim::*;
 
 use crate::basis_blade::BasisBlade;
 use crate::base::ops::{RefAdd, RefSub, RefMul, RefDiv, RefNeg, AllRefMul, Scale, InvScale, AddGroup};

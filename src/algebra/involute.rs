@@ -57,7 +57,7 @@ impl<T:AllocBlade<N,G>, N:Dim, G:Dim> Blade<T,N,G> {
     ///
     /// The reverse function is useful as this effectively does the multiplicative inverse of each
     /// basis element. This way, for simple blades, `b * b.reverse() == b.norm_sqrd()` and for
-    /// unit simple blades, this is the same as computing the [inverse](Blade::inverse())
+    /// unit simple blades, this is the same as computing the inverse
     ///
     pub fn reverse(self) -> Self where T: Neg<Output=T> {
         if (self.grade() & 0b10) != 0 { -self } else { self }
@@ -109,7 +109,7 @@ impl<T:AllocEven<N>, N:Dim> Even<T,N> {
     ///
     /// The reverse function is useful as this effectively finds the multiplicative inverse of each
     /// basis element. This way, for invertible versers, `r * r.reverse() == r.norm_sqrd()` and for
-    /// unit invertible versers, this is the same as computing the [inverse](Even::inverse())
+    /// unit invertible versers, this is the same as computing the inverse
     ///
     /// Furthermore, for invertible rotors, this operation inverts the rotational action of this
     /// rotor without affecting the scaling action.
@@ -145,7 +145,7 @@ impl<T:AllocOdd<N>, N:Dim> Odd<T,N> {
     ///
     /// The reverse function is useful as this effectively finds the multiplicative inverse of each
     /// basis element. This way, for invertible versers, `r * r.reverse() == r.norm_sqrd()` and for
-    /// unit invertible versers, this is the same as computing the [inverse](Even::inverse())
+    /// unit invertible versers, this is the same as computing the inverse
     ///
     pub fn reverse(self) -> Self where T: Neg<Output=T> {
         let n = self.dim();
