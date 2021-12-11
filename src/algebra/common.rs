@@ -296,6 +296,18 @@ macro_rules! impl_basic_traits {
             fn into_iter(self) -> Self::IntoIter { self.iter_mut() }
         }
 
+        impl<T:$Alloc<$($N),*>, $($N:DimName),*> FromIterator<T> for $Ty<T,$($N),*> {
+            fn from_iter<I:IntoIterator<Item=T>>(iter: I) -> $Ty<T,$($N),*> {
+                Self::from_iterator(iter.into_iter())
+            }
+        }
+
+        impl<T:$Alloc<$($N),*>+Default, $($N:DimName),*> Default for $Ty<T,$($N),*> {
+            fn default() -> $Ty<T,$($N),*> {
+                Self::from_iterator(std::iter::repeat_with(|| T::default()))
+            }
+        }
+
         impl<T:$Alloc<$($N),*>+Debug, $($N:Dim),*> Debug for $Ty<T,$($N),*> {
             fn fmt(&self, f: &mut Formatter) -> FmtResult {
                 Debug::fmt(self.as_slice(), f)

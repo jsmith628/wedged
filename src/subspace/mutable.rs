@@ -71,6 +71,14 @@ impl<'a,T:AllocBlade<N,G>,N:Dim,G:Dim> IntoIterator for &'a mut SimpleBlade<T,N,
     fn into_iter(self) -> IterMut<'a,T> { (&mut self.data).into_iter() }
 }
 
+impl<T:AllocBlade<N,G>,N:DimName,G:DimName> FromIterator<T> for SimpleBlade<T,N,G> where Self:MutSimpleBlade {
+    fn from_iter<I:IntoIterator<Item=T>>(i:I) -> SimpleBlade<T,N,G> { Self::from(Blade::from_iter(i)) }
+}
+
+impl<T:AllocBlade<N,G>+Default,N:DimName,G:DimName> Default for SimpleBlade<T,N,G> where Self:MutSimpleBlade {
+    fn default() -> SimpleBlade<T,N,G> { Self::from(Blade::default()) }
+}
+
 impl<T:AllocBlade<N,G>,N:Dim,G:Dim> From<Blade<T,N,G>> for SimpleBlade<T,N,G> where Self:MutSimpleBlade {
     fn from(x: Blade<T,N,G>) -> SimpleBlade<T,N,G> { Self { data: x } }
 }

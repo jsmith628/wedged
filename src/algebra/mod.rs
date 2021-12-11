@@ -13,7 +13,7 @@ use std::ops::{
     Add, AddAssign, Sub, SubAssign, Neg,
     Mul, MulAssign, Div, DivAssign, BitXor, Rem
 };
-use std::iter::IntoIterator;
+use std::iter::{IntoIterator, FromIterator};
 
 use num_traits::{Zero, One};
 
