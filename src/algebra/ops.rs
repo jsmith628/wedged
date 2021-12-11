@@ -31,6 +31,92 @@ impl_index!(impl<T:AllocOdd, N> Index for Odd {});
 impl_index!(impl<T:AllocMultivector, N> Index for Multivector {});
 
 //
+//Fn calls
+//
+
+//This is probably stupid and will not get used... but it's cool anyway!
+#[cfg(feature = "fn_traits")]
+mod fn_impl {
+
+    use super::*;
+
+    macro_rules! impl_fn {
+        (impl<T:$Alloc:ident, $($N:ident),*> Fn for $Ty:ident {}) => {
+
+            impl<T:$Alloc<$($N),*>, U:$Alloc<$($N),*>, $($N:Dim,)* Args> FnOnce<Args> for $Ty<T,$($N),*> where
+                T: FnOnce<Args, Output=U>,
+                Args: Clone
+            {
+                type Output = $Ty<U,$($N),*>;
+                extern "rust-call" fn call_once(self, args: Args) -> $Ty<U,$($N),*> {
+                    #[allow(non_snake_case, unused_parens)]
+                    let ($($N),*) = self.shape();
+                    $Ty::from_iter_generic(
+                        $($N,)* self.into_iter().map(|f| f.call_once(args.clone()))
+                    )
+                }
+            }
+
+            impl<T:$Alloc<$($N),*>, U:$Alloc<$($N),*>, $($N:Dim,)* Args> FnMut<Args> for $Ty<T,$($N),*> where
+                T: FnMut<Args, Output=U>,
+                Args: Clone
+            {
+                extern "rust-call" fn call_mut(&mut self, args: Args) -> $Ty<U,$($N),*> {
+                    #[allow(non_snake_case, unused_parens)]
+                    let ($($N),*) = self.shape();
+                    $Ty::from_iter_generic(
+                        $($N,)* self.iter_mut().map(|f| f.call_mut(args.clone()))
+                    )
+                }
+            }
+
+            impl<T:$Alloc<$($N),*>, U:$Alloc<$($N),*>, $($N:Dim,)* Args> Fn<Args> for $Ty<T,$($N),*> where
+                T: Fn<Args, Output=U>,
+                Args: Clone
+            {
+                extern "rust-call" fn call(&self, args: Args) -> $Ty<U,$($N),*> {
+                    #[allow(non_snake_case, unused_parens)]
+                    let ($($N),*) = self.shape();
+                    $Ty::from_iter_generic(
+                        $($N,)* self.iter().map(|f| f.call(args.clone()))
+                    )
+                }
+            }
+
+        }
+    }
+
+    impl_fn!(impl<T:AllocBlade, N, G> Fn for Blade {});
+    impl_fn!(impl<T:AllocEven, N> Fn for Even {});
+    impl_fn!(impl<T:AllocOdd, N> Fn for Odd {});
+    impl_fn!(impl<T:AllocMultivector, N> Fn for Multivector {});
+
+    #[cfg(test)]
+    mod tests {
+        use super::*;
+
+        #[test]
+        fn circle_path() {
+
+            //have to use a dyn type because every function (including closures) is a seperate type
+            type F<'a> = &'a dyn Fn(f64) -> f64;
+
+            let circle = Vec2::<F>::new(&f64::cos, &f64::sin);
+
+            for i in 0..360 {
+                let t = i as f64 * 2.0*std::f64::consts::PI / 360.0;
+                assert_eq!(circle(t), Vec2::new(t.cos(), t.sin()))
+            }
+
+
+
+        }
+
+    }
+
+}
+
+//
 //Addition and Subtraction
 //
 

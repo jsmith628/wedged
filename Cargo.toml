@@ -12,3 +12,6 @@ approx = "^0.5"
 
 [dev-dependencies]
 rayon = "^1.5"
+
+[features]
+fn_traits = []

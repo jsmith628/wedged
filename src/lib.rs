@@ -1,5 +1,7 @@
 #![cfg_attr(test, allow(soft_unstable))]
 #![cfg_attr(test, feature(test))]
+#![cfg_attr(feature = "fn_traits", feature(fn_traits, unboxed_closures))]
+
 
 #[cfg(test)] extern crate test;
 
