@@ -64,30 +64,35 @@ pub const fn binom(n:usize, k:usize) -> usize {
     (n-k+1) * binom(n, k-1) / k
 }
 
-//TODO maybe make these private
-
+/// The number of elements in the even subalgebra of the given dimension
+/// This is equivalent to `2^(n-1)`, except for `n==1` where it returns `1`
 pub const fn even_elements(n:usize) -> usize {
     if n==0 { 1 } else { 1 << (n-1) /*2^(n-1)*/ }
 }
 
+/// The number of elements in the odd components of dimension `n`.
+/// This is equivalent to `2^(n-1)`, except for `n==0` where it returns `0`
 pub const fn odd_elements(n:usize) -> usize {
     if n==0 { 0 } else { 1 << (n-1) /*2^(n-1)*/ }
 }
 
+/// The number of elements in the clifford algebra of dimension `n`.
+/// This is equivalent to `2^n` for all `n`
 pub const fn multivector_elements(n:usize) -> usize {
     1 << n
 }
 
+///Computes the index of the first grade `g` element in a versor of dimension `n`
 pub const fn grade_index_in_versor(n:usize, g:usize) -> usize {
     if g<=1 { return 0; }
     binom(n, g-2) + grade_index_in_versor(n, g-2)
 }
 
+///Computes the index of the first grade `g` element in a multivector of dimension `n`
 pub const fn grade_index_in_multivector(n:usize, g:usize) -> usize {
     if g==0 { return 0; }
     binom(n, g-1) + grade_index_in_multivector(n, g-1)
 }
-
 
 ///
 /// Iterates over the number of elements of each blade in the given dimension
