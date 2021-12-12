@@ -30,46 +30,46 @@ pub unsafe trait Alloc<M> {
 
 }
 
-pub unsafe trait AllocBlade<N:Dim,G:Dim>: Sized {
+pub trait AllocBlade<N:Dim,G:Dim>: Sized {
     type Buffer: BladeStorage<Self,N,G>;
 }
 
-pub unsafe trait AllocEven<N:Dim>: Sized {
+pub trait AllocEven<N:Dim>: Sized {
     type Buffer: EvenStorage<Self,N>;
 }
 
-pub unsafe trait AllocOdd<N:Dim>: Sized {
+pub trait AllocOdd<N:Dim>: Sized {
     type Buffer: OddStorage<Self,N>;
 }
 
-pub unsafe trait AllocVersor<N:Dim>: AllocEven<N> + AllocOdd<N> {}
-unsafe impl<T:AllocEven<N>+AllocOdd<N>, N:Dim> AllocVersor<N> for T {}
+pub trait AllocVersor<N:Dim>: AllocEven<N> + AllocOdd<N> {}
+impl<T:AllocEven<N>+AllocOdd<N>, N:Dim> AllocVersor<N> for T {}
 
-pub unsafe trait AllocMultivector<N:Dim>: Sized {
+pub trait AllocMultivector<N:Dim>: Sized {
     type Buffer: MultivectorStorage<Self,N>;
 }
 
-unsafe impl<T, const N: usize> AllocBlade<Const<N>, Dynamic> for T {
+impl<T, const N: usize> AllocBlade<Const<N>, Dynamic> for T {
     type Buffer = DynBladeStorage<T, Const<N>, Dynamic>;
 }
 
-unsafe impl<T, const G: usize> AllocBlade<Dynamic, Const<G>> for T {
+impl<T, const G: usize> AllocBlade<Dynamic, Const<G>> for T {
     type Buffer = DynBladeStorage<T, Dynamic, Const<G>>;
 }
 
-unsafe impl<T> AllocBlade<Dynamic, Dynamic> for T {
+impl<T> AllocBlade<Dynamic, Dynamic> for T {
     type Buffer = DynBladeStorage<T, Dynamic, Dynamic>;
 }
 
-unsafe impl<T> AllocEven<Dynamic> for T {
+impl<T> AllocEven<Dynamic> for T {
     type Buffer = DynEvenStorage<T, Dynamic>;
 }
 
-unsafe impl<T> AllocOdd<Dynamic> for T {
+impl<T> AllocOdd<Dynamic> for T {
     type Buffer = DynOddStorage<T, Dynamic>;
 }
 
-unsafe impl<T> AllocMultivector<Dynamic> for T {
+impl<T> AllocMultivector<Dynamic> for T {
     type Buffer = DynMultivectorStorage<T, Dynamic>;
 }
 
@@ -131,7 +131,7 @@ macro_rules! impl_alloc{
     };
 
     ($N:literal @impl) => {
-        unsafe impl<T> AllocEven<Const<$N>> for T {
+        impl<T> AllocEven<Const<$N>> for T {
             type Buffer = [T; even_elements($N)];
         }
 
@@ -143,7 +143,7 @@ macro_rules! impl_alloc{
             }
         }
 
-        unsafe impl<T> AllocOdd<Const<$N>> for T {
+        impl<T> AllocOdd<Const<$N>> for T {
             type Buffer = [T; odd_elements($N)];
         }
 
@@ -155,7 +155,7 @@ macro_rules! impl_alloc{
             }
         }
 
-        unsafe impl<T> AllocMultivector<Const<$N>> for T {
+        impl<T> AllocMultivector<Const<$N>> for T {
             type Buffer = [T; 2usize.pow($N)];
         }
 
@@ -171,7 +171,7 @@ macro_rules! impl_alloc{
 
     (; $($_G:literal)*; @impl $(($N:literal, $G:literal))*) => {
         $(
-            unsafe impl<T> AllocBlade<Const<$N>, Const<$G>> for T {
+            impl<T> AllocBlade<Const<$N>, Const<$G>> for T {
                 type Buffer = [T; binom($N, $G)];
             }
 
