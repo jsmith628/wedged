@@ -1,50 +1,113 @@
+//!
+//! Traits for selecting types to store the internal data of the algebraic structs
+//!
+//! Ideally, this would be done using entirely `const` generics, but this is impossible for a
+//! couple reasons:
+//! 1. Unlike for simple vectors and matrices, the number of elements in blades, evens, etc
+//!    is not simply the dimension or grade but instead a more involved function of them. Hence,
+//!    since `const` expressions using generics aren't currently allowed in array sizes, we
+//!    cannot use them to construct the backing array.
+//! 2. We need to *also* support non-array storage for [`Dynamic`] dimensions and grades
+//!
+//! Instead, we use a trait based system with associated types to select what the backing buffer
+//! should be.
+//!
+//! The core of this system are the [`AllocBlade<N,G>`], [`AllocEven<N>`], [`AllocOdd<N>`], and
+//! [`AllocMultivector<N>`]. These are all given blanket `impl`s on all types with the generics `N`
+//! and `G` filled in with every supported combination of dimension and grade.
+//! Then, order retrieve the type used for storage in a particular algebraic struct, we can
+//! use the corresponding `Alloc*` trait and use the `Buffer` associated type. And whenever
+//! using a generic dimension or grade on an algebraic struct, we can just add an `Alloc*` bound
+//! to the scalar in order to test support for that particular dimension/grade combination
+//!
+//! At the moment, only dimensions and grades up to 16 are supported for static array-based
+//! allocation. This is due both to limitations of this system *and* out of practical considerations
+//! regarding the amount of memory used by the structures in high numbers of dimensions.
+//! (`f32` Multivectors in 16D already use ~**260MB**!!) However,
+//! if a high number of dimensions are required, using a [`Dynamic`] dimension or grade will allow
+//! that number of dimensions to be used, just using the heap instead
+//!
+//!
 
 use std::mem::MaybeUninit;
 use std::iter::Iterator;
 
-use na::dimension::{Dim, Const, Dynamic};
-
 use crate::base::storage::*;
 use crate::base::count::*;
+use crate::base::dim::{Dim, Const, Dynamic};
 
+#[cfg(doc)] use crate::algebra::*;
+
+/// Implements [`Alloc`] and makes the default choise for what storage types to use
 pub struct DefaultAllocator;
 
+/// The storage type to use for `M`
 pub type Allocate<M> = <DefaultAllocator as Alloc<M>>::Buffer;
 
+/// The backing buffer type for a [`Blade`] with scalar `T`, dimension `N`, and grade `G`
 pub type AllocateBlade<T,N,G> = <T as AllocBlade<N,G>>::Buffer;
+
+/// The backing buffer type for an [`Even`] with scalar `T` and dimension `N`
 pub type AllocateEven<T,N> = <T as AllocEven<N>>::Buffer;
+
+/// The backing buffer type for an [`Odd`] with scalar `T` and dimension `N`
 pub type AllocateOdd<T,N> = <T as AllocOdd<N>>::Buffer;
+
+/// The backing buffer type for a [`Multivector`] with scalar `T` and dimension `N`
 pub type AllocateMultivector<T,N> = <T as AllocMultivector<N>>::Buffer;
 
+///
+/// Picks the buffer type to use for the generic type `M` and provides extra helper methods
+///
+/// This trait serves two purposes:
+/// 1. Unifies the different algebraic systems into one trait to make some of the code more consistent
+/// 2. Can be implemented on multiple structs to represent different systems of allocating backing
+///   buffers. At the moment, the only one of these is [`DefaultAllocator`], but more might be added
+///   in the future
+///
 pub unsafe trait Alloc<M> {
 
+    ///The type to store in the backing buffer
     type Scalar: Sized;
+
+    ///A type representing the dimension and/or grade of this structure
     type Shape: Copy;
 
+    ///The type to store the data in
     type Buffer: Storage<Self::Scalar, Uninit=Self::Uninit>;
+
+    ///The type to store uninitialized data in
     type Uninit: UninitStorage<Self::Scalar, Init=Self::Buffer>;
 
+    ///Returns the dimension and potentially grade depending on what type `M` is
     fn shape(this: &M) -> Self::Shape;
+    ///Makes an uninitialized buffer
     fn uninit(shape: Self::Shape) -> Self::Uninit;
+    ///Creates an `M` from an uninitialized buffer assuming it is initialized
     unsafe fn assume_init(uninit: Self::Uninit) -> M;
 
 }
 
+///Picks the buffer to use for a [`Blade`] of dimension `N`, grade `G`, and using `Self` as the scalar
 pub trait AllocBlade<N:Dim,G:Dim>: Sized {
     type Buffer: BladeStorage<Self,N,G>;
 }
 
+///Picks the buffer to use for an [`Even`] of dimension `N`, grade `G`, and using `Self` as the scalar
 pub trait AllocEven<N:Dim>: Sized {
     type Buffer: EvenStorage<Self,N>;
 }
 
+///Picks the buffer to use for an [`Odd`] of dimension `N`, grade `G`, and using `Self` as the scalar
 pub trait AllocOdd<N:Dim>: Sized {
     type Buffer: OddStorage<Self,N>;
 }
 
+///A marker trait for when a dimension `N` is supported for both [`Even`]s and [`Odd`]s
 pub trait AllocVersor<N:Dim>: AllocEven<N> + AllocOdd<N> {}
 impl<T:AllocEven<N>+AllocOdd<N>, N:Dim> AllocVersor<N> for T {}
 
+///Picks the buffer to use for an [`Multivector`] of dimension `N`, grade `G`, and using `Self` as the scalar
 pub trait AllocMultivector<N:Dim>: Sized {
     type Buffer: MultivectorStorage<Self,N>;
 }
@@ -85,7 +148,7 @@ fn uninit_array<T, const L: usize>() -> [MaybeUninit<T>; L] {
 #[inline(always)]
 fn array_from_iter<T, I: IntoIterator<Item=T>, const L: usize>(iter:I, kind:&str) -> [T;L] {
     //TODO: use `MaybeUninit::uninit_array()` when stabilized
-    let mut uninit: [MaybeUninit<T>;L] = unsafe {MaybeUninit::uninit().assume_init()};
+    let mut uninit: [MaybeUninit<T>;L] = uninit_array();
 
     //fill the array and count how many spaces we actually fill
     let mut count = 0;
@@ -111,6 +174,7 @@ macro_rules! impl_alloc{
 
     };
 
+    //reuse the macro loop to produce tests for the given dimension
     ($N:literal @tests) => {
         assert_eq!(
             std::mem::size_of::<AllocateEven<f32, Const<$N>>>(),
@@ -189,6 +253,7 @@ macro_rules! impl_alloc{
         )*
     };
 
+    //reuse the macro loop to produce tests for the given dimension and grade
     (; $($_G:literal)*; @tests $(($N:literal, $G:literal))*) => {
         $(
             assert_eq!(
