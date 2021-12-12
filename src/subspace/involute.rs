@@ -8,14 +8,14 @@ macro_rules! wrap_involute {
         pub fn involute(self) -> Self { Self { data: self.data.involute() } }
 
         pub fn inverse($self) -> Self
-        $(where T: $ref_mul<T,AllOutput=T>+AddMonoid+Div<T,Output=T>)?
+        $(where T: $ref_mul)?
         { $inv }
 
     }
 }
 
 impl<T:AllocBlade<N,G>+Neg<Output=T>, N:Dim, G:Dim> SimpleBlade<T,N,G> {
-    wrap_involute!(AllRefMul |self| {let l=self.norm_sqrd(); self.reverse() / l} );
+    wrap_involute!(RefComplexField |self| {let l=self.norm_sqrd(); self.reverse() / l} );
 }
 
 impl<T:AllocBlade<N,G>+Neg<Output=T>, N:Dim, G:Dim> UnitBlade<T,N,G> { wrap_involute!(|self| self.reverse()); }

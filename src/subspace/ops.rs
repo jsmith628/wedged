@@ -235,7 +235,7 @@ macro_rules! impl_inv {
     };
 }
 
-impl_inv!(impl<T:AllocBlade,N,G> Inv for SimpleBlade where T:AllRefMul<T,AllOutput=T>+Div<T,Output=T>+AddMonoid);
+impl_inv!(impl<T:AllocBlade,N,G> Inv for SimpleBlade where T:RefComplexField);
 impl_inv!(impl<T:AllocBlade,N,G> Inv for UnitBlade);
 impl_inv!(impl<T:AllocEven,N> Inv for Rotor);
 impl_inv!(impl<T:AllocOdd,N> Inv for Reflector);
