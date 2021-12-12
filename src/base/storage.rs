@@ -18,7 +18,7 @@ use std::mem::{MaybeUninit, transmute, transmute_copy};
 #[cfg(doc)] use crate::base::alloc::*;
 #[cfg(doc)] use crate::algebra::*;
 
-use crate::base::count::*;
+use crate::base::*;
 
 use na::dimension::{Dim};
 

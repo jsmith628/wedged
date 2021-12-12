@@ -11,7 +11,7 @@
 /// # Examples
 ///
 ///```
-/// # use galgebra::base::count::binom;
+/// # use galgebra::base::binom;
 ///
 /// //The first three rows of Pascal's triangle
 ///
@@ -94,7 +94,7 @@ pub const fn grade_index_in_multivector(n:usize, g:usize) -> usize {
 ///
 /// # Examples
 /// ```
-/// # use galgebra::base::count::components_of;
+/// # use galgebra::base::components_of;
 ///
 /// assert_eq!(components_of(0).collect::<Vec<_>>(), vec![1]);
 /// assert_eq!(components_of(1).collect::<Vec<_>>(), vec![1, 1]);
@@ -123,7 +123,7 @@ pub fn components_of(n: usize) -> impl std::iter::Iterator<Item=usize> {
 ///
 /// # Examples
 /// ```
-/// # use galgebra::base::count::even_components_of;
+/// # use galgebra::base::even_components_of;
 ///
 /// assert_eq!(even_components_of(0).collect::<Vec<_>>(), vec![1]);
 /// assert_eq!(even_components_of(1).collect::<Vec<_>>(), vec![1]);
@@ -144,7 +144,7 @@ pub fn even_components_of(n: usize) -> impl std::iter::Iterator<Item=usize> {
 ///
 /// # Examples
 /// ```
-/// # use galgebra::base::count::odd_components_of;
+/// # use galgebra::base::odd_components_of;
 ///
 /// assert_eq!(odd_components_of(0).collect::<Vec<_>>(), vec![]);
 /// assert_eq!(odd_components_of(1).collect::<Vec<_>>(), vec![1]);

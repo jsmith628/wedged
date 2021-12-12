@@ -3,7 +3,7 @@ use num_traits::{One, Inv};
 use std::ops::{Neg, Mul, MulAssign, Div, DivAssign};
 use std::fmt::{Formatter, Debug, Display, Binary, Result as FmtResult, Alignment};
 
-use crate::base::count::*;
+use crate::base::*;
 
 //So we can maybe change it later though there really is no reason it needs any more bits than this
 pub type Bits = i32;

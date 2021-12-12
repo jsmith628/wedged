@@ -33,7 +33,7 @@ use std::mem::MaybeUninit;
 use std::iter::Iterator;
 
 use crate::base::storage::*;
-use crate::base::count::*;
+use crate::base::*;
 use crate::base::dim::{Dim, Const, Dynamic};
 
 #[cfg(doc)] use crate::algebra::*;
