@@ -172,7 +172,7 @@ impl<T:AllocEven<N>, N:Dim> Rotor<T,N> {
     }
 
     pub fn from_scaled_plane(plane: SimpleBiVecN<T, N>) -> Self where
-        T: AllocBlade<N,U2> + AllRefMul<T,AllOutput=T> + for<'a> Div<&'a T, Output=T> + ComplexField + Debug
+        T: AllocBlade<N,U2> + RefComplexField
     {
         let (angle, plane) = plane.norm_and_normalize();
         if angle.is_zero() {
@@ -183,7 +183,7 @@ impl<T:AllocEven<N>, N:Dim> Rotor<T,N> {
     }
 
     pub fn from_plane_angle(plane: UnitBiVecN<T, N>, angle: T) -> Self where
-        T: AllocBlade<N,U2> + AllRefMul<T,AllOutput=T> + ComplexField + Debug
+        T: AllocBlade<N,U2> + RefComplexField
     {
 
         //get both the sine and cosine of the angle
@@ -216,7 +216,7 @@ impl<T:AllocEven<Dynamic>> RotorD<T> {
 
 impl<T:AllocEven<U2>> Rotor2<T> {
     pub fn from_angle(angle:T) -> Self where
-        T: AllocBlade<U2,U2> + AllRefMul<T,AllOutput=T> + ComplexField + Debug
+        T: AllocBlade<U2,U2> + RefComplexField
     {
         Self::from_plane_angle(UnitBiVec2::unit_psuedoscalar(), angle)
     }

@@ -8,7 +8,7 @@ macro_rules! wrap_involute {
         pub fn involute(self) -> Self { Self { data: self.data.involute() } }
 
         pub fn inverse($self) -> Self
-        $(where T: Clone+Zero+Add<Output=T>+$ref_mul<T,AllOutput=T>+Div<T,Output=T>)?
+        $(where T: $ref_mul<T,AllOutput=T>+AddMonoid+Div<T,Output=T>)?
         { $inv }
 
     }

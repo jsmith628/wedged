@@ -4,29 +4,45 @@ use super::*;
 macro_rules! norm_methods {
     () => {
 
+        ///
         /// The sum of squares of each element
+        ///
+        /// Note that this does **not** take into account the conjugate of any
+        /// complex elements. This is by explicit design for two reasons:
+        /// 1. We can relax the [`ComplexField`] requirement and have more possibilies for scalars
+        ///   types (like polynomials!).
+        /// 2. For vectors, this is supposed to be the quadradic form of the underlying Clifford
+        ///   algebra, and `zz̅` is not a valid quadradic form [1]
+        ///
+        /// [1]: https://en.wikipedia.org/wiki/Clifford_algebra#Complex_numbers
+        ///
         pub fn norm_sqrd(&self) -> T::AllOutput where
-            T: AllRefMul<T>, T::AllOutput: Zero + Add<Output=T::AllOutput>
+            T: AllRefMul<T>, T::AllOutput: AddMonoid
         {
             self.iter().map(|t| t.ref_mul(t)).fold(T::AllOutput::zero(), |c,t| c+t)
         }
 
-        /// The Euclidean norm of this `self`
-        pub fn norm(&self) -> T where T: AllRefMul<T,AllOutput=T> + ComplexField {
+        ///
+        /// The square root of the sum of squares of each element
+        ///
+        /// As with `norm_squared`, this does **not** take into account the complex conjugate
+        /// even though [`ComplexField`] is a requirement.
+        ///
+        pub fn norm(&self) -> T::AllOutput where
+            T: AllRefMul<T>, T::AllOutput: ComplexField
+        {
             self.norm_sqrd().sqrt()
         }
 
-        /// Divides `self` by its Euclidean norm
-        pub fn normalize(self) -> Self where
-            T: AllRefMul<T,AllOutput=T> + for<'a> Div<&'a T, Output=T> + ComplexField
+        /// Divides `self` by its norm
+        pub fn normalize(self) -> Self where T: RefComplexField
         {
             let l = self.norm();
-            self / &l
+            self / l
         }
 
-        /// Divides `self` by its Euclidean norm
-        pub fn norm_and_normalize(self) -> (T, Self) where
-            T: AllRefMul<T,AllOutput=T> + for<'a> Div<&'a T, Output=T> + ComplexField
+        /// Divides `self` by its norm and returns both
+        pub fn norm_and_normalize(self) -> (T, Self) where T:RefComplexField
         {
             let l = self.norm();
             let normalized = self / &l;

@@ -20,12 +20,7 @@ use num_traits::{Zero, One};
 use na::{ComplexField, /*RealField*/};
 use approx::{AbsDiffEq, RelativeEq, UlpsEq};
 
-use crate::base::storage::*;
-use crate::base::alloc::*;
-use crate::base::dim::*;
 use crate::base::*;
-use crate::base::ops::{RefAdd, RefSub, RefMul, RefDiv, RefNeg, AllRefMul, Scale, InvScale, AddGroup};
-
 use crate::basis_blade::BasisBlade;
 
 

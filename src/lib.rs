@@ -1,4 +1,4 @@
-#![recursion_limit = "256"]
+#![recursion_limit = "1024"]
 #![cfg_attr(test, allow(soft_unstable))]
 #![cfg_attr(test, feature(test))]
 #![cfg_attr(feature = "fn_traits", feature(fn_traits, unboxed_closures))]
@@ -11,6 +11,41 @@ extern crate derivative;
 extern crate approx;
 extern crate num_traits;
 extern crate nalgebra as na;
+
+//Takes in normal rust code and quotes it but with a basic impl of trait aliases added
+macro_rules! auto {
+
+    //doing this means that we can ignore the trailing semicolon
+    (
+        @lines {
+            $(#[$attr:meta])*
+            $vis:vis trait $trait:ident$(<$($T:ident),*>)? = $($bound:tt)*
+        } ;
+        $($rest:tt)*
+    ) => {
+
+        $(#[$attr])*
+        $vis trait $trait$(<$($T),*>)?: $($bound)* {}
+
+        impl<X $(, $($T),*)?> $trait$(<$($T),*>)? for X where X: $($bound)* {}
+
+        auto!($($rest)*);
+    };
+
+    //munches through the code until we have a full line or block
+    (@lines {$($line:tt)*} ) => { $($line)* };
+    (@lines {$($line:tt)*} ; $($rest:tt)*) => { $($line)*; auto!(@lines {} $($rest)*); };
+    (@lines {$($line:tt)*} {} $($rest:tt)*) => { $($line)*{} auto!(@lines {} $($rest)*); };
+    (@lines {$($line:tt)*} $tt:tt $($rest:tt)*) => { auto!(@lines {$($line)* $tt} $($rest)*); };
+
+    //ends the macro if we have nothing left
+    () => {};
+
+    //starts the loop to split off each line (we gotta be careful tho since this can lead to really
+    //nasty errors)
+    ($($stuff:tt)*) => { auto!(@lines {} $($stuff)*); };
+
+}
 
 macro_rules! impl_forward_scalar_binops {
     (

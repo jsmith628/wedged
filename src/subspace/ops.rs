@@ -211,7 +211,7 @@ impl_forward_scalar_binops!(impl<T:AllocBlade,N,G> Mul.mul() for SimpleBlade);
 //
 
 macro_rules! impl_inv {
-    (impl<T:$Alloc:ident,$($N:ident),*> Inv for $Ty:ident $(where T:Clone+$($where:tt)*)?) => {
+    (impl<T:$Alloc:ident,$($N:ident),*> Inv for $Ty:ident $(where T:$($where:tt)*)?) => {
         impl<T,$($N:Dim),*> Inv for $Ty<T,$($N),*> where
             T: $Alloc<$($N),*>,
             T: Neg<Output=T> $(+ Clone + $($where)*)?
@@ -235,7 +235,7 @@ macro_rules! impl_inv {
     };
 }
 
-impl_inv!(impl<T:AllocBlade,N,G> Inv for SimpleBlade where T:Clone+Zero+Add<Output=T>+AllRefMul<T,AllOutput=T>+Div<T,Output=T>);
+impl_inv!(impl<T:AllocBlade,N,G> Inv for SimpleBlade where T:AllRefMul<T,AllOutput=T>+Div<T,Output=T>+AddMonoid);
 impl_inv!(impl<T:AllocBlade,N,G> Inv for UnitBlade);
 impl_inv!(impl<T:AllocEven,N> Inv for Rotor);
 impl_inv!(impl<T:AllocOdd,N> Inv for Reflector);
