@@ -1,3 +1,10 @@
+//!
+//! Module for type-level representation and arithmetic of dimensions and grades
+//!
+//! Mostly a wrapper of [`na::base::dimension`], but contains a number of important additions
+//! including [`DimSymSub`] and [`DimBinomCoeff`].
+//!
+
 
 pub use na::dimension::*;
 
@@ -187,9 +194,9 @@ pub mod private {
 
     //
     // In theory, this way of computing this is suuuuper slow ( O(2^N) in fact), but rustc has
-    // some form of caching, so this actually ends up working for comparably high values for N
-    // (the tests go up to N==31). Hence, we go with this since this is a much simpler
-    // encoding of the binomial coefficient and since it handles the N>K case way better than
+    // some form of caching, so this actually ends up working for surpisingly high values for N
+    // (the tests go up to N==31!!). Hence, we go with this method over the lower order ones
+    // since this has *much* simpler trait bounds and it handles the N>K case way better than
     // the falling factorial computation.
     //
     // binom(n,k) = binom(n-1, k) + binom(n-1, k-1)
