@@ -1,5 +1,6 @@
 
 use std::ops::*;
+use std::fmt::Debug;
 use num_traits::{Zero, One, Inv};
 
 macro_rules! ref_ops {
@@ -106,11 +107,11 @@ auto! {
     pub trait ClosedRefNeg = AllRefNeg<AllOutput=Self>;
     pub trait ClosedRefInv = AllRefInv<AllOutput=Self>;
 
-    pub trait AddMonoid = Clone     + ClosedAdd + Zero;
-    pub trait AddGroup  = AddMonoid + ClosedSub + ClosedNeg;
-    pub trait Ring      = AddGroup  + ClosedMul;
-    pub trait UnitRing  = Ring      + One;
-    pub trait DivRing   = UnitRing  + ClosedDiv + ClosedInv;
+    pub trait AddMonoid = Clone + Debug + ClosedAdd + Zero;
+    pub trait AddGroup  = AddMonoid     + ClosedSub + ClosedNeg;
+    pub trait Ring      = AddGroup      + ClosedMul;
+    pub trait UnitRing  = Ring          + One;
+    pub trait DivRing   = UnitRing      + ClosedDiv + ClosedInv;
 
     pub use na::ComplexField;
     pub use na::RealField;
