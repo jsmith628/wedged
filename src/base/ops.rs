@@ -39,16 +39,30 @@ impl<'a, T:'a> RefNeg<'a> for T where &'a T: Neg {
     }
 }
 
+macro_rules! all_ref_ops {
+    ($($AllRefOp:ident = $RefOp:ident;)*) => {$(
+        pub trait $AllRefOp<Rhs:?Sized>: for<'a,'b> $RefOp<'a, &'b Rhs, Output=Self::AllOutput> {
+            type AllOutput;
+        }
+        impl<T1:?Sized,T2:?Sized, U> $AllRefOp<T2> for T1 where T1: for<'a,'b> $RefOp<'a, &'b T2, Output=U> {
+            type AllOutput = U;
+        }
+    )*};
+}
 
-pub trait AllRefMul<Rhs:?Sized>: for<'a,'b> RefMul<'a, &'b Rhs, Output=Self::AllOutput> {
+all_ref_ops!(
+    AllRefAdd = RefAdd;
+    AllRefSub = RefSub;
+    AllRefMul = RefMul;
+    AllRefDiv = RefDiv;
+);
+
+pub trait AllRefNeg: for<'a> RefNeg<'a, Output=Self::AllOutput> {
     type AllOutput;
 }
-impl<T1:?Sized,T2:?Sized, U> AllRefMul<T2> for T1 where T1: for<'a,'b> RefMul<'a, &'b T2, Output=U> {
+impl<T:?Sized, U> AllRefNeg for T where T: for<'a> RefNeg<'a, Output=U> {
     type AllOutput = U;
 }
-
-pub trait AddGroup: na::ClosedAdd + na::ClosedSub + std::ops::Neg<Output=Self> + num_traits::Zero {}
-impl<T:na::ClosedAdd + na::ClosedSub + std::ops::Neg<Output=Self> + num_traits::Zero> AddGroup for T {}
 
 pub trait Scale<Rhs=Self> {
     type Output;
@@ -59,3 +73,6 @@ pub trait InvScale<Rhs=Self> {
     type Output;
     fn inv_scale(self, rhs:Rhs) -> Self::Output;
 }
+
+pub trait AddGroup: na::ClosedAdd + na::ClosedSub + std::ops::Neg<Output=Self> + num_traits::Zero {}
+impl<T:na::ClosedAdd + na::ClosedSub + std::ops::Neg<Output=Self> + num_traits::Zero> AddGroup for T {}
