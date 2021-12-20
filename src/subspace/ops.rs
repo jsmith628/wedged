@@ -12,11 +12,10 @@ macro_rules! impl_add_ops {
         impl<$($a,)? $($b,)? T1,T2,U,N:Dim,G:Dim>
             $Op<$(&$b)? SimpleBlade<T2,N,G>> for $(&$a)? SimpleBlade<T1,N,G>
         where
-            T1: AllocBlade<N,G>,
-            T2: AllocBlade<N,G>,
-            U: AllocBlade<N,G>,
+            T1: AllocSimpleBlade<N,G>,
+            T2: AllocSimpleBlade<N,G>,
+            U: AllocSimpleBlade<N,G>,
             T1: $Op2<$($a, )? $(&$b)? T2, Output=U>,
-            Self: MutSimpleBlade
         {
             type Output = SimpleBlade<U,N,G>;
             fn $op(self, rhs: $(&$b)? SimpleBlade<T2,N,G>) -> SimpleBlade<U,N,G> {
@@ -38,9 +37,8 @@ macro_rules! impl_add_ops {
 macro_rules! impl_add_assign_ops {
     ($Op:ident.$op:ident(); $($a:lifetime)?) => {
         impl<$($a,)? T1,T2,N:Dim,G:Dim> $Op<$(&$a)? SimpleBlade<T2,N,G>> for SimpleBlade<T1,N,G> where
-            T1: AllocBlade<N,G> + $Op<$(&$a)? T2>,
-            T2: AllocBlade<N,G>,
-            Self: MutSimpleBlade
+            T1: AllocSimpleBlade<N,G> + $Op<$(&$a)? T2>,
+            T2: AllocSimpleBlade<N,G>,
         {
             fn $op(&mut self, rhs: $(&$a)? SimpleBlade<T2,N,G>) {
                 self.data.$op(maybe_ref!(rhs.data; $($a)?))
@@ -63,7 +61,7 @@ impl_add_assign_ops!(AddAssign.add_assign(), SubAssign.sub_assign());
 //Zero for SimpleBlade.
 //
 
-impl<T:AllocBlade<N,G>+Zero, N:DimName, G:DimName> Zero for SimpleBlade<T,N,G> where Self:MutSimpleBlade {
+impl<T:AllocSimpleBlade<N,G>+Zero, N:DimName, G:DimName> Zero for SimpleBlade<T,N,G> {
     fn zero() -> Self { Self { data: Blade::zero() } }
     fn is_zero(&self) -> bool { self.data.is_zero() }
     fn set_zero(&mut self) { self.data.set_zero() }

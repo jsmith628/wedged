@@ -27,13 +27,6 @@ use crate::algebra::{
 };
 
 use crate::basis_blade::BasisBlade;
-use crate::base::alloc::{AllocBlade, AllocEven, AllocOdd, AllocVersor, AllocMultivector};
-use crate::base::dim::{
-    Dim, DimName, ToTypenum,
-    DimDiff, DimNameDiff,
-    DimAdd, DimSum, DimSymSub, DimSymDiff,
-    Dynamic, U0, U1, U2, U3, U4, U5, U6
-};
 
 #[cfg(test)] use crate::TEST_DIM;
 

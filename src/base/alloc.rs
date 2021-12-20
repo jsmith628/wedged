@@ -32,11 +32,15 @@
 use std::mem::MaybeUninit;
 use std::iter::Iterator;
 
-use crate::base::storage::*;
 use crate::base::*;
-use crate::base::dim::{Dim, Const, Dynamic};
+
+use std::ops::{ Add, BitOr };
+use typenum::{
+    IsLessOrEqual, Sum, LeEq, True, U1
+};
 
 #[cfg(doc)] use crate::algebra::*;
+#[cfg(doc)] use crate::subspace::*;
 
 /// Implements [`Alloc`] and makes the default choise for what storage types to use
 pub struct DefaultAllocator;
@@ -111,6 +115,35 @@ impl<T:AllocEven<N>+AllocOdd<N>, N:Dim> AllocVersor<N> for T {}
 pub trait AllocMultivector<N:Dim>: Sized {
     type Buffer: MultivectorStorage<Self,N>;
 }
+
+///
+/// Marks if a [Blade] of a given dimension and grade is guaranteed to always be [simple](SimpleBlade)
+///
+/// This trait is implemented for scalars, vectors, psuedovectors, and psuedoscalars by bounding the
+/// grade to be 0, 1, N, or N-1.
+///
+/// It is used in a number of locations to allow for certain operations that are only possible with
+/// simple blades, ie mutating `SimpleBlade`s, [projecting](Blade::project) onto a Blade, etc.
+///
+/// At the moment, the implementation uses `typenum` expressions to determine type eligibility,
+/// which may be lead to some provability issues when using generic types, especially
+/// for psuedoscalars and psuedovectors. However, once the `#[marker]` feature is stabilized,
+/// this can be simplified dramatically and will prevent most issues.
+///
+pub trait AllocSimpleBlade<N:Dim,G:Dim>: AllocBlade<N,G> {}
+
+impl<T:AllocBlade<N,G>,N:Dim,G:Dim> AllocSimpleBlade<N,G> for T where
+    //establish that `N` and `G` are constant numbers
+    N: DimName+ToTypenum,
+    G: DimName+ToTypenum,
+
+    //establish that we can compare `G` with `1` and `N` with `G+1`
+    G::Typenum: Add<U1> + IsLessOrEqual<U1>,
+    N::Typenum: IsLessOrEqual<Sum<G::Typenum,U1>>,
+
+    //`or` together the two comparisons
+    LeEq<G::Typenum, U1>: BitOr<LeEq<N::Typenum, Sum<G::Typenum,U1>>, Output=True>
+{}
 
 impl<T, const N: usize> AllocBlade<Const<N>, Dynamic> for T {
     type Buffer = DynBladeStorage<T, Const<N>, Dynamic>;
