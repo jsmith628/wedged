@@ -145,12 +145,14 @@ mod tests {
         U0, U1, U2, U3, U4, U5, U6, U7, U8, U9
     };
 
+    const N: usize = TEST_DIM;
+
     #[test]
     fn dual_inverse() {
 
 
         //for dynamic blades
-        for n in 0..=16 {
+        for n in 0..=N {
             for g in 0..=n {
                 let b = BladeD::from_element(n, g, 0);
                 assert_eq!(b, b.clone().dual().undual());
@@ -188,7 +190,7 @@ mod tests {
     #[test]
     fn puedovector_dual() {
 
-        for n in 3..=16 {
+        for n in 3..=N {
 
             let sign = if n&0b10 == 1 { -1 } else { 1 };
 

@@ -12,6 +12,10 @@ extern crate approx;
 extern crate num_traits;
 extern crate nalgebra as na;
 
+//16D should work ok... a 16D multivector takes *only* 65K components, but if this takes
+//too much memory, we may need to lower it a little :/
+#[cfg(test)] pub(crate) const TEST_DIM: usize = 16;
+
 //Takes in normal rust code and quotes it but with a basic impl of trait aliases added
 macro_rules! auto {
 

@@ -144,13 +144,15 @@ mod tests {
 
     use super::*;
 
+    const N: usize = TEST_DIM;
+
     #[test]
     fn upcast_downcast_idempotence() {
 
-        for n1 in 0..=16 {
-            for n2 in n1..=16 {
+        for n1 in 0..=N {
+            for n2 in n1..=N {
 
-                for g in 0..=16 {
+                for g in 0..=N {
                     let b1 = BladeD::from_iterator(n1, g, 1..);
                     let b2 = b1.clone().cast_dim_dyn(n2).cast_dim_dyn(n1);
                     assert_eq!(b1, b2);
@@ -204,8 +206,8 @@ mod tests {
     #[test]
     fn vector_dim_cast() {
 
-        for n1 in 0..=16 {
-            for n2 in 0..=16 {
+        for n1 in 0..=N {
+            for n2 in 0..=N {
 
                 let v1 = VecD::from_element(n1, 6.28);
                 let v2 = v1.clone().cast_dim_dyn(n2);

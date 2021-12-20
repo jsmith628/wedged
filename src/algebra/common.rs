@@ -407,9 +407,7 @@ impl<T1:AllocMultivector<N1>, N1:Dim> Multivector<T1,N1> {
 mod tests{
     use super::*;
 
-    //16D should work ok... a 16D multivector takes *only* 65K components, but if this takes
-    //too much memory, we may need to lower it a little :/
-    const N: usize = 16;
+    const N: usize = TEST_DIM;
 
     #[test]
     fn grade() {

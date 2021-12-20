@@ -20,6 +20,8 @@ use num_traits::{Zero, One};
 use na::{ComplexField, /*RealField*/};
 use approx::{AbsDiffEq, RelativeEq, UlpsEq};
 
+#[cfg(test)] use crate::TEST_DIM;
+
 use crate::base::*;
 use crate::basis_blade::BasisBlade;
 
