@@ -161,7 +161,7 @@ macro_rules! impl_blade_op {
 }
 
 impl_blade_op!(BitXor.bitxor() where G1:DimAdd<G2> == DimSum);
-impl_blade_op!(Rem.rem() where G2:DimSymSub<G1> == DimSymDiff);
+impl_blade_op!(Rem.rem() where G1:DimSymSub<G2> == DimSymDiff);
 
 //
 //Scalar multiplication

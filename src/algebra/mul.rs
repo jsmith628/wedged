@@ -10,7 +10,8 @@ pub(crate) enum Subspace {
 }
 
 impl Subspace {
-    fn dim(&self) -> usize {
+    #[allow(dead_code)]
+    pub(crate) fn dim(&self) -> usize {
         match self {
             Self::Blade(n,_) => *n,
             Self::Even(n) => *n,
@@ -206,38 +207,39 @@ impl<T:AllocMultivector<N>, N:Dim> MultivectorDst for Multivector<T,N> {
 
 }
 
-fn check_dim<B1,B2,B3>(b1: &B1, b2: &B2, shape: B3::Shape) -> usize where
+// fn check_dim<B1,B2,B3>(b1: &B1, b2: &B2, shape: B3::Shape) -> usize where
+//     B1: MultivectorSrc,
+//     B2: MultivectorSrc,
+//     B3: MultivectorDst
+// {
+//     //for convenience
+//     let (n1, n2, n3) = (b1.dim().value(), b2.dim().value(), B3::subspace_of(shape).dim());
+//
+//     //To save further headache with generics, we don't allow multiplying two blades of
+//     //different dimension
+//     if n1 != n2 {
+//         panic!("Cannot multiply two values of different dimensions: {}!={}", n1, n2)
+//     }
+//
+//     if n1 != n3 {
+//         panic!("Cannot multiply into a value of different dimension: {}!={}", n1, n3)
+//     }
+//
+//     n1
+// }
+
+#[inline]
+pub(crate) fn mul_selected<B1,B2,B3>(b1:B1, b2:B2, shape:B3::Shape) -> B3
+where
     B1: MultivectorSrc,
     B2: MultivectorSrc,
-    B3: MultivectorDst
-{
-    //for convenience
-    let (n1, n2, n3) = (b1.dim().value(), b2.dim().value(), B3::subspace_of(shape).dim());
-
-    //To save further headache with generics, we don't allow multiplying two blades of
-    //different dimension
-    if n1 != n2 {
-        panic!("Cannot multiply two values of different dimensions: {}!={}", n1, n2)
-    }
-
-    if n1 != n3 {
-        panic!("Cannot multiply into a value of different dimension: {}!={}", n1, n3)
-    }
-
-    n1
-}
-
-pub(crate) fn mul_selected<B1,B2,B3,N:Dim>(b1:B1, b2:B2, shape:B3::Shape) -> B3
-where
-    B1: MultivectorSrc<Dim=N>,
-    B2: MultivectorSrc<Dim=N>,
-    B3: MultivectorDst<Dim=N>,
+    B3: MultivectorDst,
     B1::Scalar: AllRefMul<B2::Scalar, AllOutput=B3::Scalar>,
     B1::Item: Mul<B2::Item, Output=B3::Scalar>,
     B3::Scalar: AddGroup,
 {
 
-    let n = check_dim::<_,_,B3>(&b1,&b2,shape);
+    //NOTE: we actually don't have to check the dimensions since the math works out just the same
 
     //
     // Some optimizations
@@ -254,6 +256,7 @@ where
         //the scalar product of two blades
         (Blade(_,g), Blade(_,g2), Blade(_,0)) if g==g2 => {
 
+            //note that it's fine that the dimensions mismatch, as missing dimensions will be 0
             let dot = b1.into_iter().zip(b2).map(|(t1,t2)| t1*t2).fold(B3::Scalar::zero(), |d,t| d+t);
 
             // let e = b1.elements();
@@ -269,8 +272,9 @@ where
         },
 
         //wedging two blades into the psuedoscalar
-        (Blade(_,g1), Blade(_,g2), Blade(_,n2)) if n==n2 && g1+g2==n2 => {
+        (Blade(_,g1), Blade(_,g2), Blade(n,g3)) if g1+g2==n && n==g3 => {
 
+            //note that it's fine that the dimensions mismatch, as missing dimensions will be 0
             if g1!=g2 {
                 let dot = b1.into_iter().zip(b2).map(|(t1,t2)| t1*t2).fold(B3::Scalar::zero(), |d,t| d+t);
                 let neg = ((g1&0b10) != 0) ^ (g1>g2 && ((n&0b10) != 0));
@@ -278,7 +282,7 @@ where
                 dest[0] = MaybeUninit::new( if neg { -dot } else { dot } );
                 return unsafe { B3::assume_init(dest) };
             } else {
-
+                //TODO: fill in
             }
 
         },
@@ -342,17 +346,18 @@ where
     unsafe { B3::assume_init(dest) }
 }
 
-pub(crate) fn versor_mul_selected<B1,B2,B3,N:Dim>(b1:B1, b2:B2, shape:B3::Shape) -> B3
+#[inline]
+pub(crate) fn versor_mul_selected<B1,B2,B3>(b1:B1, b2:B2, shape:B3::Shape) -> B3
 where
-    B1: MultivectorSrc<Dim=N>,
-    B2: MultivectorSrc<Dim=N>,
-    B3: MultivectorDst<Dim=N>,
+    B1: MultivectorSrc,
+    B2: MultivectorSrc,
+    B3: MultivectorDst,
     B1::Scalar: AllRefMul<B2::Scalar>,
     <B1::Scalar as AllRefMul<B2::Scalar>>::AllOutput: for<'a> Mul<&'a B1::Scalar, Output=B3::Scalar>,
     B3::Scalar: AddGroup,
 {
 
-    check_dim::<_,_,B3>(&b1, &b2, shape);
+    // check_dim::<_,_,B3>(&b1, &b2, shape);
 
     //create an unitialized value
     let mut dest = B3::uninit(shape);
@@ -648,15 +653,15 @@ macro_rules! impl_wedge_dot {
         where
             T1: AllocBlade<N,G1> + AllRefMul<T2,AllOutput=U>,
             T2: AllocBlade<N,G2>,
-            G2: DimSymSub<G1>,
+            G1: DimSymSub<G2>,
             $(&$a)? T1: Mul<$(&$b)? T2,Output=U>,
-            U: AllocBlade<N, DimSymDiff<G2, G1>> + AddGroup,
+            U: AllocBlade<N, DimSymDiff<G1, G2>> + AddGroup,
         {
-            type Output = Blade<U,N,DimSymDiff<G2,G1>>;
+            type Output = Blade<U,N,DimSymDiff<G1,G2>>;
 
             #[inline(always)]
             fn rem(self, rhs: $(&$b)? Blade<T2,N,G2>) -> Self::Output {
-                let (n, g) = (self.dim_generic(), rhs.grade_generic().sym_sub(self.grade_generic()));
+                let (n, g) = (self.dim_generic(), self.grade_generic().sym_sub(rhs.grade_generic()));
                 mul_selected(self, rhs, (n, g))
             }
         }
@@ -1026,7 +1031,7 @@ mod tests {
                         //Test for consistency
                         //
 
-                        let left = mul_selected::<_,_,BladeD<_>,Dynamic>(
+                        let left = mul_selected::<_,_,BladeD<_>>(
                             x1.clone(), x2.clone(), (Dynamic::new(n), Dynamic::new(g3))
                         );
 
