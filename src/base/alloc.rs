@@ -23,7 +23,7 @@
 //! At the moment, only dimensions and grades up to 16 are supported for static array-based
 //! allocation. This is due both to limitations of this system *and* out of practical considerations
 //! regarding the amount of memory used by the structures in high numbers of dimensions.
-//! (`f32` Multivectors in 16D already use ~**260MB**!!) However,
+//! (`f32` Multivectors in 16D already use ~**260KB**!!) However,
 //! if a high number of dimensions are required, using a [`Dynamic`] dimension or grade will allow
 //! that number of dimensions to be used, just using the heap instead
 //!
