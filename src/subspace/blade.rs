@@ -35,9 +35,92 @@ fn project_blade<T,N:Dim,G1:Dim,G2:Dim>(b1: &Blade<T,N,G1>, b2: Blade<T,N,G2>) -
 
 }
 
+#[inline(always)]
+fn reject_blade<T,N:Dim,G1:Dim,G2:Dim>(b1: &Blade<T,N,G1>, b2: Blade<T,N,G2>) -> Blade<T,N,G2> where
+    G2: DimAdd<G1>,
+    T: AllocBlade<N,G1> + AllocBlade<N,G2> + AllocBlade<N,DimSum<G2,G1>> + RefRing
+{
+    let (n1, n2, g2) = (b1.dim_generic(), b2.dim_generic(), b2.grade_generic());
+    if n1!=n2 { panic!("Dimension mismatch when rejecting blades: {}!={}", n1.value(), n2.value()) }
+    mul_selected(b2 ^ b1, b1, (n2, g2))
+}
+
+macro_rules! factor {
+    ($b:ident) => { if $b.grade()&0b10 != 0 { -$b.norm_sqrd() } else { $b.norm() } };
+}
+
 pub trait Project<B> {
     type Output;
     fn project(&self, b:B) -> Self::Output;
+}
+
+pub trait Reject<B> {
+    type Output;
+    fn reject(&self, b:B) -> Self::Output;
+}
+
+impl<T, N:Dim, G1:Dim, G2:Dim> Project<Blade<T,N,G2>> for Blade<T,N,G1> where
+    G2:DimSymSub<G1>,
+    T:AllocBlade<N,G1>+AllocSimpleBlade<N,G2>+AllocBlade<N,DimSymDiff<G2,G1>>+RefComplexField
+{
+    type Output = Blade<T,N,G2>;
+    fn project(&self, b:Blade<T,N,G2>) -> Blade<T,N,G2> { project_blade(self, b) / factor!(self) }
+}
+
+impl<T, N:Dim, G1:Dim, G2:Dim> Reject<Blade<T,N,G2>> for Blade<T,N,G1> where
+    G2:DimAdd<G1>,
+    T:AllocBlade<N,G1>+AllocSimpleBlade<N,G2>+AllocBlade<N,DimSum<G2,G1>>+RefComplexField
+{
+    type Output = Blade<T,N,G2>;
+    fn reject(&self, b:Blade<T,N,G2>) -> Blade<T,N,G2> { reject_blade(self, b) / factor!(self) }
+}
+
+impl<T, N:Dim, G1:Dim, G2:Dim> Project<SimpleBlade<T,N,G2>> for Blade<T,N,G1> where
+    G2:DimSymSub<G1>,
+    T:AllocBlade<N,G1>+AllocSimpleBlade<N,G2>+AllocBlade<N,DimSymDiff<G2,G1>>+RefComplexField
+{
+    type Output = SimpleBlade<T,N,G2>;
+    #[inline(always)]
+    fn project(&self, b:SimpleBlade<T,N,G2>) -> SimpleBlade<T,N,G2> {
+        Project::project(self, b.into_inner()).into()
+    }
+}
+
+impl<T, N:Dim, G1:Dim, G2:Dim> Reject<SimpleBlade<T,N,G2>> for Blade<T,N,G1> where
+    G2:DimAdd<G1>,
+    T:AllocBlade<N,G1>+AllocSimpleBlade<N,G2>+AllocBlade<N,DimSum<G2,G1>>+RefComplexField
+{
+    type Output = SimpleBlade<T,N,G2>;
+    #[inline(always)]
+    fn reject(&self, b:SimpleBlade<T,N,G2>) -> SimpleBlade<T,N,G2> {
+        Reject::reject(self, b.into_inner()).into()
+    }
+}
+
+impl<T, N:Dim, G1:Dim, G2:Dim> Project<UnitBlade<T,N,G2>> for Blade<T,N,G1> where
+    G2:DimSymSub<G1>,
+    T:AllocBlade<N,G1>+AllocSimpleBlade<N,G2>+AllocBlade<N,DimSymDiff<G2,G1>>+RefComplexField
+{
+    type Output = SimpleBlade<T,N,G2>;
+
+    #[inline(always)]
+    fn project(&self, b:UnitBlade<T,N,G2>) -> SimpleBlade<T,N,G2> {
+        Project::project(self, b.into_inner()).into()
+    }
+
+}
+
+impl<T, N:Dim, G1:Dim, G2:Dim> Reject<UnitBlade<T,N,G2>> for Blade<T,N,G1> where
+    G2:DimAdd<G1>,
+    T:AllocBlade<N,G1>+AllocSimpleBlade<N,G2>+AllocBlade<N,DimSum<G2,G1>>+RefComplexField
+{
+    type Output = SimpleBlade<T,N,G2>;
+
+    #[inline(always)]
+    fn reject(&self, b:UnitBlade<T,N,G2>) -> SimpleBlade<T,N,G2> {
+        Reject::reject(self, b.into_inner()).into()
+    }
+
 }
 
 impl<T, N:Dim, G1:Dim, G2:Dim> Project<Blade<T,N,G2>> for SimpleBlade<T,N,G1> where
@@ -45,12 +128,15 @@ impl<T, N:Dim, G1:Dim, G2:Dim> Project<Blade<T,N,G2>> for SimpleBlade<T,N,G1> wh
     T:AllocBlade<N,G1>+AllocBlade<N,G2>+AllocBlade<N,DimSymDiff<G2,G1>>+RefComplexField
 {
     type Output = Blade<T,N,G2>;
+    fn project(&self, b:Blade<T,N,G2>) -> Blade<T,N,G2> { project_blade(self.as_inner(), b) / factor!(self)}
+}
 
-    fn project(&self, b:Blade<T,N,G2>) -> Blade<T,N,G2> {
-        let factor = if self.grade()&0b10 != 0 { -self.norm_sqrd() } else { self.norm_sqrd() };
-        project_blade(self.as_inner(), b) / factor
-    }
-
+impl<T, N:Dim, G1:Dim, G2:Dim> Reject<Blade<T,N,G2>> for SimpleBlade<T,N,G1> where
+    G2:DimAdd<G1>,
+    T:AllocBlade<N,G1>+AllocBlade<N,G2>+AllocBlade<N,DimSum<G2,G1>>+RefComplexField
+{
+    type Output = Blade<T,N,G2>;
+    fn reject(&self, b:Blade<T,N,G2>) -> Blade<T,N,G2> { reject_blade(self.as_inner(), b) / factor!(self)}
 }
 
 impl<T, N:Dim, G1:Dim, G2:Dim> Project<SimpleBlade<T,N,G2>> for SimpleBlade<T,N,G1> where
@@ -66,7 +152,18 @@ impl<T, N:Dim, G1:Dim, G2:Dim> Project<SimpleBlade<T,N,G2>> for SimpleBlade<T,N,
 
 }
 
+impl<T, N:Dim, G1:Dim, G2:Dim> Reject<SimpleBlade<T,N,G2>> for SimpleBlade<T,N,G1> where
+    G2:DimAdd<G1>,
+    T:AllocBlade<N,G1>+AllocBlade<N,G2>+AllocBlade<N,DimSum<G2,G1>>+RefComplexField
+{
+    type Output = SimpleBlade<T,N,G2>;
 
+    #[inline(always)]
+    fn reject(&self, b:SimpleBlade<T,N,G2>) -> SimpleBlade<T,N,G2> {
+        SimpleBlade::from_inner_unchecked(Reject::reject(self, b.into_inner()))
+    }
+
+}
 
 impl<T, N:Dim, G1:Dim, G2:Dim> Project<UnitBlade<T,N,G2>> for SimpleBlade<T,N,G1> where
     G2:DimSymSub<G1>,
@@ -81,6 +178,19 @@ impl<T, N:Dim, G1:Dim, G2:Dim> Project<UnitBlade<T,N,G2>> for SimpleBlade<T,N,G1
 
 }
 
+impl<T, N:Dim, G1:Dim, G2:Dim> Reject<UnitBlade<T,N,G2>> for SimpleBlade<T,N,G1> where
+    G2:DimAdd<G1>,
+    T:AllocBlade<N,G1>+AllocBlade<N,G2>+AllocBlade<N,DimSum<G2,G1>>+RefComplexField
+{
+    type Output = SimpleBlade<T,N,G2>;
+
+    #[inline(always)]
+    fn reject(&self, b:UnitBlade<T,N,G2>) -> SimpleBlade<T,N,G2> {
+        SimpleBlade::from_inner_unchecked(Reject::reject(self, b.into_inner()))
+    }
+
+}
+
 impl<T, N:Dim, G1:Dim, G2:Dim> Project<Blade<T,N,G2>> for UnitBlade<T,N,G1> where
     G2:DimSymSub<G1>,
     T:AllocBlade<N,G1>+AllocBlade<N,G2>+AllocBlade<N,DimSymDiff<G2,G1>>+RefComplexField
@@ -89,6 +199,19 @@ impl<T, N:Dim, G1:Dim, G2:Dim> Project<Blade<T,N,G2>> for UnitBlade<T,N,G1> wher
 
     fn project(&self, b:Blade<T,N,G2>) -> Blade<T,N,G2> {
         let proj = project_blade(self.as_inner(), b);
+        if self.grade()&0b10 != 0 { -proj } else { proj }
+    }
+
+}
+
+impl<T, N:Dim, G1:Dim, G2:Dim> Reject<Blade<T,N,G2>> for UnitBlade<T,N,G1> where
+    G2:DimAdd<G1>,
+    T:AllocBlade<N,G1>+AllocBlade<N,G2>+AllocBlade<N,DimSum<G2,G1>>+RefComplexField
+{
+    type Output = Blade<T,N,G2>;
+
+    fn reject(&self, b:Blade<T,N,G2>) -> Blade<T,N,G2> {
+        let proj = reject_blade(self.as_inner(), b);
         if self.grade()&0b10 != 0 { -proj } else { proj }
     }
 
@@ -107,7 +230,18 @@ impl<T, N:Dim, G1:Dim, G2:Dim> Project<SimpleBlade<T,N,G2>> for UnitBlade<T,N,G1
 
 }
 
+impl<T, N:Dim, G1:Dim, G2:Dim> Reject<SimpleBlade<T,N,G2>> for UnitBlade<T,N,G1> where
+    G2:DimAdd<G1>,
+    T:AllocBlade<N,G1>+AllocBlade<N,G2>+AllocBlade<N,DimSum<G2,G1>>+RefComplexField
+{
+    type Output = SimpleBlade<T,N,G2>;
 
+    #[inline(always)]
+    fn reject(&self, b:SimpleBlade<T,N,G2>) -> SimpleBlade<T,N,G2> {
+        SimpleBlade::from_inner_unchecked(Reject::reject(self, b.into_inner()))
+    }
+
+}
 
 impl<T, N:Dim, G1:Dim, G2:Dim> Project<UnitBlade<T,N,G2>> for UnitBlade<T,N,G1> where
     G2:DimSymSub<G1>,
@@ -122,6 +256,31 @@ impl<T, N:Dim, G1:Dim, G2:Dim> Project<UnitBlade<T,N,G2>> for UnitBlade<T,N,G1> 
 
 }
 
+impl<T, N:Dim, G1:Dim, G2:Dim> Reject<UnitBlade<T,N,G2>> for UnitBlade<T,N,G1> where
+    G2:DimAdd<G1>,
+    T:AllocBlade<N,G1>+AllocBlade<N,G2>+AllocBlade<N,DimSum<G2,G1>>+RefComplexField
+{
+    type Output = SimpleBlade<T,N,G2>;
+
+    #[inline(always)]
+    fn reject(&self, b:UnitBlade<T,N,G2>) -> SimpleBlade<T,N,G2> {
+        SimpleBlade::from_inner_unchecked(Reject::reject(self, b.into_inner()))
+    }
+
+}
+
+impl<T:AllocSimpleBlade<N,G>, N:Dim, G:Dim> Blade<T,N,G> {
+    #[inline(always)]
+    pub fn project<B>(&self, b: B) -> <Self as Project<B>>::Output where Self: Project<B>
+    {
+        Project::project(self, b)
+    }
+    #[inline(always)]
+    pub fn reject<B>(&self, b: B) -> <Self as Reject<B>>::Output where Self: Reject<B>
+    {
+        Reject::reject(self, b)
+    }
+}
 
 impl<T:AllocBlade<N,G>, N:Dim, G:Dim> SimpleBlade<T,N,G> {
 
@@ -142,6 +301,12 @@ impl<T:AllocBlade<N,G>, N:Dim, G:Dim> SimpleBlade<T,N,G> {
         Project::project(self, b)
     }
 
+    #[inline(always)]
+    pub fn reject<B>(&self, b: B) -> <Self as Reject<B>>::Output where Self: Reject<B>
+    {
+        Reject::reject(self, b)
+    }
+
 }
 
 impl<T:AllocBlade<N,G>, N:Dim, G:Dim> UnitBlade<T,N,G> {
@@ -154,6 +319,12 @@ impl<T:AllocBlade<N,G>, N:Dim, G:Dim> UnitBlade<T,N,G> {
     pub fn project<B>(&self, b: B) -> <Self as Project<B>>::Output where Self: Project<B>
     {
         Project::project(self, b)
+    }
+
+    #[inline(always)]
+    pub fn reject<B>(&self, b: B) -> <Self as Reject<B>>::Output where Self: Reject<B>
+    {
+        Reject::reject(self, b)
     }
 
 }
