@@ -46,7 +46,7 @@ fn reject_blade<T,N:Dim,G1:Dim,G2:Dim>(b1: &Blade<T,N,G1>, b2: Blade<T,N,G2>) ->
 }
 
 macro_rules! factor {
-    ($b:ident) => { if $b.grade()&0b10 != 0 { -$b.norm_sqrd() } else { $b.norm() } };
+    ($b:ident) => { if $b.grade()&0b10 != 0 { -$b.norm_sqrd() } else { $b.norm_sqrd() } };
 }
 
 pub trait Project<B> {
