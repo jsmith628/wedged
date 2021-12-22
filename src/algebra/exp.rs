@@ -8,11 +8,6 @@ pub(crate) fn exp_selected<B1,B2,T:RealField,N:Dim>(x:B1, shape: B2::Shape, epsi
 {
 
     //
-    //First, we scale down x to have a norm less than one.
-    //this is so that wed can consistently get within epsilon using the remainder estimation theorem
-    //
-
-    //
     //Ok, so I know this is pretty spicy, but we can prove this works with the following:
     //
     //- First, consider our expression `1 + 1 + 1 + 1`
@@ -38,20 +33,21 @@ pub(crate) fn exp_selected<B1,B2,T:RealField,N:Dim>(x:B1, shape: B2::Shape, epsi
     let two = T::one() + T::one();
     let four = T::one() + T::one() + T::one() + T::one();
 
+    //
+    //First, we scale down x to have a norm less than one.
+    //this is so that we can consistently get within epsilon using the remainder estimation theorem
+    //
 
-    let mut doublings = 0;
+    let mut halvings = 0;
     let mut x = x;
     let mut norm_sqrd = (0..x.elements()).map(|i| x.get(i).ref_mul(x.get(i)) ).fold(T::zero(), |n,t| n+t);
     let mut factor = T::one();
 
     while norm_sqrd > T::one() {
-
-        // println!("{} {} {}")
-
         factor /= two.clone();
         x /= two.clone();
         norm_sqrd /= four.clone();
-        doublings += 1;
+        halvings += 1;
     }
 
     let mut exp = B2::one();
@@ -60,7 +56,6 @@ pub(crate) fn exp_selected<B1,B2,T:RealField,N:Dim>(x:B1, shape: B2::Shape, epsi
     let mut i = T::one();
     let mut remainder = T::one();
 
-    //TODO: figure out what the RHS here should actually be
     while remainder > epsilon * factor {
 
         term = mul_selected(term, x.clone(), shape);
@@ -72,7 +67,8 @@ pub(crate) fn exp_selected<B1,B2,T:RealField,N:Dim>(x:B1, shape: B2::Shape, epsi
 
     }
 
-    for _ in 0..doublings {
+    //finally, each of the halvings we did to the exponent translate back to squarings of the result
+    for _ in 0..halvings {
         exp = mul_selected(exp.clone(), exp.clone(), shape);
     }
 
@@ -179,14 +175,14 @@ mod tests {
 
     use super::*;
 
-    const EPSILON: f64 = 0.00000000000001;
+    const EPSILON: f64 = 0.0000000000001;
 
     #[test]
     fn rot_2d() {
 
         for n in 1..3600 {
 
-            let angle = BiVec2::new(10.0 * std::f64::consts::PI / n as f64);
+            let angle = BiVec2::new(100.0 * std::f64::consts::PI / n as f64);
             let rot: Even2<_> = exp_selected(angle, na::dimension::Const::<2>, EPSILON);
 
             approx::assert_relative_eq!(rot, Even2::new(angle.value.cos(), angle.value.sin()), epsilon=EPSILON);
