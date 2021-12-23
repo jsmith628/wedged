@@ -59,8 +59,9 @@ macro_rules! norm_methods {
         /// Divides `self` by its norm and returns both if it is non-zero
         pub fn try_norm_and_normalize(self) -> Option<(T, Self)> where T:RefComplexField
         {
-            let l = self.norm();
+            let l = self.norm_sqrd();
             if !l.is_zero() {
+                let l = l.sqrt();
                 let normalized = self / &l;
                 Some((l, normalized))
             } else {
