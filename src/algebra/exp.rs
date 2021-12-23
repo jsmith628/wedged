@@ -1,7 +1,9 @@
 
 use super::*;
+use crate::subspace::Rotor;
 
 //TODO: make work for Dynamic dims
+#[inline(always)]
 pub(crate) fn exp_selected<B1,B2,T:ComplexField,N:Dim>(x:B1, shape: B2::Shape, epsilon: T::RealField) -> B2 where
     B1: MultivectorSrc<Scalar=T,Item=T,Dim=N>+Clone+DivAssign<T> + Debug,
     B2: MultivectorSrc<Scalar=T,Item=T,Dim=N>+MultivectorDst+Clone+AddAssign+DivAssign<T>+One + Debug,
@@ -61,95 +63,130 @@ pub(crate) fn exp_selected<B1,B2,T:ComplexField,N:Dim>(x:B1, shape: B2::Shape, e
 
 }
 
-impl<T:RefComplexField+AllocBlade<N,G>+AllocEven<N>, N:DimName, G:Dim> Blade<T,N,G> {
+//yes, this is probably bad, but I don't wanna either write this stuff twice or redesign to make
+//it simpler
+macro_rules! exp {
 
-    pub fn exp_even(mut self) -> Even<T,N> {
+    (scalar, $self:ident, $M:ident) => {{
+        //a single scalar just gets exp normally
+        $self[0] = $self[0].exp();
+        $M::from_blade($self)
+    }};
+
+    (simple, $self:ident, $M:ident) => {{
+
+        let neg = $self.neg_sig();
+        match $self.try_norm_and_normalize() {
+            None => $M::one(), //if the norm is 0, then exp(self) == 1
+
+            Some((l, b)) => {
+                if neg {
+                    //negative signatures behave like the exp of complex numbers
+                    let (s, c) = l.sin_cos();
+                    let mut exp = $M::from_blade(b*s);
+                    exp[0] = c;
+                    exp
+                } else {
+                    //positive signatures behave like the exp of split-complex numbers
+                    let (s, c) = (l.sinh(), l.cosh());
+                    let mut exp = $M::from_blade(b*s);
+                    exp[0] = c;
+                    exp
+                }
+            },
+        }
+
+    }};
+
+    (bivector, $self:ident, $mul:ident, $exp:ident) => {{
+        //time for some fancy shit...
+
+        //so in 4 and 5 dimensions, we can take the exponential by first decomposing the
+        //bivector into two simple bivectors that are perpendicular and commute multiplicatively
+
+        //I don't wanna explain how this works rn, so imma just say it's *m a g i c*
+
+        let two = T::one() + T::one();
+
+        let b = $self;
+        let b_conj_scaled = (&b).mul_grade_generic((&b).$mul(&b).reverse(), b.grade_generic());
+
+        let factor = (&b).$mul(&b_conj_scaled)[0];
+        let b_conj = b_conj_scaled / factor.sqrt();
+
+        let b1 = (&b_conj + &b_conj) / &two;
+        let b2 = (&b_conj - &b_conj) / &two;
+
+        b1.$exp() * b2.$exp()
+    }}
+}
+
+impl<T:RefComplexField+AllocBlade<N,U2>, N:DimName> BiVecN<T,N> {
+
+    #[inline]
+    pub fn exp_rotor(self) -> Rotor<T,N> where T:AllocEven<N> {
+        Rotor::from_inner_unchecked(self.exp_even())
+    }
+
+}
+
+impl<T:RefComplexField+AllocBlade<N,G>, N:DimName, G:Dim> Blade<T,N,G> {
+
+    #[inline(always)]
+    pub(crate) fn exp_simple(self) -> Multivector<T,N> where T:AllocMultivector<N> {
+        exp!(simple, self, Multivector)
+    }
+
+    #[inline(always)]
+    pub(crate) fn exp_even_simple(self) -> Even<T,N> where T:AllocEven<N> {
+        if self.even() {
+            exp!(simple, self, Even)
+        } else {
+            let norm = self.norm();
+            let mut exp = Even::zeroed_generic(self.dim_generic());
+            exp[0] = if self.neg_sig() { norm.cos() } else { norm.cosh() };
+            exp
+        }
+    }
+
+    pub fn exp(mut self) -> Multivector<T,N> where T:AllocMultivector<N> {
 
         //match the dimension so we can optimize for the first few dimensions
         let (n, g) = self.shape();
 
-        if n.value()==0 {
-            //a single scalar just gets exp normally
-            self[0] = self[0].exp();
-            Even::from_blade(self)
-        } else {
+        match (n.value(), g.value()) {
+            //scalars do scalar things
+            (_, 0) => exp!(scalar, self, Multivector),
 
-            let guarranteed_simple = g.value()==1 || g.value()+1 >= n.value();
-            if guarranteed_simple {
+            //if we're guaranteed to be simple
+            (n, g) if g==1 || g+1>=n => self.exp_simple(),
 
-                //if we have a scalar, vector, psuedovector, or psuedoscalar, we
-                //can easily take the exponential.
-                //To do this, we treat the blade as `norm*b` since b is simple, `b*b == 1 or -1`
-                //meaning that `exp(norm*b) == cos(norm) + sin(norm)*b` or
-                //`exp(norm*b) == cosh(norm) + sinh(norm)*b` depending on the signature of b
+            //*magic*
+            (n, 2) if n<6 => exp!(bivector, self, mul_full, exp_simple),
 
-                let (even, neg) = (self.even(), self.neg_sig());
-                let (norm, b) = self.norm_and_normalize();
+            //if not simple, we gotta use the taylor series
+            _ => exp_selected(self, n, <T::RealField as AbsDiffEq>::default_epsilon())
+        }
 
-                //if the norm is zero, we have to have this base case to avoid NaNs in b
-                if norm.is_zero() { return Even::one(); }
+    }
 
-                match (even, neg) {
-                    (true, true) => {
-                        let mut exp = Even::from(b * norm.sin());
-                        exp[0] = norm.cos();
-                        exp
-                    },
-                    (true, false) => {
-                        let mut exp = Even::from(b * norm.sinh());
-                        exp[0] = norm.cosh();
-                        exp
-                    },
-                    (false, true) => {
-                        let mut exp = Even::zeroed_generic(n);
-                        exp[0] = norm.cos();
-                        exp
-                    },
-                    (false, false) => {
-                        let mut exp = Even::zeroed_generic(n);
-                        exp[0] = norm.cosh();
-                        exp
-                    }
-                }
+    pub fn exp_even(mut self) -> Even<T,N> where T:AllocEven<N> {
 
-            }
-            else if n.value()<6 && g.value()==2 {
+        //match the dimension so we can optimize for the first few dimensions
+        let (n, g) = self.shape();
 
-                //time for some fancy shit...
+        match (n.value(), g.value()) {
+            //scalars do scalar things
+            (_, 0) => exp!(scalar, self, Even),
 
-                //so in 4 and 5 dimensions, we can take the exponential by first decomposing the
-                //bivector into two simple bivectors that are perpendicular and commute multiplicatively
+            //if we're guaranteed to be simple
+            (n, g) if g==1 || g+1>=n => self.exp_even_simple(),
 
-                //I don't wanna explain how this works rn, so imma just say it's *m a g i c*
+            //*magic*
+            (n, 2) if n<6 => exp!(bivector, self, mul_even, exp_even_simple),
 
-                let two = T::one() + T::one();
-
-                let b = self;
-                let b_conj_scaled = (&b).mul_grade_generic((&b).mul_even(&b).reverse(), g);
-
-                let factor = (&b).mul_even(&b_conj_scaled)[0];
-                let b_conj = b_conj_scaled / factor.sqrt();
-
-                let b1 = (&b_conj + &b_conj) / &two;
-                let b2 = (&b_conj - &b_conj) / &two;
-
-                let (norm1, b1) = b1.norm_and_normalize();
-                let (norm2, b2) = b2.norm_and_normalize();
-
-                let mut exp1 = Even::from_blade(b1*norm1.sin());
-                exp1[0] = norm1.cos();
-                let mut exp2 = Even::from_blade(b2*norm2.sin());
-                exp2[0] = norm2.cos();
-
-                exp1 * exp2
-
-            }
-            else {
-
-                //if not simple, we gotta use the taylor series
-                exp_selected(self, n, <T::RealField as AbsDiffEq>::default_epsilon())
-            }
-
+            //if not simple, we gotta use the taylor series
+            _ => exp_selected(self, n, <T::RealField as AbsDiffEq>::default_epsilon())
         }
 
     }
@@ -159,15 +196,95 @@ impl<T:RefComplexField+AllocBlade<N,G>+AllocEven<N>, N:DimName, G:Dim> Blade<T,N
 //TODO: make work for Dynamic dims
 impl<T:RefComplexField+AllocEven<N>, N:DimName> Even<T,N> {
 
-    pub fn exp(self) -> Even<T,N> {
+    pub fn exp(mut self) -> Even<T,N> {
 
         //match the dimension so we can optimize for the first few dimensions
         let n = self.dim_generic();
         match n.value() {
 
             //a single scalar
-            0 | 1 => Even::from_element_generic(n, self[0].exp()),
+            0 | 1 => {
+                self[0] = self[0].exp();
+                self
+            },
 
+            //complex numbers
+            2 => if let [a, b] = self.as_ref() {
+
+                let (s,c) = b.sin_cos();
+                Even::from_slice_generic(n, &[c, s]) * a.exp()
+
+            } else { unreachable!() },
+
+            //quaternions
+            3 => if let [w, x, y, z] = self.as_ref() {
+
+                let l = x.ref_mul(x) + y.ref_mul(y) + z.ref_mul(z);
+                if l.is_zero() { return Even::one(); }
+                let l = l.sqrt();
+
+                let (s,c) = l.sin_cos();
+                let s = s/l;
+                Even::from_slice_generic(n, &[c, s*x, s*y, s*z]) * w.exp()
+
+            } else { unreachable!() },
+
+            //4D rotors
+            4 => {
+
+                //this is only possible because of the special formula for bivectors in 4D and 5D
+                //and because the quadvector part is guaranteed to be parallel to the bivector part
+                //That last part is important because it means we can't do this in 5D since that no
+                //longer always holds
+                let [s, b1, b2, b3, b4, b5, b6, q] = self.cast_dim::<U4>().data;
+                (
+                    BiVec4::new(b1, b2, b3, b4, b5, b6).exp_even() *
+                    QuadVec4::new(q).exp_even_simple() *
+                    s.exp()
+                ).cast_dim()
+            },
+
+            //any other evens don't have an easy closed-form pattern so we have to use
+            //the taylor series
+            _ => exp_selected(self, n, <T::RealField as AbsDiffEq>::default_epsilon())
+
+        }
+
+    }
+
+}
+
+impl<T:RefComplexField+AllocOdd<N>, N:DimName> Odd<T,N> {
+
+    pub fn exp(self) -> Multivector<T,N> where T:AllocMultivector<N> {
+        let n = self.dim_generic();
+        exp_selected(self, n, <T::RealField as AbsDiffEq>::default_epsilon())
+    }
+
+}
+
+impl<T:RefComplexField+AllocMultivector<N>, N:DimName> Multivector<T,N> {
+
+    pub fn exp(mut self) -> Multivector<T,N> {
+
+        //match the dimension so we can optimize for the first few dimensions
+        let n = self.dim_generic();
+        match n.value() {
+
+            //a single scalar
+            0 => {
+                self[0] = self[0].exp();
+                self
+            },
+
+            //split-complex numbers
+            1 => if let [a, b] = self.as_ref() {
+                let (s,c) = (b.sinh(), b.cosh());
+                Multivector::from_slice_generic(n, &[c, s]) * a.exp()
+            } else { unreachable!() },
+
+            //any other evens don't have an easy closed-form pattern so we have to use
+            //the taylor series
             _ => exp_selected(self, n, <T::RealField as AbsDiffEq>::default_epsilon())
 
         }
