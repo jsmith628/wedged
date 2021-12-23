@@ -1,37 +1,18 @@
 
 use super::*;
 
-pub(crate) fn exp_selected<B1,B2,T:RealField,N:Dim>(x:B1, shape: B2::Shape, epsilon:T) -> B2 where
+//TODO: make work for Dynamic dims
+pub(crate) fn exp_selected<B1,B2,T:ComplexField,N:Dim>(x:B1, shape: B2::Shape, epsilon: T::RealField) -> B2 where
     B1: MultivectorSrc<Scalar=T,Item=T,Dim=N>+Clone+DivAssign<T> + Debug,
     B2: MultivectorSrc<Scalar=T,Item=T,Dim=N>+MultivectorDst+Clone+AddAssign+DivAssign<T>+One + Debug,
     T: AllRefMul<T, AllOutput=T> + Debug,
 {
 
-    //
-    //Ok, so I know this is pretty spicy, but we can prove this works with the following:
-    //
-    //- First, consider our expression `1 + 1 + 1 + 1`
-    //- Next, using `Succ(x)` as the Peano successor function, we can define `1` as `Succ(0)`,
-    //  reducing the above to `Succ(0) + Succ(0) + Succ(0) + Succ(0)`
-    //- Next, by convention, repeated applications of the `+` operator can be reduced to a sequence
-    //  of binary operations by adding parentheses: `(((Succ(0) + Succ(0)) + Succ(0)) + Succ(0))`
-    //- Then, note that by definition of the `+` operator, we have `Succ(x) + Succ(y) == Succ(Succ(x)) + y`
-    //  so we can reduce to `(((Succ(Succ(0)) + 0) + Succ(0)) + Succ(0))`
-    //- Additionally, using another axiom of `+`, we have `x + 0 = x`, reducing further to:
-    //  `((Succ(Succ(0)) + Succ(0)) + Succ(0))`
-    //- Next, we can simply apply these rules furthermore in succession as follows:
-    //  `((Succ(Succ(0)) + Succ(0)) + Succ(0))`
-    //  `((Succ(Succ(Succ(0))) + 0) + Succ(0))`
-    //  `(Succ(Succ(Succ(0))) + Succ(0))`
-    //  `(Succ(Succ(Succ(Succ(0)))) + 0)`
-    //  `Succ(Succ(Succ(Succ(0))))`
-    //- However, this final expression happens to coincide with the definition of the propositional
-    //  symbol `four`
-    //
-    //Therefore, `1 + 1 + 1 + 1` equals `four`
-    //
-    let two = T::one() + T::one();
-    let four = T::one() + T::one() + T::one() + T::one();
+    //for convenience
+    let c2 = T::one() + T::one();
+    let c4 = T::one() + T::one() + T::one() + T::one();
+    let r2 = c2.clone().real();
+    let r4 = c4.clone().real();
 
     //
     //First, we scale down x to have a norm less than one.
@@ -40,13 +21,14 @@ pub(crate) fn exp_selected<B1,B2,T:RealField,N:Dim>(x:B1, shape: B2::Shape, epsi
 
     let mut halvings = 0;
     let mut x = x;
-    let mut norm_sqrd = (0..x.elements()).map(|i| x.get(i).ref_mul(x.get(i)) ).fold(T::zero(), |n,t| n+t);
-    let mut factor = T::one();
+    let mut norm_sqrd = (0..x.elements()).map(|i| x.get(i).modulus_squared() ).fold(T::zero().real(), |n,t| n+t);
+    let mut factor = T::one().real();
 
-    while norm_sqrd > T::one() {
-        factor /= two.clone();
-        x /= two.clone();
-        norm_sqrd /= four.clone();
+    //divide the multivector by 2 until the norm is less than one
+    while norm_sqrd > T::one().real() {
+        factor /= r2.clone();
+        x /= c2.clone();
+        norm_sqrd /= r4.clone();
         halvings += 1;
     }
 
@@ -54,18 +36,21 @@ pub(crate) fn exp_selected<B1,B2,T:RealField,N:Dim>(x:B1, shape: B2::Shape, epsi
     let mut term = B2::one();
 
     let mut i = T::one();
-    let mut remainder = T::one();
+    let mut remainder = T::one().real();
 
+    //apply the taylor series for exp() until the remainder term is small enough
     while remainder > epsilon * factor {
 
         term = mul_selected(term, x.clone(), shape);
         term /= i.clone();
-        remainder /= i.clone() + T::one();
+        remainder /= i.clone().real() + T::one().real();
 
         exp += term.clone();
         i += T::one();
 
     }
+
+    println!("{:?}", i);
 
     //finally, each of the halvings we did to the exponent translate back to squarings of the result
     for _ in 0..halvings {
@@ -76,106 +61,128 @@ pub(crate) fn exp_selected<B1,B2,T:RealField,N:Dim>(x:B1, shape: B2::Shape, epsi
 
 }
 
-pub(crate) fn log_selected<B1,B2,T:RealField,N:Dim>(x:B1, shape: B2::Shape, epsilon:T) -> B2 where
-    B1: MultivectorSrc<Scalar=T,Item=T,Dim=N>+Clone+DivAssign<T>+SubAssign + Display +One,
-    B2: MultivectorSrc<Scalar=T,Item=T,Dim=N>+MultivectorDst+Div<T,Output=B2>+Mul<T,Output=B2>+Clone+SubAssign+AddAssign+MulAssign<T>+DivAssign<T>+One+Zero + Display,
-    T: AllRefMul<T, AllOutput=T> + Debug,
-{
+impl<T:RefComplexField+AllocBlade<N,G>+AllocEven<N>, N:DimName, G:Dim> Blade<T,N,G> {
 
-    let two = T::one() + T::one();
+    pub fn exp_even(mut self) -> Even<T,N> {
 
-    //first, normalize to have a better chance of getting within the ball of convergence
-    let mut factor = T::one();
-    let mut x = x;
-    println!("{:+}", x);
+        //match the dimension so we can optimize for the first few dimensions
+        let (n, g) = self.shape();
 
-    let norm = (0..x.elements()).map(|i| x.get(i).ref_mul(x.get(i)) ).fold(T::zero(), |n,t| n+t).sqrt();
-    x /= norm;
+        if n.value()==0 {
+            //a single scalar just gets exp normally
+            self[0] = self[0].exp();
+            Even::from_blade(self)
+        } else {
 
-    //Here, we use the babylonian method to take repeated square roots of x
-    // let doublings = 40;
-    // let mut roots_x:B2 = mul_selected(B2::one(), x.clone(), shape);
-    // for _ in 0..doublings {
-    //
-    //     println!("{:+}", roots_x);
-    //     let mut x_k = B2::one();
-    //     for _ in 0..15 {
-    //
-    //         let mut x_k_inv = x_k.clone();
-    //         let n = (0..x_k_inv.elements()).map(|i| x_k_inv.get(i).ref_mul(x_k_inv.get(i)) ).fold(T::zero(), |n,t| n+t);
-    //         for i in 0..x_k_inv.elements() {
-    //             if x_k_inv.basis(i).grade() & 0b10 != 0 {
-    //                 x_k_inv.set(i, -x_k_inv.get(i).clone())
-    //             }
-    //         }
-    //         x_k_inv /= n;
-    //
-    //         x_k += mul_selected(roots_x.clone(), x_k_inv, shape);
-    //         x_k /= two;
-    //     }
-    //
-    //     roots_x = x_k
-    //
-    // }
+            let guarranteed_simple = g.value()==1 || g.value()+1 >= n.value();
+            if guarranteed_simple {
 
-    // println!("{:+}", roots_x);
+                //if we have a scalar, vector, psuedovector, or psuedoscalar, we
+                //can easily take the exponential.
+                //To do this, we treat the blade as `norm*b` since b is simple, `b*b == 1 or -1`
+                //meaning that `exp(norm*b) == cos(norm) + sin(norm)*b` or
+                //`exp(norm*b) == cosh(norm) + sinh(norm)*b` depending on the signature of b
 
-    // let mut x = roots_x;
+                let (even, neg) = (self.even(), self.neg_sig());
+                let (norm, b) = self.norm_and_normalize();
 
-    //next subtract 1 since the series is around x=1
-    x -= B1::one();
+                //if the norm is zero, we have to have this base case to avoid NaNs in b
+                if norm.is_zero() { return Even::one(); }
 
-    //get the norm so we can estimate the remainder
-    let norm_x_1 = (0..x.elements()).map(|i| x.get(i).ref_mul(x.get(i)) ).fold(T::zero(), |n,t| n+t).sqrt();
+                match (even, neg) {
+                    (true, true) => {
+                        let mut exp = Even::from(b * norm.sin());
+                        exp[0] = norm.cos();
+                        exp
+                    },
+                    (true, false) => {
+                        let mut exp = Even::from(b * norm.sinh());
+                        exp[0] = norm.cosh();
+                        exp
+                    },
+                    (false, true) => {
+                        let mut exp = Even::zeroed_generic(n);
+                        exp[0] = norm.cos();
+                        exp
+                    },
+                    (false, false) => {
+                        let mut exp = Even::zeroed_generic(n);
+                        exp[0] = norm.cosh();
+                        exp
+                    }
+                }
 
+            }
+            else if n.value()<6 && g.value()==2 {
 
-    println!("{:+}", x);
+                //time for some fancy shit...
 
-    //Then, we compute using the taylor series of ln
+                //so in 4 and 5 dimensions, we can take the exponential by first decomposing the
+                //bivector into two simple bivectors that are perpendicular and commute multiplicatively
 
-    let mut log = B2::zero();
-    let mut x_n = B2::one();
+                //I don't wanna explain how this works rn, so imma just say it's *m a g i c*
 
-    let mut i = T::one();
-    let mut sign = T::one();
+                let two = T::one() + T::one();
 
-    let mut remainder = T::one();
+                let b = self;
+                let b_conj_scaled = (&b).mul_grade_generic((&b).mul_even(&b).reverse(), g);
 
-    while remainder.clone() / i.abs() > epsilon {
+                let factor = (&b).mul_even(&b_conj_scaled)[0];
+                let b_conj = b_conj_scaled / factor.sqrt();
 
-        x_n = mul_selected(x_n, x.clone(), shape);
-        let term = x_n.clone() * sign / i.clone();
+                let b1 = (&b_conj + &b_conj) / &two;
+                let b2 = (&b_conj - &b_conj) / &two;
 
-        println!("{:?}: [{:+}] [{:+}]", i, term, log);
+                let (norm1, b1) = b1.norm_and_normalize();
+                let (norm2, b2) = b2.norm_and_normalize();
 
-        log += term;
+                let mut exp1 = Even::from_blade(b1*norm1.sin());
+                exp1[0] = norm1.cos();
+                let mut exp2 = Even::from_blade(b2*norm2.sin());
+                exp2[0] = norm2.cos();
 
-        i += T::one();
-        remainder *= norm_x_1.clone();
+                exp1 * exp2
 
-        sign = -sign;
+            }
+            else {
+
+                //if not simple, we gotta use the taylor series
+                exp_selected(self, n, <T::RealField as AbsDiffEq>::default_epsilon())
+            }
+
+        }
 
     }
 
-    // let mut log = x;
-    // for _ in 0..doublings {
-    //     log *= two.clone();
-    // }
+}
 
-    //finally, add back in the log of the factors we divided by
-    log += B2::one() * norm.ln();
-    println!("[{:+}]", log);
+//TODO: make work for Dynamic dims
+impl<T:RefComplexField+AllocEven<N>, N:DimName> Even<T,N> {
 
-    log
+    pub fn exp(self) -> Even<T,N> {
+
+        //match the dimension so we can optimize for the first few dimensions
+        let n = self.dim_generic();
+        match n.value() {
+
+            //a single scalar
+            0 | 1 => Even::from_element_generic(n, self[0].exp()),
+
+            _ => exp_selected(self, n, <T::RealField as AbsDiffEq>::default_epsilon())
+
+        }
+
+    }
 
 }
+
 
 #[cfg(test)]
 mod tests {
 
     use super::*;
 
-    const EPSILON: f64 = 0.0000000000001;
+    const EPSILON: f64 = 128.0*f64::EPSILON;
 
     #[test]
     fn rot_2d() {
@@ -185,7 +192,7 @@ mod tests {
             let angle = BiVec2::new(100.0 * std::f64::consts::PI / n as f64);
             let rot: Even2<_> = exp_selected(angle, na::dimension::Const::<2>, EPSILON);
 
-            approx::assert_relative_eq!(rot, Even2::new(angle.value.cos(), angle.value.sin()), epsilon=EPSILON);
+            approx::assert_relative_eq!(rot, Even2::new(angle.value.cos(), angle.value.sin()), max_relative=EPSILON, epsilon=EPSILON);
 
             println!("{}: exp({:+}) == {:+}", n, angle, rot);
 
