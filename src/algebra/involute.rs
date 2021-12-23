@@ -41,12 +41,31 @@ macro_rules! norm_methods {
             self / l
         }
 
+        /// Divides `self` by its norm if it is non-zero
+        pub fn try_normalize(self) -> Option<Self> where T: RefComplexField
+        {
+            let l = self.norm();
+            if l.is_zero() { Some(self / l) } else { None }
+        }
+
         /// Divides `self` by its norm and returns both
         pub fn norm_and_normalize(self) -> (T, Self) where T:RefComplexField
         {
             let l = self.norm();
             let normalized = self / &l;
             (l, normalized)
+        }
+
+        /// Divides `self` by its norm and returns both if it is non-zero
+        pub fn try_norm_and_normalize(self) -> Option<(T, Self)> where T:RefComplexField
+        {
+            let l = self.norm();
+            if !l.is_zero() {
+                let normalized = self / &l;
+                Some((l, normalized))
+            } else {
+                None
+            }
         }
 
     }

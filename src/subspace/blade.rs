@@ -289,10 +289,22 @@ impl<T:AllocBlade<N,G>, N:Dim, G:Dim> SimpleBlade<T,N,G> {
         UnitBlade::from_inner_unchecked(self.data.normalize())
     }
 
+    pub fn try_normalize(self) -> Option<UnitBlade<T,N,G>> where T: RefComplexField {
+        self.data.try_normalize().map(|b| UnitBlade::from_inner_unchecked(b))
+    }
+
     pub fn norm_and_normalize(self) -> (T, UnitBlade<T,N,G>) where T: RefComplexField
     {
         let (l, b) = self.data.norm_and_normalize();
         (l, UnitBlade::from_inner_unchecked(b))
+    }
+
+    pub fn try_norm_and_normalize(self) -> Option<(T, UnitBlade<T,N,G>)> where T: RefComplexField
+    {
+        match self.data.try_norm_and_normalize() {
+            Some((l,b)) => Some((l, UnitBlade::from_inner_unchecked(b))),
+            None => None
+        }
     }
 
     #[inline(always)]
