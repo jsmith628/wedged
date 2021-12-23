@@ -263,7 +263,8 @@ where
             //note that it's fine that the dimensions mismatch, as missing dimensions will be 0
             // let dot = b1.into_iter().zip(b2).map(|(t1,t2)| t1*t2).fold(B3::Scalar::zero(), |d,t| d+t);
 
-            let dot = (0..dest.elements()).map(|i| b1.get(i).ref_mul(b2.get(i))).fold(B3::Scalar::zero(), |d,t| d+t);
+            let l = b1.elements().min(b2.elements());
+            let dot = (0..l).map(|i| b1.get(i).ref_mul(b2.get(i))).fold(B3::Scalar::zero(), |d,t| d+t);
 
             // let e = b1.elements();
             // let dot = (0..e).map(|i| b1.get(i).ref_mul(b2.get(i))).fold(B3::Scalar::zero(), |d,t| d+t);
@@ -283,7 +284,8 @@ where
             //note that it's fine that the dimensions mismatch, as missing dimensions will be 0
             if g1!=g2 {
                 // let dot = b1.into_iter().zip(b2).map(|(t1,t2)| t1*t2).fold(B3::Scalar::zero(), |d,t| d+t);
-                let dot = (0..dest.elements()).map(|i| b1.get(i).ref_mul(b2.get(i))).fold(B3::Scalar::zero(), |d,t| d+t);
+                let l = b1.elements().min(b2.elements());
+                let dot = (0..l).map(|i| b1.get(i).ref_mul(b2.get(i))).fold(B3::Scalar::zero(), |d,t| d+t);
                 let neg = ((g1&0b10) != 0) ^ (g1>g2 && ((n&0b10) != 0));
 
                 dest[0] = MaybeUninit::new( if neg { -dot } else { dot } );
