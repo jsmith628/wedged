@@ -139,12 +139,11 @@ macro_rules! impl_blade_op {
             T1: AllocBlade<N,G1> + AllRefMul<T2,AllOutput=U>,
             T2: AllocBlade<N,G2>,
             $G1: $DimOp<$G2>,
-            $(&$a)? T1: Mul<$(&$b)? T2, Output=U>,
             U: AllocBlade<N,$DimRes<$G1,$G2>> + AddGroup
         {
             type Output = SimpleBlade<U,N,$DimRes<$G1,$G2>>;
             fn $op(self, rhs: $(&$b)? SimpleBlade<T2,N,G2>) -> SimpleBlade<U,N,$DimRes<$G1,$G2>> {
-                SimpleBlade { data: self.data.$op(maybe_ref!(rhs.data; $($b)?)) }
+                SimpleBlade { data: maybe_ref!(self.data; $($a)?).$op(maybe_ref!(rhs.data; $($b)?)) }
             }
         }
 
@@ -257,7 +256,6 @@ macro_rules! impl_mul {
             T1: $Alloc1<N,$($G1),*> + AllRefMul<T2, AllOutput=U>,
             T2: $Alloc2<N,$($G2),*>,
             U: $Alloc3<N> + AddGroup,
-            $(&$a)? T1: Mul<$(&$b)? T2, Output=U>
         {
 
             type Output = $Ty3<U,N>;
@@ -318,7 +316,6 @@ macro_rules! impl_unit_blade_mul {
             T1: $Alloc1<N,$($G1),*> + AllRefMul<T2, AllOutput=U>,
             T2: $Alloc2<N,$($G2),*>,
             U: AllocVersor<N> + AddGroup,
-            $(&$a)? T1: Mul<$(&$b)? T2, Output=U>
         {
 
             type Output = Versor<U,N>;
@@ -379,7 +376,6 @@ macro_rules! impl_versor_mul {
             T1: $Alloc1<N,$($G1),*> + AllRefMul<T2, AllOutput=U>,
             T2: $Alloc2<N,$($G2),*>,
             U: AllocVersor<N> + AddGroup,
-            $(&$a)? T1: Mul<$(&$b)? T2, Output=U>
         {
 
             type Output = Versor<U,N>;
@@ -449,7 +445,6 @@ macro_rules! impl_div {
             T1: $Alloc1<N,$($G1),*> + AllRefMul<T2, AllOutput=U>,
             T2: $Alloc2<N,$($G2),*> + Clone + Neg<Output=T2>,
             U: $Alloc3<N> + AddGroup,
-            $(&$a)? T1: Mul<T2, Output=U>,
         {
 
             type Output = $Ty3<U,N>;
@@ -515,7 +510,6 @@ macro_rules! impl_mul_div_assign {
         where
             T1: $Alloc1<N,$($G1),*> + AllRefMul<T2, AllOutput=T1> + AddGroup,
             T2: $Alloc2<N,$($G2),*>,
-            for<'b> &'b T1: Mul<$(&$b)? T2, Output=T1>
         {
             fn mul_assign(&mut self, rhs: $(&$b)? $Ty2<T2,N,$($G2)*>) {
                 *self = &*self * rhs

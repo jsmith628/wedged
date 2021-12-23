@@ -235,7 +235,7 @@ where
     B2: MultivectorSrc,
     B3: MultivectorDst,
     B1::Scalar: AllRefMul<B2::Scalar, AllOutput=B3::Scalar>,
-    B1::Item: Mul<B2::Item, Output=B3::Scalar>,
+    // B1::Item: Mul<B2::Item, Output=B3::Scalar>,
     B3::Scalar: AddGroup,
 {
 
@@ -256,8 +256,14 @@ where
         //the scalar product of two blades
         (Blade(_,g), Blade(_,g2), Blade(_,0)) if g==g2 => {
 
+            //TODO: somehow account for the case where one of the args isn't a reference
+            //for primatives, this shouldn't be an issue, but it will probably slow down
+            //the dot product computation for polynomials and the like
+
             //note that it's fine that the dimensions mismatch, as missing dimensions will be 0
-            let dot = b1.into_iter().zip(b2).map(|(t1,t2)| t1*t2).fold(B3::Scalar::zero(), |d,t| d+t);
+            // let dot = b1.into_iter().zip(b2).map(|(t1,t2)| t1*t2).fold(B3::Scalar::zero(), |d,t| d+t);
+
+            let dot = (0..dest.elements()).map(|i| b1.get(i).ref_mul(b2.get(i))).fold(B3::Scalar::zero(), |d,t| d+t);
 
             // let e = b1.elements();
             // let dot = (0..e).map(|i| b1.get(i).ref_mul(b2.get(i))).fold(B3::Scalar::zero(), |d,t| d+t);
@@ -276,7 +282,8 @@ where
 
             //note that it's fine that the dimensions mismatch, as missing dimensions will be 0
             if g1!=g2 {
-                let dot = b1.into_iter().zip(b2).map(|(t1,t2)| t1*t2).fold(B3::Scalar::zero(), |d,t| d+t);
+                // let dot = b1.into_iter().zip(b2).map(|(t1,t2)| t1*t2).fold(B3::Scalar::zero(), |d,t| d+t);
+                let dot = (0..dest.elements()).map(|i| b1.get(i).ref_mul(b2.get(i))).fold(B3::Scalar::zero(), |d,t| d+t);
                 let neg = ((g1&0b10) != 0) ^ (g1>g2 && ((n&0b10) != 0));
 
                 dest[0] = MaybeUninit::new( if neg { -dot } else { dot } );
@@ -484,7 +491,6 @@ macro_rules! impl_geometric_mul {
             T1: $Alloc1<N $(, $G1)*> + AllRefMul<T2, AllOutput=U>,
             T2: $Alloc2<N $(, $G2)*>,
             U: AddGroup,
-            $(&$a)? T1: Mul<$(&$b)? T2, Output=U>
         {
             type OutputScalar = U;
             type N = N;
@@ -524,7 +530,6 @@ macro_rules! impl_geometric_mul {
             T1: $Alloc1<N $(, $G1)*> + AllRefMul<T2, AllOutput=U>,
             T2: $Alloc2<N $(, $G2)*>,
             U: for<'c> Mul<&'c T1, Output=U> + AddGroup,
-            $(&$a)? T1: Mul<$(&$b)? T2, Output=U>
         {
             type OutputScalar = U;
             type N = N;
@@ -571,7 +576,6 @@ macro_rules! impl_geometric_mul {
         Mul<$(&$b)? $Ty2<T,N $(,$G2)*>> for $(&$a)? $Ty1<T,N $(,$G1)*> where
             T: $Alloc1<N $(, $G1)*> + $Alloc2<N $(, $G2)*> + AllRefMul<T, AllOutput=U>,
             U: $Alloc3<N> + AddGroup,
-            $(&$a)? T: Mul<$(&$b)? T, Output=U>
         {
 
             type Output = $Ty3<U,N>;
@@ -636,7 +640,6 @@ macro_rules! impl_wedge_dot {
             T1: AllocBlade<N,G1> + AllRefMul<T2,AllOutput=U>,
             T2: AllocBlade<N,G2>,
             G1: DimAdd<G2>,
-            $(&$a)? T1: Mul<$(&$b)? T2,Output=U>,
             U: AllocBlade<N, DimSum<G1, G2>> + AddGroup,
         {
             type Output = Blade<U,N,DimSum<G1, G2>>;
@@ -654,7 +657,6 @@ macro_rules! impl_wedge_dot {
             T1: AllocBlade<N,G1> + AllRefMul<T2,AllOutput=U>,
             T2: AllocBlade<N,G2>,
             G1: DimSymSub<G2>,
-            $(&$a)? T1: Mul<$(&$b)? T2,Output=U>,
             U: AllocBlade<N, DimSymDiff<G1, G2>> + AddGroup,
         {
             type Output = Blade<U,N,DimSymDiff<G1,G2>>;
