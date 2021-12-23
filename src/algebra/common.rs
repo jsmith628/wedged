@@ -343,10 +343,16 @@ impl_eq!(
 impl<T:AllocBlade<N,G>, N:Dim, G:Dim> Blade<T,N,G> {
 
     /// True if the grade of this blade is even
-    pub fn even(&self) -> bool { self.grade()%2 == 0 }
+    #[inline(always)] pub fn even(&self) -> bool { self.grade()&1 == 0 }
 
     /// True if the grade of this blade is odd
-    pub fn odd(&self) -> bool { self.grade()%2 == 1 }
+    #[inline(always)] pub fn odd(&self) -> bool { self.grade()&1 == 1 }
+
+    /// True if blades of this grade square to positive numbers
+    #[inline(always)] pub fn pos_sig(&self) -> bool { self.grade()&2 == 0 }
+
+    /// True if blades of this grade square to negative numbers
+    #[inline(always)] pub fn neg_sig(&self) -> bool { self.grade()&2 != 0 }
 
 }
 

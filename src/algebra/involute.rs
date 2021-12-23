@@ -76,7 +76,7 @@ impl<T:AllocBlade<N,G>, N:Dim, G:Dim> Blade<T,N,G> {
     /// unit simple blades, this is the same as computing the inverse
     ///
     pub fn reverse(self) -> Self where T: Neg<Output=T> {
-        if (self.grade() & 0b10) != 0 { -self } else { self }
+        if self.neg_sig() { -self } else { self }
     }
 
     norm_methods!();

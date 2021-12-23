@@ -46,7 +46,7 @@ fn reject_blade<T,N:Dim,G1:Dim,G2:Dim>(b1: &Blade<T,N,G1>, b2: Blade<T,N,G2>) ->
 }
 
 macro_rules! factor {
-    ($b:ident) => { if $b.grade()&0b10 != 0 { -$b.norm_sqrd() } else { $b.norm_sqrd() } };
+    ($b:ident) => { if $b.neg_sig() { -$b.norm_sqrd() } else { $b.norm_sqrd() } };
 }
 
 pub trait Project<B> {
@@ -199,7 +199,7 @@ impl<T, N:Dim, G1:Dim, G2:Dim> Project<Blade<T,N,G2>> for UnitBlade<T,N,G1> wher
 
     fn project(&self, b:Blade<T,N,G2>) -> Blade<T,N,G2> {
         let proj = project_blade(self.as_inner(), b);
-        if self.grade()&0b10 != 0 { -proj } else { proj }
+        if self.neg_sig() { -proj } else { proj }
     }
 
 }
@@ -212,7 +212,7 @@ impl<T, N:Dim, G1:Dim, G2:Dim> Reject<Blade<T,N,G2>> for UnitBlade<T,N,G1> where
 
     fn reject(&self, b:Blade<T,N,G2>) -> Blade<T,N,G2> {
         let proj = reject_blade(self.as_inner(), b);
-        if self.grade()&0b10 != 0 { -proj } else { proj }
+        if self.neg_sig() { -proj } else { proj }
     }
 
 }
