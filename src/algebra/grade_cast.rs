@@ -89,11 +89,11 @@ impl<T:AllocMultivector<N>, N:Dim> Multivector<T,N> {
 
 }
 
-impl<T:AllocEven<N>+AllocBlade<N,G>+Zero, N:Dim, G:Dim> From<Blade<T,N,G>> for Even<T,N> {
+impl<T:AllocEven<N>+AllocBlade<N,G>+Zero, N:Dim, G:DimEven> From<Blade<T,N,G>> for Even<T,N> {
     fn from(b: Blade<T,N,G>) -> Even<T,N> { Self::from_blade(b) }
 }
 
-impl<T:AllocOdd<N>+AllocBlade<N,G>+Zero, N:Dim, G:Dim> From<Blade<T,N,G>> for Odd<T,N> {
+impl<T:AllocOdd<N>+AllocBlade<N,G>+Zero, N:Dim, G:DimOdd> From<Blade<T,N,G>> for Odd<T,N> {
     fn from(b: Blade<T,N,G>) -> Odd<T,N> { Self::from_blade(b) }
 }
 

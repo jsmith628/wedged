@@ -149,7 +149,17 @@ impl<const N:usize, const K:usize> DimNameBinomCoeff<Const<K>> for Const<N> wher
     }
 }
 
+pub trait DimEven: Dim {}
+impl<D:Dim> DimEven for D where
+    D: ToTypenum,
+    AsTypenum<D>: Even
+{}
 
+pub trait DimOdd: Dim {}
+impl<D:Dim> DimOdd for D where
+    D: ToTypenum,
+    AsTypenum<D>: Odd
+{}
 
 use self::private::*;
 
@@ -165,6 +175,14 @@ pub mod private {
 
     pub trait PrivateNonZero: Unsigned {}
     impl<N:Unsigned,B:Bit> PrivateNonZero for UInt<N,B> {}
+
+    pub trait Even: Unsigned {}
+    impl<N:Unsigned> Even for UInt<N,B0> {}
+    impl Even for UTerm {}
+
+    pub trait Odd: Unsigned {}
+    impl<N:Unsigned> Even for UInt<N,B1> {}
+
 
     pub type Binom<N,K> = <N as BinomCoeff<K>>::Output;
     pub trait BinomCoeff<K> {
