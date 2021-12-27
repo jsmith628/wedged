@@ -76,8 +76,9 @@ macro_rules! exp {
     (simple, $self:ident, $M:ident) => {{
 
         let neg = $self.neg_sig();
+        let n = $self.dim_generic();
         match $self.try_norm_and_normalize() {
-            None => $M::one(), //if the norm is 0, then exp(self) == 1
+            None => $M::one_generic(n), //if the norm is 0, then exp(self) == 1
 
             Some((l, b)) => {
                 if neg {
@@ -88,7 +89,7 @@ macro_rules! exp {
                     exp
                 } else {
                     //positive signatures behave like the exp of split-complex numbers
-                    let (s, c) = (l.sinh(), l.cosh());
+                    let (s, c) = l.sinh_cosh();
                     let mut exp = $M::from_blade(b*s);
                     exp[0] = c;
                     exp
@@ -130,8 +131,7 @@ impl<T:RefComplexField+AllocBlade<N,U2>, N:DimName> BiVecN<T,N> {
 
 }
 
-impl<T:RefComplexField+AllocBlade<N,G>, N:DimName, G:Dim> Blade<T,N,G> {
-
+impl<T:RefComplexField+AllocBlade<N,G>, N:Dim, G:Dim> Blade<T,N,G> {
     #[inline(always)]
     pub(crate) fn exp_simple(self) -> Multivector<T,N> where T:AllocMultivector<N> {
         exp!(simple, self, Multivector)
@@ -148,6 +148,9 @@ impl<T:RefComplexField+AllocBlade<N,G>, N:DimName, G:Dim> Blade<T,N,G> {
             exp
         }
     }
+}
+
+impl<T:RefComplexField+AllocBlade<N,G>, N:DimName, G:Dim> Blade<T,N,G> {
 
     pub fn exp(mut self) -> Multivector<T,N> where T:AllocMultivector<N> {
 

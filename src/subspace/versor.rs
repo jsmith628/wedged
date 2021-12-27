@@ -165,6 +165,12 @@ versor_mul_versor!(
     Versor<T:AllocVersor,N>;
 );
 
+impl<T:AllocBlade<N,U2>, N:Dim> SimpleBiVecN<T, N> {
+    pub fn exp(self) -> Rotor<T,N> where T:AllocEven<N>+RefComplexField {
+        Rotor::from_inner_unchecked(self.into_inner().exp_even_simple())
+    }
+}
+
 impl<T:AllocEven<N>, N:Dim> Rotor<T,N> {
 
     pub fn one_generic(n: N) -> Self where T: One+Zero {
@@ -174,22 +180,17 @@ impl<T:AllocEven<N>, N:Dim> Rotor<T,N> {
     pub fn from_scaled_plane(plane: SimpleBiVecN<T, N>) -> Self where
         T: AllocBlade<N,U2> + RefComplexField
     {
-        let (angle, plane) = plane.norm_and_normalize();
-        if angle.is_zero() {
-            Self::one_generic(plane.dim_generic())
-        } else {
-            Self::from_plane_angle(plane, angle)
-        }
+        let two = T::one() + T::one();
+        (plane/two).exp()
     }
 
     pub fn from_plane_angle(plane: UnitBiVecN<T, N>, angle: T) -> Self where
         T: AllocBlade<N,U2> + RefComplexField
     {
 
-        //get both the sine and cosine of the angle
-        let (s, c) = angle.sin_cos();
-
-        println!("sin({:?}) = {:?}, cos({:?})={:?}", angle, s, angle, c);
+        //get both the sine and cosine of half the angle
+        let two = T::one() + T::one();
+        let (s, c) = (angle/two).sin_cos();
 
         //create an even of the form `cos(angle) + plane*sin(angle)`
         let mut r = Even::from(plane.into_inner() * s);
@@ -214,12 +215,32 @@ impl<T:AllocEven<Dynamic>> RotorD<T> {
 
 }
 
-impl<T:AllocEven<U2>> Rotor2<T> {
-    pub fn from_angle(angle:T) -> Self where
-        T: AllocBlade<U2,U2> + RefComplexField
+impl<T:AllocEven<U2>+RefComplexField> Rotor2<T> {
+    pub fn from_angle(angle:T) -> Self
     {
-        Self::from_plane_angle(UnitBiVec2::unit_psuedoscalar(), angle)
+        let two = T::one() + T::one();
+        let (s, c) = (angle/two).sin_cos();
+        Self::from_inner_unchecked(Even2::new(c, s))
     }
+
+    pub fn get_angle(&self) -> T where T:RefRealField {
+        self.re.atan2(self.im)
+    }
+
+}
+
+impl<T:AllocEven<U2>+RefComplexField> Rotor3<T> {
+    pub fn from_scaled_axis(scaled_axis: Vec3<T>) -> Self
+    {
+        //TODO: make sure this is actually undual and not dual
+        Self::from_scaled_plane(scaled_axis.undual())
+    }
+
+    pub fn from_axis_angle(axis:UnitVec3<T>, angle:T) -> Self
+    {
+        Self::from_plane_angle(scaled_axis.undual(), angle)
+    }
+
 }
 
 #[cfg(test)]

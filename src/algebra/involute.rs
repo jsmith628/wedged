@@ -22,6 +22,8 @@ macro_rules! norm_methods {
             self.iter().map(|t| t.ref_mul(t)).fold(T::AllOutput::zero(), |c,t| c+t)
         }
 
+        //TODO: reevaluate the trait bounds... we may want to have these be real-valued instead
+
         ///
         /// The square root of the sum of squares of each element
         ///
@@ -31,6 +33,7 @@ macro_rules! norm_methods {
         pub fn norm(&self) -> T::AllOutput where
             T: AllRefMul<T>, T::AllOutput: ComplexField
         {
+            //TODO: optimize special case where there is only one element
             self.norm_sqrd().sqrt()
         }
 

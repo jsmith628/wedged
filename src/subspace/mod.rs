@@ -21,6 +21,7 @@ use num_traits::{Zero, One, Inv};
 use crate::base::*;
 use crate::algebra::{
     Blade, Even, Odd, Multivector,
+    Even2, Even3,
     MultivectorSrc, MultivectorDst, Subspace,
     mul_selected, versor_mul_selected,
     Scalar, PsuedoScalar
