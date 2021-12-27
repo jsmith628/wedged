@@ -205,6 +205,96 @@ impl<T:AllocEven<N>, N:Dim> Rotor<T,N> {
         self.versor_mul(m)
     }
 
+    pub fn log(self) -> BiVecN<T,N> where T: AllocBlade<N,U2> + RefRealField {
+        //oooooooh boy
+
+        //so imma do a bad and have this method available for all rotors even though
+        //I don't even know if anyone has a general algorithm for this in all dimensions
+        //oops
+
+        let (n, g) = (self.dim_generic(), <U2 as na::dimension::DimName>::name());
+        match n.value() {
+
+            //weird edge cases
+            0 | 1 => BiVecN::zeroed_generic(n, g),
+
+            //complex numbers
+            2 => {
+                let z = self.into_inner().cast_dim::<U2>();
+                BiVecN::from_element_generic(n, g, z.im.atan2(z.re))
+            },
+
+            //quaternions
+            3 => {
+                let [w, x, y, z] = self.into_inner().cast_dim::<U3>().data;
+
+                let (c, s) = (w, (x.ref_mul(&x)+y.ref_mul(&y)+z.ref_mul(&z)).sqrt());
+                let angle = s.atan2(c);
+
+                if angle.is_zero() {
+                    BiVecN::zeroed_generic(n, g)
+                } else {
+                    BiVecN::from_slice_generic(n, g, &[x*&angle/&s, y*&angle/&s, z*&angle/&s])
+                }
+
+            },
+
+            //magic
+            4 => {
+
+                let two = T::one() + T::one();
+                let [s, b1, b2, b3, b4, b5, b6, q] = self.into_inner().cast_dim::<U4>().data;
+
+                //using trig identities, we can find the cosine of the sum and differences of the angles
+                let cos_plus = s + q;
+                let cos_minus = s - q;
+
+                //next, we find the dual of the bivector part, this has the effect of swapping the
+                //two planes to have the opposite angle
+                let b = BiVec4::new(b1, b2, b3, b4, b5, b6);
+                let b_dual = b.dual();
+
+                //then, by adding and subtracting, we end up with two bivectors,
+                //one that has the sine of the angle sum on the sum of the planes
+                //and one that has the sine of the angle difference on the difference of the planes
+                let b_plus = b + b_dual;
+                let b_minus = b - b_dual;
+
+                //TODO edge cases
+
+                //normalize and get the norm of the above bivectors
+                let (sin_plus, b_plus) = b_plus.norm_and_normalize();
+                let (sin_minus, b_minus) = b_minus.norm_and_normalize();
+
+                //next, we need to adjust for the fact that the norms are off by a factor of sqrt(2)
+                let (sin_plus, sin_minus) = (sin_plus/two.sqrt(), sin_minus/two.sqrt());
+                let (b_plus, b_minus) = (b_plus * two.sqrt(), b_minus * two.sqrt());
+
+                //then, we find the angles using atan2
+                let angle_plus = sin_plus.atan2(cos_plus);
+                let angle_minus = sin_minus.atan2(cos_minus);
+
+                //finally, solve for the angles and directions
+                let angle1 = (angle_plus + angle_minus) / two;
+                let angle2 = (angle_plus - angle_minus) / two;
+                let dir1 = (b_plus + b_minus) / two;
+                let dir2 = (b_plus - b_minus) / two;
+
+                //scale and add and return
+                (dir1 * angle1 + dir2 * angle2).cast_dim_generic(n)
+            }
+
+            //TODO: fill in for 5D. It's basically the same as for 4D but where the quadvector part
+            //has more degrees of freedom
+
+
+            _ => unimplemented!("error: log() currently only implemented up to 4 dimensions")
+
+
+        }
+
+    }
+
 }
 
 impl<T:AllocEven<Dynamic>> RotorD<T> {
@@ -224,7 +314,8 @@ impl<T:AllocEven<U2>+RefComplexField> Rotor2<T> {
     }
 
     pub fn get_angle(&self) -> T where T:RefRealField {
-        self.re.atan2(self.im)
+        let two = T::one() + T::one();
+        self.im.atan2(self.re) * two
     }
 
 }
@@ -233,12 +324,12 @@ impl<T:AllocEven<U2>+RefComplexField> Rotor3<T> {
     pub fn from_scaled_axis(scaled_axis: Vec3<T>) -> Self
     {
         //TODO: make sure this is actually undual and not dual
-        Self::from_scaled_plane(scaled_axis.undual())
+        Self::from_scaled_plane(scaled_axis.undual().into())
     }
 
     pub fn from_axis_angle(axis:UnitVec3<T>, angle:T) -> Self
     {
-        Self::from_plane_angle(scaled_axis.undual(), angle)
+        Self::from_plane_angle(UnitBiVec3::from_inner_unchecked(axis.undual()), angle)
     }
 
 }
