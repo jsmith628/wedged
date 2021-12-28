@@ -1,3 +1,4 @@
+#![doc = include_str!("../README.md")]
 #![recursion_limit = "1024"]
 #![cfg_attr(test, allow(soft_unstable))]
 #![cfg_attr(test, feature(test))]
