@@ -5,8 +5,8 @@ edition = "2018"
 
 [dependencies]
 derivative = "^2.2"
-typenum = "^1.13"
-nalgebra = "^0.27"
+typenum = "^1.15"
+nalgebra = "^0.29"
 num-traits = "^0.2"
 approx = "^0.5"
 

@@ -165,8 +165,8 @@ versor_mul_versor!(
     Versor<T:AllocVersor,N>;
 );
 
-impl<T:AllocBlade<N,U2>, N:Dim> SimpleBiVecN<T, N> {
-    pub fn exp(self) -> Rotor<T,N> where T:AllocEven<N>+RefComplexField {
+impl<T:AllocBlade<N,U2>+RefRealField, N:Dim> SimpleBiVecN<T, N> {
+    pub fn exp(self) -> Rotor<T,N> where T:AllocEven<N> {
         Rotor::from_inner_unchecked(self.into_inner().exp_even_simple())
     }
 }
@@ -178,14 +178,14 @@ impl<T:AllocEven<N>, N:Dim> Rotor<T,N> {
     }
 
     pub fn from_scaled_plane(plane: SimpleBiVecN<T, N>) -> Self where
-        T: AllocBlade<N,U2> + RefComplexField
+        T: AllocBlade<N,U2> + RefRealField
     {
         let two = T::one() + T::one();
         (plane/two).exp()
     }
 
     pub fn from_plane_angle(plane: UnitBiVecN<T, N>, angle: T) -> Self where
-        T: AllocBlade<N,U2> + RefComplexField
+        T: AllocBlade<N,U2> + RefRealField
     {
 
         //get both the sine and cosine of half the angle
@@ -220,8 +220,8 @@ impl<T:AllocEven<N>, N:Dim> Rotor<T,N> {
 
             //complex numbers
             2 => {
-                let z = self.into_inner().cast_dim::<U2>();
-                BiVecN::from_element_generic(n, g, z.im.atan2(z.re))
+                let [x,y] = self.into_inner().cast_dim::<U2>().data;
+                BiVec2::new(y.atan2(x)).cast_dim_generic(n)
             },
 
             //quaternions
@@ -229,12 +229,13 @@ impl<T:AllocEven<N>, N:Dim> Rotor<T,N> {
                 let [w, x, y, z] = self.into_inner().cast_dim::<U3>().data;
 
                 let (c, s) = (w, (x.ref_mul(&x)+y.ref_mul(&y)+z.ref_mul(&z)).sqrt());
-                let angle = s.atan2(c);
+                let angle = s.clone().atan2(c);
 
                 if angle.is_zero() {
                     BiVecN::zeroed_generic(n, g)
                 } else {
-                    BiVecN::from_slice_generic(n, g, &[x*&angle/&s, y*&angle/&s, z*&angle/&s])
+                    let s = angle / s;
+                    BiVec3::new(x*&s, y*&s, z*&s).cast_dim_generic(n)
                 }
 
             },
@@ -246,18 +247,18 @@ impl<T:AllocEven<N>, N:Dim> Rotor<T,N> {
                 let [s, b1, b2, b3, b4, b5, b6, q] = self.into_inner().cast_dim::<U4>().data;
 
                 //using trig identities, we can find the cosine of the sum and differences of the angles
-                let cos_plus = s + q;
+                let cos_plus = s.ref_add(&q);
                 let cos_minus = s - q;
 
                 //next, we find the dual of the bivector part, this has the effect of swapping the
                 //two planes to have the opposite angle
                 let b = BiVec4::new(b1, b2, b3, b4, b5, b6);
-                let b_dual = b.dual();
+                let b_dual = b.clone().dual();
 
                 //then, by adding and subtracting, we end up with two bivectors,
                 //one that has the sine of the angle sum on the sum of the planes
                 //and one that has the sine of the angle difference on the difference of the planes
-                let b_plus = b + b_dual;
+                let b_plus = &b + &b_dual;
                 let b_minus = b - b_dual;
 
                 //TODO edge cases
@@ -267,17 +268,17 @@ impl<T:AllocEven<N>, N:Dim> Rotor<T,N> {
                 let (sin_minus, b_minus) = b_minus.norm_and_normalize();
 
                 //next, we need to adjust for the fact that the norms are off by a factor of sqrt(2)
-                let (sin_plus, sin_minus) = (sin_plus/two.sqrt(), sin_minus/two.sqrt());
-                let (b_plus, b_minus) = (b_plus * two.sqrt(), b_minus * two.sqrt());
+                let (sin_plus, sin_minus) = (sin_plus/two.clone().sqrt(), sin_minus/two.clone().sqrt());
+                let (b_plus, b_minus) = (b_plus * two.clone().sqrt(), b_minus * two.clone().sqrt());
 
                 //then, we find the angles using atan2
                 let angle_plus = sin_plus.atan2(cos_plus);
                 let angle_minus = sin_minus.atan2(cos_minus);
 
                 //finally, solve for the angles and directions
-                let angle1 = (angle_plus + angle_minus) / two;
-                let angle2 = (angle_plus - angle_minus) / two;
-                let dir1 = (b_plus + b_minus) / two;
+                let angle1 = (angle_plus.ref_add(&angle_minus)) / &two;
+                let angle2 = (angle_plus - angle_minus) / &two;
+                let dir1 = (&b_plus + &b_minus) / &two;
                 let dir2 = (b_plus - b_minus) / two;
 
                 //scale and add and return
@@ -305,7 +306,7 @@ impl<T:AllocEven<Dynamic>> RotorD<T> {
 
 }
 
-impl<T:AllocEven<U2>+RefComplexField> Rotor2<T> {
+impl<T:AllocEven<U2>+RefRealField> Rotor2<T> {
     pub fn from_angle(angle:T) -> Self
     {
         let two = T::one() + T::one();
@@ -313,14 +314,17 @@ impl<T:AllocEven<U2>+RefComplexField> Rotor2<T> {
         Self::from_inner_unchecked(Even2::new(c, s))
     }
 
+    fn get_half_angle(&self) -> T where T:RefRealField {
+        self.im.clone().atan2(self.re.clone())
+    }
+
     pub fn get_angle(&self) -> T where T:RefRealField {
-        let two = T::one() + T::one();
-        self.im.atan2(self.re) * two
+        self.get_half_angle() * (T::one() + T::one())
     }
 
 }
 
-impl<T:AllocEven<U2>+RefComplexField> Rotor3<T> {
+impl<T:AllocEven<U2>+RefRealField> Rotor3<T> {
     pub fn from_scaled_axis(scaled_axis: Vec3<T>) -> Self
     {
         //TODO: make sure this is actually undual and not dual
@@ -329,8 +333,21 @@ impl<T:AllocEven<U2>+RefComplexField> Rotor3<T> {
 
     pub fn from_axis_angle(axis:UnitVec3<T>, angle:T) -> Self
     {
-        Self::from_plane_angle(UnitBiVec3::from_inner_unchecked(axis.undual()), angle)
+        Self::from_plane_angle(UnitBiVec3::from_inner_unchecked(axis.into_inner().undual()), angle)
     }
+
+    // fn get_half_plane_angle(&self) -> (BiVec3<T>, T) where T:RefRealField {
+    //     let [w, x, y, z] = &self.into_inner().data;
+    //
+    //     let (c, s) = (w, (x.ref_mul(x)+y.ref_mul(y)+z.ref_mul(z)).sqrt());
+    //     let angle = s.atan2(c);
+    //
+    //     if angle.is_zero() {
+    //         (BiVecN::zeroed_generic(n, g), angle)
+    //     } else {
+    //         BiVecN::from_slice_generic(n, g, &[x*&angle/&s, y*&angle/&s, z*&angle/&s])
+    //     }
+    // }
 
 }
 

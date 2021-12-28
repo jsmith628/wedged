@@ -4,51 +4,60 @@ use crate::subspace::Rotor;
 
 //TODO: make work for Dynamic dims
 #[inline(always)]
-pub(crate) fn exp_selected<B1,B2,T:ComplexField,N:Dim>(x:B1, shape: B2::Shape, epsilon: T::RealField) -> B2 where
+pub(crate) fn exp_selected<B1,B2,T:RefRealField,N:Dim>(x:B1, one:B2, epsilon: T::RealField) -> B2 where
     B1: MultivectorSrc<Scalar=T,Item=T,Dim=N>+Clone+DivAssign<T> + Debug,
-    B2: MultivectorSrc<Scalar=T,Item=T,Dim=N>+MultivectorDst+Clone+AddAssign+DivAssign<T>+One + Debug,
+    B2: MultivectorSrc<Scalar=T,Item=T,Dim=N>+MultivectorDst+Clone+AddAssign+DivAssign<T> + Debug,
     T: AllRefMul<T, AllOutput=T> + Debug,
 {
 
     //for convenience
-    let c2 = T::one() + T::one();
-    let c4 = T::one() + T::one() + T::one() + T::one();
-    let r2 = c2.clone().real();
-    let r4 = c4.clone().real();
+    let two = T::one() + T::one();
+    let four = T::one() + T::one() + T::one() + T::one();
 
     //
     //First, we scale down x to have a norm less than one.
     //this is so that we can consistently get within epsilon using the remainder estimation theorem
     //
 
-    let mut halvings = 0;
     let mut x = x;
-    let mut norm_sqrd = (0..x.elements()).map(|i| x.get(i).modulus_squared() ).fold(T::zero().real(), |n,t| n+t);
-    let mut factor = T::one().real();
+    let mut norm_sqrd = (0..x.elements()).map(|i| x.get(i).ref_mul(x.get(i))).fold(T::zero(), |n,t| n+t);
+    let mut factor = T::one();
+    let mut halvings = 0;
 
     //divide the multivector by 2 until the norm is less than one
-    while norm_sqrd > T::one().real() {
-        factor /= r2.clone();
-        x /= c2.clone();
-        norm_sqrd /= r4.clone();
+    while norm_sqrd > T::one() {
+        factor /= two.clone();
+        x /= two.clone();
+        norm_sqrd /= four.clone();
         halvings += 1;
     }
 
-    let mut exp = B2::one();
-    let mut term = B2::one();
+    let shape = one.shape();
+
+    let mut exp = one.clone();
+    let mut term = one;
 
     let mut i = T::one();
-    let mut remainder = T::one().real();
+    let mut remainder = T::one();
+
+    let eps = T::e() * epsilon * factor;
 
     //apply the taylor series for exp() until the remainder term is small enough
-    while remainder > epsilon * factor {
+    while remainder > eps {
 
+        //compute the next term `x^n / n!`
         term = mul_selected(term, x.clone(), shape);
         term /= i.clone();
-        remainder /= i.clone().real() + T::one().real();
 
+        //add the term to the total
         exp += term.clone();
+
+        //increment the index
         i += T::one();
+
+        //update the upper bound for the remainder
+        //note that this is
+        remainder /= i.clone();
 
     }
 
@@ -69,8 +78,8 @@ macro_rules! exp {
 
     (scalar, $self:ident, $M:ident) => {{
         //a single scalar just gets exp normally
-        $self[0] = $self[0].exp();
-        $M::from_blade($self)
+        let n = $self.dim_generic();
+        $M::from_iter_generic(n, $self.into_iter().map(|x| x.exp()))
     }};
 
     (simple, $self:ident, $M:ident) => {{
@@ -112,7 +121,7 @@ macro_rules! exp {
         let b = $self;
         let b_conj_scaled = (&b).mul_grade_generic((&b).$mul(&b).reverse(), b.grade_generic());
 
-        let factor = (&b).$mul(&b_conj_scaled)[0];
+        let factor = (&b).$mul(&b_conj_scaled).into_iter().next().unwrap();
         let b_conj = b_conj_scaled / factor.sqrt();
 
         let b1 = (&b_conj + &b_conj) / &two;
@@ -122,7 +131,7 @@ macro_rules! exp {
     }}
 }
 
-impl<T:RefComplexField+AllocBlade<N,U2>, N:DimName> BiVecN<T,N> {
+impl<T:RefRealField+AllocBlade<N,U2>, N:Dim> BiVecN<T,N> {
 
     #[inline]
     pub fn exp_rotor(self) -> Rotor<T,N> where T:AllocEven<N> {
@@ -131,7 +140,7 @@ impl<T:RefComplexField+AllocBlade<N,U2>, N:DimName> BiVecN<T,N> {
 
 }
 
-impl<T:RefComplexField+AllocBlade<N,G>, N:Dim, G:Dim> Blade<T,N,G> {
+impl<T:RefRealField+AllocBlade<N,G>, N:Dim, G:Dim> Blade<T,N,G> {
     #[inline(always)]
     pub(crate) fn exp_simple(self) -> Multivector<T,N> where T:AllocMultivector<N> {
         exp!(simple, self, Multivector)
@@ -150,9 +159,9 @@ impl<T:RefComplexField+AllocBlade<N,G>, N:Dim, G:Dim> Blade<T,N,G> {
     }
 }
 
-impl<T:RefComplexField+AllocBlade<N,G>, N:DimName, G:Dim> Blade<T,N,G> {
+impl<T:RefRealField+AllocBlade<N,G>, N:Dim, G:Dim> Blade<T,N,G> {
 
-    pub fn exp(mut self) -> Multivector<T,N> where T:AllocMultivector<N> {
+    pub fn exp(self) -> Multivector<T,N> where T:AllocMultivector<N> {
 
         //match the dimension so we can optimize for the first few dimensions
         let (n, g) = self.shape();
@@ -168,12 +177,12 @@ impl<T:RefComplexField+AllocBlade<N,G>, N:DimName, G:Dim> Blade<T,N,G> {
             (n, 2) if n<6 => exp!(bivector, self, mul_full, exp_simple),
 
             //if not simple, we gotta use the taylor series
-            _ => exp_selected(self, n, <T::RealField as AbsDiffEq>::default_epsilon())
+            _ => exp_selected(self, Multivector::one_generic(n), T::default_epsilon())
         }
 
     }
 
-    pub fn exp_even(mut self) -> Even<T,N> where T:AllocEven<N> {
+    pub fn exp_even(self) -> Even<T,N> where T:AllocEven<N> {
 
         //match the dimension so we can optimize for the first few dimensions
         let (n, g) = self.shape();
@@ -189,7 +198,7 @@ impl<T:RefComplexField+AllocBlade<N,G>, N:DimName, G:Dim> Blade<T,N,G> {
             (n, 2) if n<6 => exp!(bivector, self, mul_even, exp_even_simple),
 
             //if not simple, we gotta use the taylor series
-            _ => exp_selected(self, n, <T::RealField as AbsDiffEq>::default_epsilon())
+            _ => exp_selected(self, Even::one_generic(n), T::default_epsilon())
         }
 
     }
@@ -197,9 +206,9 @@ impl<T:RefComplexField+AllocBlade<N,G>, N:DimName, G:Dim> Blade<T,N,G> {
 }
 
 //TODO: make work for Dynamic dims
-impl<T:RefComplexField+AllocEven<N>, N:DimName> Even<T,N> {
+impl<T:RefRealField+AllocEven<N>, N:Dim> Even<T,N> {
 
-    pub fn exp(mut self) -> Even<T,N> {
+    pub fn exp(self) -> Even<T,N> {
 
         //match the dimension so we can optimize for the first few dimensions
         let n = self.dim_generic();
@@ -207,30 +216,33 @@ impl<T:RefComplexField+AllocEven<N>, N:DimName> Even<T,N> {
 
             //a single scalar
             0 | 1 => {
-                self[0] = self[0].exp();
-                self
+                Self::from_iter_generic(n, self.into_iter().map(|x| x.exp()))
             },
 
             //complex numbers
-            2 => if let [a, b] = self.as_ref() {
+            2 => {
+
+                let [a, b] = self.cast_dim::<U2>().data;
 
                 let (s,c) = b.sin_cos();
-                Even::from_slice_generic(n, &[c, s]) * a.exp()
+                Even2::new(c, s) * a.exp()
 
-            } else { unreachable!() },
+            }.cast_dim_generic(n),
 
             //quaternions
-            3 => if let [w, x, y, z] = self.as_ref() {
+            3 => {
 
-                let l = x.ref_mul(x) + y.ref_mul(y) + z.ref_mul(z);
-                if l.is_zero() { return Even::one(); }
+                let [w,x,y,z] = self.cast_dim::<U3>().data;
+
+                let l = x.ref_mul(&x) + y.ref_mul(&y) + z.ref_mul(&z);
+                if l.is_zero() { return Even::one_generic(n); }
                 let l = l.sqrt();
 
-                let (s,c) = l.sin_cos();
+                let (s,c) = l.clone().sin_cos();
                 let s = s/l;
-                Even::from_slice_generic(n, &[c, s*x, s*y, s*z]) * w.exp()
+                Even3::new(c, x*&s, y*&s, z*&s) * w.exp()
 
-            } else { unreachable!() },
+            }.cast_dim_generic(n),
 
             //4D rotors
             4 => {
@@ -240,16 +252,16 @@ impl<T:RefComplexField+AllocEven<N>, N:DimName> Even<T,N> {
                 //That last part is important because it means we can't do this in 5D since that no
                 //longer always holds
                 let [s, b1, b2, b3, b4, b5, b6, q] = self.cast_dim::<U4>().data;
-                (
-                    BiVec4::new(b1, b2, b3, b4, b5, b6).exp_even() *
-                    QuadVec4::new(q).exp_even_simple() *
-                    s.exp()
-                ).cast_dim()
-            },
+
+                BiVec4::new(b1, b2, b3, b4, b5, b6).exp_even() *
+                QuadVec4::new(q).exp_even_simple() *
+                s.exp()
+
+            }.cast_dim_generic(n),
 
             //any other evens don't have an easy closed-form pattern so we have to use
             //the taylor series
-            _ => exp_selected(self, n, <T::RealField as AbsDiffEq>::default_epsilon())
+            _ => exp_selected(self, Even::one_generic(n), T::default_epsilon())
 
         }
 
@@ -257,18 +269,18 @@ impl<T:RefComplexField+AllocEven<N>, N:DimName> Even<T,N> {
 
 }
 
-impl<T:RefComplexField+AllocOdd<N>, N:DimName> Odd<T,N> {
+impl<T:RefRealField+AllocOdd<N>, N:Dim> Odd<T,N> {
 
     pub fn exp(self) -> Multivector<T,N> where T:AllocMultivector<N> {
         let n = self.dim_generic();
-        exp_selected(self, n, <T::RealField as AbsDiffEq>::default_epsilon())
+        exp_selected(self, Multivector::one_generic(n), T::default_epsilon())
     }
 
 }
 
-impl<T:RefComplexField+AllocMultivector<N>, N:DimName> Multivector<T,N> {
+impl<T:RefRealField+AllocMultivector<N>, N:Dim> Multivector<T,N> {
 
-    pub fn exp(mut self) -> Multivector<T,N> {
+    pub fn exp(self) -> Multivector<T,N> {
 
         //match the dimension so we can optimize for the first few dimensions
         let n = self.dim_generic();
@@ -276,19 +288,22 @@ impl<T:RefComplexField+AllocMultivector<N>, N:DimName> Multivector<T,N> {
 
             //a single scalar
             0 => {
-                self[0] = self[0].exp();
-                self
+                Self::from_iter_generic(n, self.into_iter().map(|x| x.exp()))
             },
 
             //split-complex numbers
-            1 => if let [a, b] = self.as_ref() {
-                let (s,c) = (b.sinh(), b.cosh());
-                Multivector::from_slice_generic(n, &[c, s]) * a.exp()
-            } else { unreachable!() },
+            1 => {
+
+                let [a, b] = self.cast_dim::<U1>().data;
+
+                let (s,c) = b.sinh_cosh();
+                Multivector1::new(c, s) * a.exp()
+
+            }.cast_dim_generic(n),
 
             //any other evens don't have an easy closed-form pattern so we have to use
             //the taylor series
-            _ => exp_selected(self, n, <T::RealField as AbsDiffEq>::default_epsilon())
+            _ => exp_selected(self, Multivector::one_generic(n), T::default_epsilon())
 
         }
 
