@@ -17,6 +17,7 @@ use std::fmt::{
 
 use approx::{AbsDiffEq, RelativeEq, UlpsEq};
 use num_traits::{Zero, One, Inv};
+use typenum::{True, IsLessOrEqual};
 
 use crate::base::*;
 use crate::algebra::*;
@@ -93,5 +94,6 @@ mod involute;
 mod ops;
 mod blade;
 mod versor;
+mod dim_cast;
 mod aliases;
 mod constructors;
