@@ -1,11 +1,21 @@
 
 use super::*;
+use crate::subspace::{SimpleBlade, UnitBlade};
 
 macro_rules! impl_generic_constructors {
-    (pub fn new($($n:ident:$N:ident),*) -> Self { }) => {
+
+    (pub fn new($($n:ident:$N:ident),*) -> Self {  }) => {
+        impl_generic_constructors!(
+            pub fn new($($n:$N),*) -> Self {
+                |iter| Self { data: Allocate::<Self>::from_iterator($($n, )* iter) }
+            }
+        );
+    };
+
+    (pub fn new($($n:ident:$N:ident),*) -> Self { |$iter:ident| $from_iter:expr }) => {
         /// Constructs a value with elements from an iterator using a generic shape
-        pub fn from_iter_generic<I:IntoIterator<Item=T>>($($n: $N, )* iter: I) -> Self {
-            Self { data: Allocate::<Self>::from_iterator($($n, )* iter) }
+        pub fn from_iter_generic<I:IntoIterator<Item=T>>($($n: $N, )* $iter: I) -> Self {
+            $from_iter
         }
 
         /// Constructs a value from an index function using a generic shape
@@ -28,27 +38,69 @@ macro_rules! impl_generic_constructors {
             Self::from_iter_generic($($n, )* data)
         }
 
+    }
+}
+
+macro_rules! impl_zero_basis_constructors {
+
+    (pub fn new($($n:ident:$N:ident),*) -> Self {}) => {
+        impl_zero_basis_constructors!(
+            pub fn new($($n:$N),*) -> Self {
+                Self::from_iter_generic($($n, )* repeat_with(|| T::zero()))
+            }
+        );
+    };
+
+    (pub fn new($($n:ident:$N:ident),*) -> Self { $expr:expr }) => {
         /// Constructs a blade with all components set to [zero](Zero::zero) using a generic shape
         pub fn zeroed_generic($($n: $N),*) -> Self where T:Zero {
-            Self::from_iter_generic($($n, )* repeat_with(|| T::zero()))
+            $expr
         }
 
         /// Returns the `i`th basis element or panics if `i` is out of range
         pub fn basis_generic($($n: $N, )* i: usize) -> Self where T:Zero+One {
             let mut basis = Self::zeroed_generic($($n),*);
-            basis[i] = T::one();
+            basis.data[i] = T::one();
             basis
         }
-
     }
 }
 
 impl<T:AllocBlade<N,G>, N:Dim, G:Dim> Blade<T,N,G> {
     impl_generic_constructors!( pub fn new(n:N, g:G) -> Self { } );
+    impl_zero_basis_constructors!( pub fn new(n:N, g:G) -> Self { } );
+}
+
+impl<T:AllocSimpleBlade<N,G>, N:Dim, G:Dim> SimpleBlade<T,N,G> {
+    impl_generic_constructors!(
+        pub fn new(n:N, g:G) -> Self {
+            |iter| Self::from_inner_unchecked(Blade::from_iter_generic(n, g, iter))
+        }
+    );
+}
+
+impl<T:AllocBlade<N,G>, N:Dim, G:Dim> SimpleBlade<T,N,G> {
+    /// Constructs a blade with all components set to [zero](Zero::zero) using a generic shape
+    pub fn zeroed_generic(n:N, g:G) -> Self where T:Zero {
+        Self::from_inner_unchecked(Blade::zeroed_generic(n, g))
+    }
+
+    /// Returns the `i`th basis element or panics if `i` is out of range
+    pub fn basis_generic(n:N, g:G, i: usize) -> Self where T:Zero+One {
+        Self::from_inner_unchecked(Blade::basis_generic(n, g, i))
+    }
+}
+
+impl<T:AllocBlade<N,G>, N:Dim, G:Dim> UnitBlade<T,N,G> {
+    /// Returns the `i`th basis element or panics if `i` is out of range
+    pub fn basis_generic(n:N, g:G, i: usize) -> Self where T:Zero+One {
+        Self::from_inner_unchecked(Blade::basis_generic(n, g, i))
+    }
 }
 
 impl<T:AllocEven<N>, N:Dim> Even<T,N> {
     impl_generic_constructors!( pub fn new(n:N) -> Self { } );
+    impl_zero_basis_constructors!( pub fn new(n:N) -> Self { } );
 
     pub fn one_generic(n: N) -> Self where T:One+Zero {
         Self::from_iter_generic(n, once_with(T::one).chain(repeat_with(T::zero)))
@@ -58,10 +110,12 @@ impl<T:AllocEven<N>, N:Dim> Even<T,N> {
 
 impl<T:AllocOdd<N>, N:Dim> Odd<T,N> {
     impl_generic_constructors!( pub fn new(n:N) -> Self { } );
+    impl_zero_basis_constructors!( pub fn new(n:N) -> Self { } );
 }
 
 impl<T:AllocMultivector<N>, N:Dim> Multivector<T,N> {
     impl_generic_constructors!( pub fn new(n:N) -> Self { } );
+    impl_zero_basis_constructors!( pub fn new(n:N) -> Self { } );
 
     pub fn one_generic(n: N) -> Self where T:One+Zero {
         Self::from_iter_generic(n, once_with(T::one).chain(repeat_with(T::zero)))
@@ -71,10 +125,10 @@ impl<T:AllocMultivector<N>, N:Dim> Multivector<T,N> {
 //TODO: fix the documentation
 
 macro_rules! impl_general_constructors {
-    (pub fn new($($args:tt)*) -> Self { Self::new_generic($($call:tt)*) }) => {
+    ($($args:ident),*; $($call:tt)*) => {
 
         ///
-        /// Constructs a blade with elements from an iterator
+        /// Constructs a value using elements from an iterator
         ///
         /// Panics if the iterator has too few elements to fill in the blade
         ///
@@ -96,12 +150,12 @@ macro_rules! impl_general_constructors {
         ///
         /// ```
         ///
-        pub fn from_iterator<I:IntoIterator<Item=T>>($($args)* iter: I) -> Self {
+        pub fn from_iterator<I:IntoIterator<Item=T>>($($args: usize,)* iter: I) -> Self {
             Self::from_iter_generic($($call)*, iter)
         }
 
         ///
-        /// Constructs a blade from a function mapping an index to an element
+        /// Constructs a value using a function mapping an index to an element
         ///
         /// # Examples
         /// ```
@@ -131,12 +185,12 @@ macro_rules! impl_general_constructors {
         ///
         ///```
         ///
-        pub fn from_index_fn<F: FnMut(usize)->T>($($args)* f: F) -> Self {
+        pub fn from_index_fn<F: FnMut(usize)->T>($($args: usize,)* f: F) -> Self {
             Self::from_index_fn_generic($($call)*, f)
         }
 
         ///
-        /// Constructs a blade where every component is the given element
+        /// Constructs a value where every component is the given element
         ///
         /// # Examples
         /// ```
@@ -157,20 +211,25 @@ macro_rules! impl_general_constructors {
         ///
         ///```
         ///
-        pub fn from_element($($args)* x:T) -> Self where T:Clone {
+        pub fn from_element($($args: usize,)* x:T) -> Self where T:Clone {
             Self::from_element_generic($($call)*, x)
         }
 
-        pub fn from_slice($($args)* data: &[T]) -> Self where T:Clone {
+        pub fn from_slice($($args: usize,)* data: &[T]) -> Self where T:Clone {
             Self::from_slice_generic($($call)*, data)
         }
 
-        pub fn from_vec($($args)* data: Vec<T>) -> Self where T:Clone {
+        pub fn from_vec($($args: usize,)* data: Vec<T>) -> Self where T:Clone {
             Self::from_vec_generic($($call)*, data)
         }
+    };
+}
+
+macro_rules! impl_general_zero_basis_constructors {
+    ($($args:ident),*; $($call:tt)*) => {
 
         ///
-        ///Constructs a blade with all components set to [zero](Zero::zero)
+        ///Constructs a value with all components set to [zero](Zero::zero)
         ///
         /// # Examples
         /// ```
@@ -190,11 +249,11 @@ macro_rules! impl_general_constructors {
         ///
         ///```
         ///
-        pub fn zeroed($($args)*) -> Self where T:Zero {
+        pub fn zeroed($($args: usize),*) -> Self where T:Zero {
             Self::zeroed_generic($($call)*)
         }
 
-        pub fn basis($($args)* i:usize) -> Self where T:Zero+One {
+        pub fn basis($($args: usize,)* i:usize) -> Self where T:Zero+One {
             Self::basis_generic($($call)*, i)
         }
 
@@ -203,64 +262,50 @@ macro_rules! impl_general_constructors {
 
 ///Constructors for statically sized blades
 impl<T:AllocBlade<N,G>, N:DimName, G:DimName> Blade<T,N,G> {
-
-    impl_general_constructors!(
-        pub fn new() -> Self {
-            Self::new_generic(N::name(), G::name())
-        }
-    );
-
+    impl_general_constructors!(; N::name(), G::name());
+    impl_general_zero_basis_constructors!(; N::name(), G::name());
+}
+impl<T:AllocSimpleBlade<N,G>, N:DimName, G:DimName> SimpleBlade<T,N,G> {
+    impl_general_constructors!(; N::name(), G::name());
+}
+impl<T:AllocBlade<N,G>, N:DimName, G:DimName> SimpleBlade<T,N,G> {
+    impl_general_zero_basis_constructors!(; N::name(), G::name());
 }
 
 ///Constructors for blades with dynamic dimension
 impl<T:AllocBlade<Dynamic,G>, G:DimName> Blade<T,Dynamic,G> {
-
-    impl_general_constructors!(
-        pub fn new(n:usize,) -> Self {
-            Self::new_generic(Dynamic::new(n), G::name())
-        }
-    );
-
+    impl_general_constructors!(n; Dynamic::new(n), G::name());
+    impl_general_zero_basis_constructors!(n; Dynamic::new(n), G::name());
+}
+impl<T:AllocSimpleBlade<Dynamic,G>, G:DimName> SimpleBlade<T,Dynamic,G> {
+    impl_general_constructors!(n; Dynamic::new(n), G::name());
+}
+impl<T:AllocBlade<Dynamic,G>, G:DimName> SimpleBlade<T,Dynamic,G> {
+    impl_general_zero_basis_constructors!(n; Dynamic::new(n), G::name());
 }
 
 ///Constructors for blades with dynamic grade
 impl<T:AllocBlade<N,Dynamic>, N:DimName> BladeN<T,N> {
-
-    impl_general_constructors!(
-        pub fn new(g:usize,) -> Self {
-            Self::new_generic(N::name(), Dynamic::new(g))
-        }
-    );
-
+    impl_general_constructors!(g; N::name(), Dynamic::new(g));
+    impl_general_zero_basis_constructors!(g; N::name(), Dynamic::new(g));
 }
 
 ///Constructors for blades with dynamic dimension and grade
 impl<T:AllocBlade<Dynamic,Dynamic>> BladeD<T> {
-
-    impl_general_constructors!(
-        pub fn new(n:usize,g:usize,) -> Self {
-            Self::new_generic(Dynamic::new(n), Dynamic::new(g))
-        }
-    );
-
+    impl_general_constructors!(n,g; Dynamic::new(n), Dynamic::new(g));
+    impl_general_zero_basis_constructors!(n,g; Dynamic::new(n), Dynamic::new(g));
 }
 
 ///Constructors for statically sized rotors
 impl<T:AllocEven<N>, N:DimName> Even<T, N> {
-    impl_general_constructors!(
-        pub fn new() -> Self {
-            Self::new_generic(N::name())
-        }
-    );
+    impl_general_constructors!(; N::name());
+    impl_general_zero_basis_constructors!(; N::name());
 }
 
 ///Constructors for rotors with dynamic dimension
 impl<T:AllocEven<Dynamic>> EvenD<T> {
-    impl_general_constructors!(
-        pub fn new(n:usize,) -> Self {
-            Self::new_generic(Dynamic::new(n))
-        }
-    );
+    impl_general_constructors!(n; Dynamic::new(n));
+    impl_general_zero_basis_constructors!(n; Dynamic::new(n));
 
     pub fn one_dyn(n: usize) -> Self where T:One+Zero {
         Self::one_generic(Dynamic::new(n))
@@ -269,38 +314,26 @@ impl<T:AllocEven<Dynamic>> EvenD<T> {
 
 //Constructors for statically sized odd-values
 impl<T:AllocOdd<N>, N:DimName> Odd<T, N> {
-    impl_general_constructors!(
-        pub fn new() -> Self {
-            Self::new_generic(N::name())
-        }
-    );
+    impl_general_constructors!(; N::name());
+    impl_general_zero_basis_constructors!(; N::name());
 }
 
 //Constructors for odd values with dynamic dimension
 impl<T:AllocOdd<Dynamic>> OddD<T> {
-    impl_general_constructors!(
-        pub fn new(n:usize,) -> Self {
-            Self::new_generic(Dynamic::new(n))
-        }
-    );
+    impl_general_constructors!(n; Dynamic::new(n));
+    impl_general_zero_basis_constructors!(n; Dynamic::new(n));
 }
 
 ///Constructors for statically sized rotors
 impl<T:AllocMultivector<N>, N:DimName> Multivector<T, N> {
-    impl_general_constructors!(
-        pub fn new() -> Self {
-            Self::new_generic(N::name())
-        }
-    );
+    impl_general_constructors!(; N::name());
+    impl_general_zero_basis_constructors!(; N::name());
 }
 
 ///Constructors for rotors with dynamic dimension
 impl<T:AllocMultivector<Dynamic>> MultivectorD<T> {
-    impl_general_constructors!(
-        pub fn new(n:usize,) -> Self {
-            Self::new_generic(Dynamic::new(n))
-        }
-    );
+    impl_general_constructors!(n; Dynamic::new(n));
+    impl_general_zero_basis_constructors!(n; Dynamic::new(n));
 
     pub fn one_dyn(n: usize) -> Self where T:One+Zero {
         Self::one_generic(Dynamic::new(n))
