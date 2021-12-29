@@ -245,8 +245,16 @@ macro_rules! dim_name_test_loop {
         dim_name_test_loop!(@run $($N)*; $callback);
     };
 
-    //$d must be the $ token
     (|$d:tt $N:ident| $($expr:tt)*) => {
+        dim_name_test_loop!({U0 U1 U2 U3 U4 U5 U6 U7 U8 U9 U10} |$d $N| $($expr)*);
+    };
+
+    (@short |$d:tt $N:ident| $($expr:tt)*) => {
+        dim_name_test_loop!({U0 U1 U2 U3 U4 U5 U6} |$d $N| $($expr)*);
+    };
+
+    //$d must be the $ token
+    ({$($U:ident)*} |$d:tt $N:ident| $($expr:tt)*) => {
         {
 
             #[allow(unused_imports)]
@@ -266,7 +274,7 @@ macro_rules! dim_name_test_loop {
             //Also, compilation times get pretty long for this stuff, so we lower it down to U10
             //instead
             dim_name_test_loop!(
-                @run U0 U1 U2 U3 U4 U5 U6 U7 U8 U9 U10;
+                @run $($U)*;
                 _dim_name_test_loop_callback
             );
 

@@ -2,12 +2,12 @@
 use super::*;
 use crate::subspace::Rotor;
 
-//TODO: make work for Dynamic dims
 #[inline(always)]
 pub(crate) fn exp_selected<B1,B2,T:RefRealField,N:Dim>(x:B1, one:B2, epsilon: T::RealField) -> B2 where
     B1: MultivectorSrc<Scalar=T,Item=T,Dim=N>+Clone+DivAssign<T> + Debug,
+    for<'a> &'a B1: MultivectorSrc<Scalar=T,Dim=N>,
     B2: MultivectorSrc<Scalar=T,Item=T,Dim=N>+MultivectorDst+Clone+AddAssign+DivAssign<T> + Debug,
-    T: AllRefMul<T, AllOutput=T> + Debug,
+    for<'a> &'a B2: MultivectorSrc<Scalar=T,Dim=N>,
 {
 
     //for convenience
@@ -18,6 +18,8 @@ pub(crate) fn exp_selected<B1,B2,T:RefRealField,N:Dim>(x:B1, one:B2, epsilon: T:
     //First, we scale down x to have a norm less than one.
     //this is so that we can consistently get within epsilon using the remainder estimation theorem
     //
+
+    let _x = x.clone();
 
     let mut x = x;
     let mut norm_sqrd = (0..x.elements()).map(|i| x.get(i).ref_mul(x.get(i))).fold(T::zero(), |n,t| n+t);
@@ -32,21 +34,25 @@ pub(crate) fn exp_selected<B1,B2,T:RefRealField,N:Dim>(x:B1, one:B2, epsilon: T:
         halvings += 1;
     }
 
+    //we need the shape of the destination in order to use mul_selected
     let shape = one.shape();
 
+    //the necessary size of the next term in order to keep the final result within epsilon of the
+    //actual answer. This is a result of Taylor's theorem
+    let eps = epsilon * factor;
+
+    //for storing partial results
     let mut exp = one.clone();
     let mut term = one;
 
     let mut i = T::one();
-    let mut remainder = T::one();
-
-    let eps = T::e() * epsilon * factor;
+    let mut remainder = T::e();
 
     //apply the taylor series for exp() until the remainder term is small enough
     while remainder > eps {
 
         //compute the next term `x^n / n!`
-        term = mul_selected(term, x.clone(), shape);
+        term = mul_selected(term, &x, shape);
         term /= i.clone();
 
         //add the term to the total
@@ -56,17 +62,17 @@ pub(crate) fn exp_selected<B1,B2,T:RefRealField,N:Dim>(x:B1, one:B2, epsilon: T:
         i += T::one();
 
         //update the upper bound for the remainder
-        //note that this is
+        //note that this is in essence the max possible value for the next term
         remainder /= i.clone();
 
     }
 
-    println!("{:?}", i);
-
-    //finally, each of the halvings we did to the exponent translate back to squarings of the result
+    //finally, each of the halvings we did to the exponent become squarings of the result
     for _ in 0..halvings {
-        exp = mul_selected(exp.clone(), exp.clone(), shape);
+        exp = mul_selected(&exp, &exp, shape);
     }
+
+    // println!("exp({:?}) = {:?}; {}", _x, exp, i);
 
     exp
 
@@ -108,7 +114,7 @@ macro_rules! exp {
 
     }};
 
-    (bivector, $self:ident, $mul:ident, $exp:ident) => {{
+    (bivector, $self:ident, $M:ident, $mul:ident, $exp:ident) => {{
         //time for some fancy shit...
 
         //so in 4 and 5 dimensions, we can take the exponential by first decomposing the
@@ -116,16 +122,70 @@ macro_rules! exp {
 
         //I don't wanna explain how this works rn, so imma just say it's *m a g i c*
 
+        let n = $self.dim_generic();
         let two = T::one() + T::one();
 
         let b = $self;
-        let b_conj_scaled = (&b).mul_grade_generic((&b).$mul(&b).reverse(), b.grade_generic());
+        let mut b_sqrd = (&b).$mul(&b);
+
+        let start = b_sqrd.grade_index(4);
+        let bin4 = binom(n.value(), 4);
+        for i in start..(start+bin4) {
+            b_sqrd[i] = b_sqrd[i].ref_neg();
+        }
+
+        let b_conj_scaled = (&b).mul_grade_generic(&b_sqrd, b.grade_generic());
 
         let factor = (&b).$mul(&b_conj_scaled).into_iter().next().unwrap();
+
+        //edge case that happens when both rotation planes have the same angle
+        if factor.is_zero() {
+
+            //TODO: this can probably be optimized pretty heavily
+
+            //first, we reuse the squared b from earlier
+            let mut exp = b_sqrd;
+
+            //get the angle by normalizing
+            //we can optimize a little by reusing the scalar part of `exp` for the square norm
+            let angle_sqrd = exp[0].clone();
+
+            if angle_sqrd.is_zero() { return $M::one_generic(n); }
+
+            //(the two is to adjust for the fact that there are two rotation planes)
+            //also, it's negative since 2blades square negative
+            let angle = angle_sqrd.ref_div(&two.ref_neg()).sqrt();
+            let b_hat = b / &angle;
+
+            let (s, c) = angle.clone().sin_cos();
+
+            //This also could probably be waaaay better
+
+            //scalar part
+            exp[0] = c.ref_mul(&c);
+
+            //bivec part
+            let start = exp.grade_index(2);
+            let bin2 = binom(n.value(), 2);
+            for i in 0..bin2 {
+                exp[i+start] = b_hat[i].ref_mul(&s) * &c;
+            }
+
+            //quadvec part
+            let start = exp.grade_index(4);
+            for i in 0..bin4 {
+                //we have to both cancel a negative from above and a factor of two
+                //both of which are automatically in angle_sqrd6
+                exp[i+start] *= s.ref_mul(&s) / &angle_sqrd;
+            }
+
+            return exp;
+        }
+
         let b_conj = b_conj_scaled / factor.sqrt();
 
-        let b1 = (&b_conj + &b_conj) / &two;
-        let b2 = (&b_conj - &b_conj) / &two;
+        let b1 = (&b + &b_conj) / &two;
+        let b2 = (&b - &b_conj) / &two;
 
         b1.$exp() * b2.$exp()
     }}
@@ -174,7 +234,7 @@ impl<T:RefRealField+AllocBlade<N,G>, N:Dim, G:Dim> Blade<T,N,G> {
             (n, g) if g==1 || g+1>=n => self.exp_simple(),
 
             //*magic*
-            (n, 2) if n<6 => exp!(bivector, self, mul_full, exp_simple),
+            (n, 2) if n<6 => exp!(bivector, self, Multivector, mul_full, exp_simple),
 
             //if not simple, we gotta use the taylor series
             _ => exp_selected(self, Multivector::one_generic(n), T::default_epsilon())
@@ -195,7 +255,7 @@ impl<T:RefRealField+AllocBlade<N,G>, N:Dim, G:Dim> Blade<T,N,G> {
             (n, g) if g==1 || g+1>=n => self.exp_even_simple(),
 
             //*magic*
-            (n, 2) if n<6 => exp!(bivector, self, mul_even, exp_even_simple),
+            (n, 2) if n<6 => exp!(bivector, self, Even, mul_even, exp_even_simple),
 
             //if not simple, we gotta use the taylor series
             _ => exp_selected(self, Even::one_generic(n), T::default_epsilon())
@@ -227,7 +287,7 @@ impl<T:RefRealField+AllocEven<N>, N:Dim> Even<T,N> {
                 let (s,c) = b.sin_cos();
                 Even2::new(c, s) * a.exp()
 
-            }.cast_dim_generic(n),
+            }.cast_dim_generic(n.clone()),
 
             //quaternions
             3 => {
@@ -316,65 +376,175 @@ impl<T:RefRealField+AllocMultivector<N>, N:Dim> Multivector<T,N> {
 mod tests {
 
     use super::*;
+    use rayon::prelude::*;
+    use na::dimension::DimName;
+
+    use std::f64::consts::PI;
 
     const EPSILON: f64 = 128.0*f64::EPSILON;
 
+    //TODO: more tests for different values and grades
+
     #[test]
-    fn rot_2d() {
+    fn simple_rot() {
 
-        for n in 1..3600 {
+        macro_rules! rot_test {
+            ($n:ident) => {
 
-            let angle = BiVec2::new(100.0 * std::f64::consts::PI / n as f64);
-            let rot: Even2<_> = exp_selected(angle, na::dimension::Const::<2>, EPSILON);
+                //this gets a little slow for high dimensions so we'll do this all in a parallelized loop
+                (0..binom($n.value(),2)).into_par_iter().for_each(|i|
 
-            approx::assert_relative_eq!(rot, Even2::new(angle.value.cos(), angle.value.sin()), max_relative=EPSILON, epsilon=EPSILON);
+                    for a in 0..=16 {
+                        let angle = (a as f64 * 22.5*10.0).to_radians();
+                        let b = BiVecN::basis_generic($n, U2::name(), i) * angle;
 
-            println!("{}: exp({:+}) == {:+}", n, angle, rot);
+                        let mut rot = Multivector::zeroed_generic($n);
+                        let start = rot.grade_index(2);
+                        rot[0] = angle.cos();
+                        rot[i+start] = angle.sin();
 
+                        let rot_taylor = exp_selected(b.clone(), Multivector::one_generic($n), f64::EPSILON);
+                        let rot_exp = b.clone().exp();
+
+                        approx::assert_relative_eq!(rot, rot_taylor, max_relative=EPSILON, epsilon=EPSILON);
+                        approx::assert_relative_eq!(rot, rot_exp, max_relative=EPSILON, epsilon=EPSILON);
+                        approx::assert_relative_eq!(rot_taylor, rot_exp, max_relative=EPSILON, epsilon=EPSILON);
+
+
+                        let mut rot_even = Even::zeroed_generic($n);
+                        rot_even[0] = angle.cos();
+                        rot_even[i+1] = angle.sin();
+
+                        let rot_taylor_even = exp_selected(b.clone(), Even::one_generic($n), f64::EPSILON);
+                        let rot_exp_even = b.exp_even();
+
+                        approx::assert_relative_eq!(rot_even, rot_taylor_even, max_relative=EPSILON, epsilon=EPSILON);
+                        approx::assert_relative_eq!(rot_even, rot_exp_even, max_relative=EPSILON, epsilon=EPSILON);
+                        approx::assert_relative_eq!(rot_taylor_even, rot_exp_even, max_relative=EPSILON, epsilon=EPSILON);
+
+
+
+                    }
+
+                )
+            }
         }
+
+        //dynamic dims
+        for n in 0..=7 {
+            let n = Dynamic::new(n);
+            rot_test!(n);
+        }
+
+        //static dims
+        dim_name_test_loop!(
+            @short |$N| {
+                let n = $N::name();
+                rot_test!(n);
+            }
+        );
 
 
     }
 
-    // #[test]
-    // fn fun() {
-    //
-    //     let sqrt3 = 3.0f64.sqrt();
-    //
-    //     let rot = Even2::new(sqrt3, 1.0f64).normalize();
-    //     let angle: Even2<_> = log_selected(rot, na::dimension::Const::<2>, EPSILON);
-    //
-    //     println!("log({:+}) == {:+}", rot, angle);
-    //     println!("{}\n", angle[1]*6.0);
-    //
-    //     let rot = Even3::new(sqrt3, 1.0/sqrt3, -1.0/sqrt3, 1.0f64/sqrt3).normalize();
-    //     let angle: Even3<_> = log_selected(rot, na::dimension::Const::<3>, EPSILON);
-    //
-    //     println!("log({:+}) == {:+}", rot, angle);
-    //     println!("{}\n", angle[2]*6.0*3.0.sqrt());
-    //
-    //     let alpha = 1.0f64;
-    //     let rot1 = Even4::new(1.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0).normalize();
-    //     let rot2 = Even4::new(1.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0).normalize();
-    //     let rot3 = Even4::new(0.5, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, -0.5);
-    //     let rot4 = rot1 * rot2 * rot3;
-    //     // let angle3: Even4<_> = log_selected(rot3, na::dimension::Const::<4>, EPSILON);
-    //
-    //     println!("{}\n{}\n{}\n{}\n{}", rot1, rot2, rot1*rot2, rot3, rot4);
-    //
-    //     // println!("log({:+}) == {:+}", rot1, angle1);
-    //     // println!("log({:+}) == {:+}", rot2, angle2);
-    //     // println!("log({:+}) == {:+}", rot3, angle3);
-    //     // println!("{}", angle[7]);
-    //
-    //     // let rot1 = Even4::new(1.0, 2.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0f64).normalize();
-    //     // let rot2 = Even4::new(2.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0f64).normalize();
-    //     // let rot = rot1*rot2;
-    //     // let angle: Even4<_> = log_selected(rot, na::dimension::Const::<4>, EPSILON);
-    //     //
-    //     // println!("log({:+}) == {:+}", rot, angle);
-    //     // println!("{} {}", angle[1]*2.0, angle[4]*2.0);
-    //
-    // }
+    #[test]
+    fn double_rot() {
+
+        macro_rules! test {
+            ($n:ident) => {{
+
+                //a parallelized iterator for looping over a bunch of double angles
+                let iter = {
+                    (0..binom($n.value(),2)).into_par_iter()
+                    .flat_map(|i| (0..binom($n.value(),2)).into_par_iter().map(move |j| (i,j)))
+                    .flat_map(|(i,j)| (0..5).into_par_iter().map(move |a| (i,j,a)))
+                    .flat_map(|(i,j,a)| (0..5).into_par_iter().map(move |b| (i,j,a,b)))
+                };
+
+                iter.for_each(
+                    |(i,j,a,b)| {
+
+                        let g = U2::name();
+
+                        //two planes for two angles
+                        let b1 = BiVecN::basis_generic($n,g,i) * (a as f64 * 60.0).to_radians();
+                        let b2 = BiVecN::basis_generic($n,g,j) * (b as f64 * 60.0).to_radians();
+
+                        //the angles combined
+                        let b = &b1 + &b2;
+
+                        let rot_taylor = exp_selected(b.clone(), Multivector::one_generic($n), f64::EPSILON);
+                        let rot_exp = b.clone().exp();
+
+                        let rot_taylor_even = exp_selected(b.clone(), Even::one_generic($n), f64::EPSILON);
+                        let rot_exp_even = b.clone().exp_even();
+
+                        let (rot, rot_even) = if (&b1^&b2).norm_sqrd() == 0.0 {
+                            //if the two planes are not fully perpendicular
+                            (b.clone().exp_simple(), b.exp_even_simple())
+                        } else {
+                            //if they are completely orthogonal
+                            (
+                                b1.clone().exp_simple() * b2.clone().exp_simple(),
+                                b1.exp_even_simple() * b2.exp_even_simple()
+                            )
+                        };
+
+                        approx::assert_relative_eq!(rot, rot_taylor, max_relative=EPSILON, epsilon=EPSILON);
+                        approx::assert_relative_eq!(rot, rot_exp, max_relative=EPSILON, epsilon=EPSILON);
+                        approx::assert_relative_eq!(rot_taylor, rot_exp, max_relative=EPSILON, epsilon=EPSILON);
+
+                        approx::assert_relative_eq!(rot_even, rot_taylor_even, max_relative=EPSILON, epsilon=EPSILON);
+                        approx::assert_relative_eq!(rot_even, rot_exp_even, max_relative=EPSILON, epsilon=EPSILON);
+                        approx::assert_relative_eq!(rot_taylor_even, rot_exp_even, max_relative=EPSILON, epsilon=EPSILON);
+                    }
+                )
+            }};
+        }
+
+        //dynamic
+        for n in 4..=6 {
+            let n = Dynamic::new(n);
+            test!(n)
+        }
+
+        //static
+        dim_name_test_loop!(
+            @short |$N| {
+                let n = $N::name();
+                test!(n);
+            }
+        );
+
+    }
+
+
+}
+
+
+#[cfg(test)]
+mod benches {
+
+    use super::*;
+    use test::black_box;
+    use test::Bencher;
+
+    #[bench]
+    fn exp_taylor_4D(b: &mut Bencher) {
+        b.iter(
+            || black_box(
+                exp_selected(black_box(BiVec4::new(1.0, 0.0, 0.0, 2.0, 0.0, 0.0)), Even4::one(), f64::EPSILON)
+            )
+        )
+    }
+
+    #[bench]
+    fn exp_4D(b: &mut Bencher) {
+        b.iter(
+            || black_box(
+                black_box(BiVec4::new(1.0, 0.0, 0.0, 2.0, 0.0, 0.0)).exp()
+            )
+        )
+    }
 
 }

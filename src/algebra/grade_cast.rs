@@ -2,6 +2,10 @@ use super::*;
 
 impl<T:AllocEven<N>+Zero, N:Dim> Even<T,N> {
 
+    pub(crate) fn grade_index(&self, g:usize) -> usize {
+        grade_index_in_versor(self.dim(), g)
+    }
+
     pub fn grade_select_generic<G:Dim>(self, g:G) -> Blade<T,N,G> where T:AllocBlade<N,G> {
         let n = self.dim_generic();
         if g.value()%2 == 0 {
@@ -33,6 +37,10 @@ impl<T:AllocEven<N>+Zero, N:Dim> Even<T,N> {
 
 impl<T:AllocOdd<N>+Zero, N:Dim> Odd<T,N> {
 
+    pub(crate) fn grade_index(&self, g:usize) -> usize {
+        grade_index_in_versor(self.dim(), g)
+    }
+
     pub fn grade_select_generic<G:Dim>(self, g:G) -> Blade<T,N,G> where T:AllocBlade<N,G> {
         let n = self.dim_generic();
         if g.value()%2 == 1 {
@@ -63,6 +71,10 @@ impl<T:AllocOdd<N>+Zero, N:Dim> Odd<T,N> {
 }
 
 impl<T:AllocMultivector<N>, N:Dim> Multivector<T,N> {
+
+    pub(crate) fn grade_index(&self, g:usize) -> usize {
+        grade_index_in_multivector(self.dim(), g)
+    }
 
     pub fn grade_select_generic<G:Dim>(self, g:G) -> Blade<T,N,G> where T:AllocBlade<N,G> {
         let n = self.dim_generic();
