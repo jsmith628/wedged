@@ -372,8 +372,8 @@ mod tests {
                 final_rot64 *= rot64;
             }
 
-            assert_abs_diff_eq!(Rotor2::<f32>::one(), final_rot32, epsilon=0.000015);
-            assert_abs_diff_eq!(Rotor2::<f64>::one(), final_rot64, epsilon=0.0000000000002);
+            assert_abs_diff_eq!(-Rotor2::<f32>::one(), final_rot32, epsilon=0.000015);
+            assert_abs_diff_eq!(-Rotor2::<f64>::one(), final_rot64, epsilon=0.0000000000002);
 
         }
 
