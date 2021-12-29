@@ -220,69 +220,17 @@ impl<T:AllocEven<N>, N:Dim> Rotor<T,N> {
 
             //complex numbers
             2 => {
-                let [x,y] = self.into_inner().cast_dim::<U2>().data;
-                BiVec2::new(y.atan2(x)).cast_dim_generic(n)
+                let angle = self.cast_dim_unchecked::<U2>().get_angle();
+                BiVec2::new(angle).cast_dim_generic(n)
             },
 
             //quaternions
-            3 => {
-                let [w, x, y, z] = self.into_inner().cast_dim::<U3>().data;
-
-                let (c, s) = (w, (x.ref_mul(&x)+y.ref_mul(&y)+z.ref_mul(&z)).sqrt());
-                let angle = s.clone().atan2(c);
-
-                if angle.is_zero() {
-                    BiVecN::zeroed_generic(n, g)
-                } else {
-                    let s = angle / s;
-                    BiVec3::new(x*&s, y*&s, z*&s).cast_dim_generic(n)
-                }
-
-            },
+            3 => self.cast_dim_unchecked::<U3>().get_scaled_plane().into_inner().cast_dim_generic(n),
 
             //magic
             4 => {
-
-                let two = T::one() + T::one();
-                let [s, b1, b2, b3, b4, b5, b6, q] = self.into_inner().cast_dim::<U4>().data;
-
-                //using trig identities, we can find the cosine of the sum and differences of the angles
-                let cos_plus = s.ref_add(&q);
-                let cos_minus = s - q;
-
-                //next, we find the dual of the bivector part, this has the effect of swapping the
-                //two planes to have the opposite angle
-                let b = BiVec4::new(b1, b2, b3, b4, b5, b6);
-                let b_dual = b.clone().dual();
-
-                //then, by adding and subtracting, we end up with two bivectors,
-                //one that has the sine of the angle sum on the sum of the planes
-                //and one that has the sine of the angle difference on the difference of the planes
-                let b_plus = &b + &b_dual;
-                let b_minus = b - b_dual;
-
-                //TODO edge cases
-
-                //normalize and get the norm of the above bivectors
-                let (sin_plus, b_plus) = b_plus.norm_and_normalize();
-                let (sin_minus, b_minus) = b_minus.norm_and_normalize();
-
-                //next, we need to adjust for the fact that the norms are off by a factor of sqrt(2)
-                let (sin_plus, sin_minus) = (sin_plus/two.clone().sqrt(), sin_minus/two.clone().sqrt());
-                let (b_plus, b_minus) = (b_plus * two.clone().sqrt(), b_minus * two.clone().sqrt());
-
-                //then, we find the angles using atan2
-                let angle_plus = sin_plus.atan2(cos_plus);
-                let angle_minus = sin_minus.atan2(cos_minus);
-
-                //finally, solve for the angles and directions
-                let angle1 = (angle_plus.ref_add(&angle_minus)) / &two;
-                let angle2 = (angle_plus - angle_minus) / &two;
-                let dir1 = (&b_plus + &b_minus) / &two;
-                let dir2 = (b_plus - b_minus) / two;
-
-                //scale and add and return
-                (dir1 * angle1 + dir2 * angle2).cast_dim_generic(n)
+                let (plane1, plane2) = self.cast_dim_unchecked::<U4>().get_scaled_planes();
+                (plane1.into_inner() + plane2.into_inner()).cast_dim_generic(n)
             }
 
             //TODO: fill in for 5D. It's basically the same as for 4D but where the quadvector part
@@ -336,20 +284,114 @@ impl<T:AllocEven<U2>+RefRealField> Rotor3<T> {
         Self::from_plane_angle(UnitBiVec3::from_inner_unchecked(axis.into_inner().undual()), angle)
     }
 
-    // fn get_half_plane_angle(&self) -> (BiVec3<T>, T) where T:RefRealField {
-    //     let [w, x, y, z] = &self.into_inner().data;
-    //
-    //     let (c, s) = (w, (x.ref_mul(x)+y.ref_mul(y)+z.ref_mul(z)).sqrt());
-    //     let angle = s.atan2(c);
-    //
-    //     if angle.is_zero() {
-    //         (BiVecN::zeroed_generic(n, g), angle)
-    //     } else {
-    //         BiVecN::from_slice_generic(n, g, &[x*&angle/&s, y*&angle/&s, z*&angle/&s])
-    //     }
-    // }
+    fn get_half_plane_angle(self) -> Option<(UnitBiVec3<T>, T)> {
+        let [w, x, y, z] = self.into_inner().data;
+
+        let (c, s) = (w, (x.ref_mul(&x)+y.ref_mul(&y)+z.ref_mul(&z)).sqrt());
+        let angle = s.clone().atan2(c);
+
+        if angle.is_zero() {
+            None
+        } else {
+            Some((
+                UnitBiVec3::from_inner_unchecked(BiVec3::new(x*&angle/&s, y*&angle/&s, z*&angle/&s)),
+                angle
+            ))
+        }
+    }
+
+    fn get_half_scaled_plane(self) -> SimpleBiVec3<T> {
+        self.get_half_plane_angle().map_or_else(|| Zero::zero(), |(d, a)| SimpleBiVec3::from(d) * a)
+    }
+
+    pub fn get_plane_angle(self) -> Option<(UnitBiVec3<T>, T)> {
+        self.get_half_plane_angle().map(|(b,a)| (b, a*(T::one()+T::one())))
+    }
+
+    pub fn get_scaled_plane(self) -> SimpleBiVec3<T> {
+        self.get_plane_angle().map_or_else(|| Zero::zero(), |(d, a)| SimpleBiVec3::from(d) * a)
+    }
 
 }
+
+impl<T:AllocEven<U2>+RefRealField> Rotor4<T> {
+
+    fn get_half_plane_angles(self) -> (Option<(UnitBiVec4<T>, T)>, Option<(UnitBiVec4<T>, T)>) {
+
+        let two = T::one() + T::one();
+        let [s, b1, b2, b3, b4, b5, b6, q] = self.into_inner().data;
+
+        //using trig identities, we can find the cosine of the sum and differences of the angles
+        let cos_plus = s.ref_add(&q);
+        let cos_minus = s - q;
+
+        //next, we find the dual of the bivector part, this has the effect of swapping the
+        //two planes to have the opposite angle
+        let b = BiVec4::new(b1, b2, b3, b4, b5, b6);
+        let b_dual = b.clone().dual();
+
+        //then, by adding and subtracting, we end up with two bivectors,
+        //one that has the sine of the angle sum on the sum of the planes
+        //and one that has the sine of the angle difference on the difference of the planes
+        let b_plus = &b + &b_dual;
+        let b_minus = b - b_dual;
+
+        //TODO edge cases
+
+        //normalize and get the norm of the above bivectors
+        let (sin_plus, b_plus) = b_plus.norm_and_normalize();
+        let (sin_minus, b_minus) = b_minus.norm_and_normalize();
+
+        //next, we need to adjust for the fact that the norms are off by a factor of sqrt(2)
+        let (sin_plus, sin_minus) = (sin_plus/two.clone().sqrt(), sin_minus/two.clone().sqrt());
+        let (b_plus, b_minus) = (b_plus * two.clone().sqrt(), b_minus * two.clone().sqrt());
+
+        //then, we find the angles using atan2
+        let angle_plus = sin_plus.atan2(cos_plus);
+        let angle_minus = sin_minus.atan2(cos_minus);
+
+        //finally, solve for the angles and directions
+        let angle1 = (angle_plus.ref_add(&angle_minus)) / &two;
+        let angle2 = (angle_plus - angle_minus) / &two;
+        let dir1 = (&b_plus + &b_minus) / &two;
+        let dir2 = (b_plus - b_minus) / two;
+
+        (
+            Some((UnitBiVec4::from_inner_unchecked(dir1), angle1)),
+            Some((UnitBiVec4::from_inner_unchecked(dir2), angle2))
+        )
+
+        //scale and add and return
+        // (dir1 * angle1 + dir2 * angle2).cast_dim_generic(n)
+
+    }
+
+    fn get_half_scaled_planes(self) -> (SimpleBiVec4<T>, SimpleBiVec4<T>) {
+        let (x1, x2) = self.get_half_plane_angles();
+        (
+            x1.map_or_else(|| SimpleBiVec4::zeroed(), |(d, a)| d.as_simple_blade() * a),
+            x2.map_or_else(|| SimpleBiVec4::zeroed(), |(d, a)| d.as_simple_blade() * a),
+        )
+    }
+
+    pub fn get_plane_angles(self) -> (Option<(UnitBiVec4<T>, T)>, Option<(UnitBiVec4<T>, T)>) {
+        let (x1, x2) = self.get_half_plane_angles();
+        (
+            x1.map(|(d,a)| (d, a*(T::one()+T::one()))),
+            x2.map(|(d,a)| (d, a*(T::one()+T::one()))),
+        )
+    }
+
+    pub fn get_scaled_planes(self) -> (SimpleBiVec4<T>, SimpleBiVec4<T>) {
+        let (x1, x2) = self.get_plane_angles();
+        (
+            x1.map_or_else(|| SimpleBiVec4::zeroed(), |(d, a)| d.as_simple_blade() * a),
+            x2.map_or_else(|| SimpleBiVec4::zeroed(), |(d, a)| d.as_simple_blade() * a),
+        )
+    }
+
+}
+
 
 #[cfg(test)]
 mod tests {
