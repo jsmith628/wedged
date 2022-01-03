@@ -61,8 +61,8 @@ impl<T:AllocBlade<N,G>, N:Dim, G:Dim> Blade<T,N,G> where
 
         if 2*g < n && neg {
             for i in 0..e { dst[i] = MaybeUninit::new(-b.next().unwrap()) }
-        } else if 2*g == n && neg {
-
+        } else if 2*g == n {
+            
             //for grades at the exact middle of a dimension, half gets negated, half gets copied
 
             //negate the bottom half, copy the top half
