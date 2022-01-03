@@ -321,7 +321,7 @@ impl<T:AllocEven<U2>+RefRealField> Rotor4<T> {
         // println!();
         // println!("{:+}", self);
 
-        let to_degrees = T::from_subset(&180.0) / T::pi();
+        // let to_degrees = T::from_subset(&180.0) / T::pi();
 
         let two = T::one() + T::one();
         let [s, b1, b2, b3, b4, b5, b6, q] = self.into_inner().data;
@@ -526,15 +526,15 @@ mod tests {
             let iter = {
                 (0..binom(n,2)).into_par_iter()
                 .flat_map(|i| (0..binom(n,2)).into_par_iter().map(move |j| (i,j)))
-                .flat_map(|(i,j)| (-45i32..45).into_par_iter().map(move |a| (i,j,a)))
-                .flat_map(|(i,j,a)| (-45i32..45).into_par_iter().map(move |b| (i,j,a,b)))
+                .flat_map(|(i,j)| (-23i32..23).into_par_iter().map(move |a| (i,j,a)))
+                .flat_map(|(i,j,a)| (-23i32..23).into_par_iter().map(move |b| (i,j,a,b)))
             };
 
             iter.for_each(
                 |(i,j,a,b)| {
 
-                    let a = 4.0*a as f64;
-                    let b = 4.0*b as f64;
+                    let a = 8.0*a as f64;
+                    let b = 8.0*b as f64;
 
                     if a==b || -a==b || a%180.0==0.0 || b%180.0==0.0 { return; }
 
@@ -542,7 +542,7 @@ mod tests {
 
                     let b1 = BiVecD::basis(n, i) * a.to_radians();
                     let b2 = BiVecD::basis(n, j) * b.to_radians();
-                    let mut b = b1 + b2;
+                    let b = b1 + b2;
 
                     let rot = b.clone().exp_rotor();
                     let log = rot.clone().log();

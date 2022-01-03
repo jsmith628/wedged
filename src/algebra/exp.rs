@@ -379,8 +379,6 @@ mod tests {
     use rayon::prelude::*;
     use na::dimension::DimName;
 
-    use std::f64::consts::PI;
-
     const EPSILON: f64 = 128.0*f64::EPSILON;
 
     //TODO: more tests for different values and grades
@@ -394,8 +392,8 @@ mod tests {
                 //this gets a little slow for high dimensions so we'll do this all in a parallelized loop
                 (0..binom($n.value(),2)).into_par_iter().for_each(|i|
 
-                    for a in 0..=16 {
-                        let angle = (a as f64 * 22.5*10.0).to_radians();
+                    for a in -8..=8 {
+                        let angle = (a as f64 * 45.0*10.0).to_radians();
                         let b = BiVecN::basis_generic($n, U2::name(), i) * angle;
 
                         let mut rot = Multivector::zeroed_generic($n);
@@ -457,8 +455,8 @@ mod tests {
                 let iter = {
                     (0..binom($n.value(),2)).into_par_iter()
                     .flat_map(|i| (0..binom($n.value(),2)).into_par_iter().map(move |j| (i,j)))
-                    .flat_map(|(i,j)| (-5..5).into_par_iter().map(move |a| (i,j,a)))
-                    .flat_map(|(i,j,a)| (-5..5).into_par_iter().map(move |b| (i,j,a,b)))
+                    .flat_map(|(i,j)| (-3..3).into_par_iter().map(move |a| (i,j,a)))
+                    .flat_map(|(i,j,a)| (-3..3).into_par_iter().map(move |b| (i,j,a,b)))
                 };
 
                 iter.for_each(
@@ -467,8 +465,8 @@ mod tests {
                         let g = U2::name();
 
                         //two planes for two angles
-                        let b1 = BiVecN::basis_generic($n,g,i) * (a as f64 * 60.0).to_radians();
-                        let b2 = BiVecN::basis_generic($n,g,j) * (b as f64 * 60.0).to_radians();
+                        let b1 = BiVecN::basis_generic($n,g,i) * (a as f64 * 120.0).to_radians();
+                        let b2 = BiVecN::basis_generic($n,g,j) * (b as f64 * 120.0).to_radians();
 
                         //the angles combined
                         let b = &b1 + &b2;
@@ -530,7 +528,7 @@ mod benches {
     use test::Bencher;
 
     #[bench]
-    fn exp_taylor_4D(b: &mut Bencher) {
+    fn exp_taylor_4d(b: &mut Bencher) {
         b.iter(
             || black_box(
                 exp_selected(black_box(BiVec4::new(1.0, 0.0, 0.0, 2.0, 0.0, 0.0)), Even4::one(), f64::EPSILON)
@@ -539,7 +537,7 @@ mod benches {
     }
 
     #[bench]
-    fn exp_4D(b: &mut Bencher) {
+    fn exp_4d(b: &mut Bencher) {
         b.iter(
             || black_box(
                 black_box(BiVec4::new(1.0, 0.0, 0.0, 2.0, 0.0, 0.0)).exp()
