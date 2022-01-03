@@ -57,12 +57,12 @@ impl<T:AllocBlade<N,G>, N:Dim, G:Dim> Blade<T,N,G> where
         let mut b = self.into_iter();
 
         //if the inverse of the psuedoscalar negates the psuedoscalar
-        let neg = n & 0b10 == 1;
+        let neg = !(n & 0b10 != 0);
 
         if 2*g < n && neg {
             for i in 0..e { dst[i] = MaybeUninit::new(-b.next().unwrap()) }
-        } else if 2*g == n {
-            
+        } else if 2*g == n && n!=0 {
+
             //for grades at the exact middle of a dimension, half gets negated, half gets copied
 
             //negate the bottom half, copy the top half
@@ -109,7 +109,7 @@ impl<T:AllocBlade<N,G>, N:Dim, G:Dim> Blade<T,N,G> where
         let mut b = self.into_iter();
 
         //if the inverse of the psuedoscalar negates the psuedoscalar
-        let neg = n & 0b10 == 1;
+        let neg = !(n & 0b10 != 0);
 
         if 2*g > n && neg {
             for i in 0..e { dst[i] = MaybeUninit::new(-b.next().unwrap()) }
@@ -192,7 +192,7 @@ mod tests {
 
         for n in 3..=N {
 
-            let sign = if n&0b10 == 1 { -1 } else { 1 };
+            let sign = if n&0b10 != 0 { 1 } else { -1 };
 
             let pv = BladeD::from_iterator(n, n-1, 1..);
             let v = BladeD::from_iterator(n, 1, 1..);
@@ -209,7 +209,7 @@ mod tests {
         macro_rules! do_test {
             ($($N:ident),*) => {
                 $(
-                    let sign = if $N::dim() & 0b10 == 1 { -1 } else { 1 };
+                    let sign = if $N::dim() & 0b10 != 0 { 1 } else { -1 };
 
                     let pv = PsuedoVecN::<_,$N>::from_iterator(1..);
                     let v = VecN::<_,$N>::from_iterator(1..);
