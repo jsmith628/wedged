@@ -220,16 +220,16 @@ impl<T:AllocEven<N>, N:Dim> Rotor<T,N> {
 
             //complex numbers
             2 => {
-                let angle = self.cast_dim_unchecked::<U2>().get_angle();
+                let angle = self.cast_dim_unchecked::<U2>().get_half_angle();
                 BiVec2::new(angle).cast_dim_generic(n)
             },
 
             //quaternions
-            3 => self.cast_dim_unchecked::<U3>().get_scaled_plane().into_inner().cast_dim_generic(n),
+            3 => self.cast_dim_unchecked::<U3>().get_half_scaled_plane().into_inner().cast_dim_generic(n),
 
             //magic
             4 => {
-                let (plane1, plane2) = self.cast_dim_unchecked::<U4>().get_scaled_planes();
+                let (plane1, plane2) = self.cast_dim_unchecked::<U4>().get_half_scaled_planes();
                 (plane1.into_inner() + plane2.into_inner()).cast_dim_generic(n)
             }
 
@@ -294,7 +294,7 @@ impl<T:AllocEven<U2>+RefRealField> Rotor3<T> {
             None
         } else {
             Some((
-                UnitBiVec3::from_inner_unchecked(BiVec3::new(x*&angle/&s, y*&angle/&s, z*&angle/&s)),
+                UnitBiVec3::from_inner_unchecked(BiVec3::new(x, y, z)/&s),
                 angle
             ))
         }
@@ -318,51 +318,145 @@ impl<T:AllocEven<U2>+RefRealField> Rotor4<T> {
 
     fn get_half_plane_angles(self) -> (Option<(UnitBiVec4<T>, T)>, Option<(UnitBiVec4<T>, T)>) {
 
+        // println!();
+        // println!("{:+}", self);
+
+        let to_degrees = T::from_subset(&180.0) / T::pi();
+
         let two = T::one() + T::one();
         let [s, b1, b2, b3, b4, b5, b6, q] = self.into_inner().data;
 
+        //if this is just a single rotation, we can just do what we would do for 3D rotations
+        if q.is_zero() {
+
+            let b = BiVec4::new(b1, b2, b3, b4, b5, b6);
+
+            //the RHS 's' is the "scalar" the LHS 's' is the sin
+            let (s, c) = (b.norm(), s);
+            let angle = s.clone().atan2(c);
+
+            // println!("{}", angle.clone() * to_degrees);
+
+            if angle.is_zero() {
+                return (None, None);
+            } else {
+                return (Some((UnitBiVec4::from_inner_unchecked(b/s), angle)), None);
+            }
+
+        }
+
         //using trig identities, we can find the cosine of the sum and differences of the angles
-        let cos_plus = s.ref_add(&q);
-        let cos_minus = s - q;
+        let cos_minus = s.ref_add(&q);
+        let cos_plus = s - q;
+
+        // println!("{} {}", cos_plus, cos_minus);
+        // println!("{}° {}°", cos_plus.clone().acos()*&to_degrees, cos_minus.clone().acos()*&to_degrees);
 
         //next, we find the dual of the bivector part, this has the effect of swapping the
         //two planes to have the opposite angle
         let b = BiVec4::new(b1, b2, b3, b4, b5, b6);
-        let b_dual = b.clone().dual();
+        let b_dual = b.clone().undual();
+
+        // println!("{:+}, {:+}", b, b_dual);
 
         //then, by adding and subtracting, we end up with two bivectors,
         //one that has the sine of the angle sum on the sum of the planes
         //and one that has the sine of the angle difference on the difference of the planes
-        let b_plus = &b + &b_dual;
-        let b_minus = b - b_dual;
+        let b_plus = &b - &b_dual;
+        let b_minus = b + b_dual;
 
-        //TODO edge cases
+        //the sines should come from the norms (divided by sqrt(2))
+        let sin_plus = (b_plus.norm_sqrd()/&two).sqrt();
+        let sin_minus = (b_minus.norm_sqrd()/&two).sqrt();
 
-        //normalize and get the norm of the above bivectors
-        let (sin_plus, b_plus) = b_plus.norm_and_normalize();
-        let (sin_minus, b_minus) = b_minus.norm_and_normalize();
+        //normalize (sorta)
+        let b_plus = if sin_plus.is_zero() { None } else { Some(b_plus/&sin_plus) };
+        let b_minus = if sin_minus.is_zero() { None } else { Some(b_minus/&sin_minus) };
 
-        //next, we need to adjust for the fact that the norms are off by a factor of sqrt(2)
-        let (sin_plus, sin_minus) = (sin_plus/two.clone().sqrt(), sin_minus/two.clone().sqrt());
-        let (b_plus, b_minus) = (b_plus * two.clone().sqrt(), b_minus * two.clone().sqrt());
+        // println!("{} {}", sin_plus, sin_minus);
+        // println!("{}° {}°", sin_plus.clone().asin()*&to_degrees, sin_minus.clone().asin()*&to_degrees);
 
         //then, we find the angles using atan2
         let angle_plus = sin_plus.atan2(cos_plus);
         let angle_minus = sin_minus.atan2(cos_minus);
 
+        // println!("{}° {}°", angle_plus.ref_mul(&to_degrees), angle_minus.ref_mul(&to_degrees));
+
         //finally, solve for the angles and directions
         let angle1 = (angle_plus.ref_add(&angle_minus)) / &two;
         let angle2 = (angle_plus - angle_minus) / &two;
-        let dir1 = (&b_plus + &b_minus) / &two;
-        let dir2 = (b_plus - b_minus) / two;
+        // println!("{} {} {}", angle1>=angle2, angle1.ref_mul(&to_degrees), angle2.ref_mul(&to_degrees));
 
-        (
-            Some((UnitBiVec4::from_inner_unchecked(dir1), angle1)),
-            Some((UnitBiVec4::from_inner_unchecked(dir2), angle2))
-        )
+        match (b_plus, b_minus) {
 
-        //scale and add and return
-        // (dir1 * angle1 + dir2 * angle2).cast_dim_generic(n)
+            //since this happens when the Quadvec part is nonzero but the bivec part is
+            //this corresponds to an invalid rotation, so maybe add a panic??
+            (None, None) => (None, None),
+
+            //if we have some an isoclinic rotation (ie the rotation angles are the same)
+            //then, we have to solve for the angles and planes differently
+            (Some(b), None) => {
+
+                // println!("{:+}", b);
+
+                //
+                //since we know the rotation is isoclinic, the plane bivector can be decomposed
+                //by literally just splitting the coordinates in half
+                //
+                //the proof of this basically just boils down to showing that since b is it's own dual
+                //the first half equals the second half. Then, just grind through the algebra to
+                //show that the geometric product of the first half with the second half only has
+                //a quadvector component
+
+                let [b1, b2, b3, b4, b5, b6] = b.data;
+
+                let dir1 = BiVec4::new(b1,b2,b3,T::zero(),T::zero(),T::zero());
+                let dir2 = BiVec4::new(T::zero(),T::zero(),T::zero(),b4,b5,b6);
+
+                // println!("{:+}, {:+}", dir1, dir2);
+
+                (
+                    Some((UnitBlade::from_inner_unchecked(dir1), angle1)),
+                    Some((UnitBlade::from_inner_unchecked(dir2), angle2)),
+                )
+
+            },
+
+            (None, Some(b)) => {
+
+                // println!("{:+}", b);
+
+                let [b1, b2, b3, b4, b5, b6] = b.data;
+
+                let dir1 = BiVec4::new(b1,b2,b3,T::zero(),T::zero(),T::zero());
+                let dir2 = -BiVec4::new(T::zero(),T::zero(),T::zero(),b4,b5,b6);
+
+                // println!("{:+}, {:+}", dir1, dir2);
+
+                (
+                    Some((UnitBlade::from_inner_unchecked(dir1), angle1)),
+                    Some((UnitBlade::from_inner_unchecked(dir2), angle2)),
+                )
+
+            },
+
+            (Some(b_plus), Some(b_minus)) => {
+
+                // println!("{:+}, {:+}", b_plus, b_minus);
+                let dir1 = (&b_plus + &b_minus) / &two;
+                let dir2 = (b_plus - b_minus) / two;
+
+                // println!("{:+}, {:+}", dir1, dir2);
+
+                (
+                    Some((UnitBiVec4::from_inner_unchecked(dir1), angle1)),
+                    Some((UnitBiVec4::from_inner_unchecked(dir2), angle2))
+                )
+
+            }
+
+
+        }
 
     }
 
@@ -398,6 +492,7 @@ mod tests {
 
     use super::*;
     use approx::*;
+    use rayon::prelude::*;
 
     #[test]
     fn circle_fractions_2d() {
@@ -421,5 +516,50 @@ mod tests {
 
 
     }
+
+    #[test]
+    fn double_rot_log() {
+
+
+        for n in 0..=4 {
+
+            let iter = {
+                (0..binom(n,2)).into_par_iter()
+                .flat_map(|i| (0..binom(n,2)).into_par_iter().map(move |j| (i,j)))
+                .flat_map(|(i,j)| (-45i32..45).into_par_iter().map(move |a| (i,j,a)))
+                .flat_map(|(i,j,a)| (-45i32..45).into_par_iter().map(move |b| (i,j,a,b)))
+            };
+
+            iter.for_each(
+                |(i,j,a,b)| {
+
+                    let a = 4.0*a as f64;
+                    let b = 4.0*b as f64;
+
+                    if a==b || -a==b || a%180.0==0.0 || b%180.0==0.0 { return; }
+
+                    // println!("\ni={} j={} a={} b={}", i,j,a,b);
+
+                    let b1 = BiVecD::basis(n, i) * a.to_radians();
+                    let b2 = BiVecD::basis(n, j) * b.to_radians();
+                    let mut b = b1 + b2;
+
+                    let rot = b.clone().exp_rotor();
+                    let log = rot.clone().log();
+
+                    // println!("{}: {} = {}", n, b, rot.log());
+
+                    assert_abs_diff_eq!(rot, log.exp_rotor(), epsilon=1024.0*f64::EPSILON);
+
+
+                }
+            )
+
+
+        }
+
+    }
+
+
 
 }

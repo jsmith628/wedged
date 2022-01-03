@@ -448,7 +448,7 @@ mod tests {
     }
 
     #[test]
-    fn double_rot() {
+    fn double_rot_exp() {
 
         macro_rules! test {
             ($n:ident) => {{
@@ -457,8 +457,8 @@ mod tests {
                 let iter = {
                     (0..binom($n.value(),2)).into_par_iter()
                     .flat_map(|i| (0..binom($n.value(),2)).into_par_iter().map(move |j| (i,j)))
-                    .flat_map(|(i,j)| (0..5).into_par_iter().map(move |a| (i,j,a)))
-                    .flat_map(|(i,j,a)| (0..5).into_par_iter().map(move |b| (i,j,a,b)))
+                    .flat_map(|(i,j)| (-5..5).into_par_iter().map(move |a| (i,j,a)))
+                    .flat_map(|(i,j,a)| (-5..5).into_par_iter().map(move |b| (i,j,a,b)))
                 };
 
                 iter.for_each(
@@ -481,7 +481,7 @@ mod tests {
 
                         let (rot, rot_even) = if (&b1^&b2).norm_sqrd() == 0.0 {
                             //if the two planes are not fully perpendicular
-                            (b.clone().exp_simple(), b.exp_even_simple())
+                            (b.clone().exp_simple(), b.clone().exp_even_simple())
                         } else {
                             //if they are completely orthogonal
                             (
