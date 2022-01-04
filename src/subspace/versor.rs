@@ -318,10 +318,10 @@ impl<T:AllocEven<U2>+RefRealField> Rotor4<T> {
 
     fn get_half_plane_angles(self) -> (Option<(UnitBiVec4<T>, T)>, Option<(UnitBiVec4<T>, T)>) {
 
-        // println!();
+        // println!("\nlog");
         // println!("{:+}", self);
 
-        // let to_degrees = T::from_subset(&180.0) / T::pi();
+        let to_degrees = T::from_subset(&180.0) / T::pi();
 
         let two = T::one() + T::one();
         let [s, b1, b2, b3, b4, b5, b6, q] = self.into_inner().data;
@@ -369,6 +369,8 @@ impl<T:AllocEven<U2>+RefRealField> Rotor4<T> {
         let sin_plus = (b_plus.norm_sqrd()/&two).sqrt();
         let sin_minus = (b_minus.norm_sqrd()/&two).sqrt();
 
+        // println!("{} {}", b_plus.norm_sqrd(), b_minus.norm_sqrd());
+
         //normalize (sorta)
         let b_plus = if sin_plus.is_zero() { None } else { Some(b_plus/&sin_plus) };
         let b_minus = if sin_minus.is_zero() { None } else { Some(b_minus/&sin_minus) };
@@ -408,34 +410,21 @@ impl<T:AllocEven<U2>+RefRealField> Rotor4<T> {
                 //show that the geometric product of the first half with the second half only has
                 //a quadvector component
 
-                let [b1, b2, b3, b4, b5, b6] = b.data;
-
-                let dir1 = BiVec4::new(b1,b2,b3,T::zero(),T::zero(),T::zero());
-                let dir2 = BiVec4::new(T::zero(),T::zero(),T::zero(),b4,b5,b6);
-
+                let(dir1, dir2) = b.split_isoclinic();
                 // println!("{:+}, {:+}", dir1, dir2);
-
                 (
                     Some((UnitBlade::from_inner_unchecked(dir1), angle1)),
                     Some((UnitBlade::from_inner_unchecked(dir2), angle2)),
                 )
 
             },
-
             (None, Some(b)) => {
-
                 // println!("{:+}", b);
-
-                let [b1, b2, b3, b4, b5, b6] = b.data;
-
-                let dir1 = BiVec4::new(b1,b2,b3,T::zero(),T::zero(),T::zero());
-                let dir2 = -BiVec4::new(T::zero(),T::zero(),T::zero(),b4,b5,b6);
-
-                // println!("{:+}, {:+}", dir1, dir2);
-
+                let(dir1, dir2) = b.split_isoclinic();
+                // println!("{:+}, {:+}", dir1, dir2.ref_neg());
                 (
                     Some((UnitBlade::from_inner_unchecked(dir1), angle1)),
-                    Some((UnitBlade::from_inner_unchecked(dir2), angle2)),
+                    Some((UnitBlade::from_inner_unchecked(-dir2), angle2)),
                 )
 
             },
@@ -446,7 +435,7 @@ impl<T:AllocEven<U2>+RefRealField> Rotor4<T> {
                 let dir1 = (&b_plus + &b_minus) / &two;
                 let dir2 = (b_plus - b_minus) / two;
 
-                // println!("{:+}, {:+}", dir1, dir2);
+                // println!("{:+}, {:+}", dir1, dir2);into_iter
 
                 (
                     Some((UnitBiVec4::from_inner_unchecked(dir1), angle1)),
@@ -525,9 +514,9 @@ mod tests {
 
             let iter = {
                 (0..binom(n,2)).into_par_iter()
-                .flat_map(|i| (0..binom(n,2)).into_par_iter().map(move |j| (i,j)))
-                .flat_map(|(i,j)| (-23i32..23).into_par_iter().map(move |a| (i,j,a)))
-                .flat_map(|(i,j,a)| (-23i32..23).into_par_iter().map(move |b| (i,j,a,b)))
+                .flat_map(|i| (0..=i).into_par_iter().map(move |j| (i,j)))
+                .flat_map(|(i,j)| (-45i32..45).into_par_iter().map(move |a| (i,j,a)))
+                .flat_map(|(i,j,a)| (-45i32..45).into_par_iter().map(move |b| (i,j,a,b)))
             };
 
             iter.for_each(
@@ -536,7 +525,7 @@ mod tests {
                     let a = 8.0*a as f64;
                     let b = 8.0*b as f64;
 
-                    if a==b || -a==b || a%180.0==0.0 || b%180.0==0.0 { return; }
+                    // if a==b || -a==b || a%180.0==0.0 || b%180.0==0.0 { return; }
 
                     // println!("\ni={} j={} a={} b={}", i,j,a,b);
 
@@ -547,7 +536,7 @@ mod tests {
                     let rot = b.clone().exp_rotor();
                     let log = rot.clone().log();
 
-                    // println!("{}: {} = {}", n, b, rot.log());
+                    // println!("{}: {} = {}", n, b, );
 
                     assert_abs_diff_eq!(rot, log.exp_rotor(), epsilon=1024.0*f64::EPSILON);
 

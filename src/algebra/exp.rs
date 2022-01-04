@@ -114,81 +114,102 @@ macro_rules! exp {
 
     }};
 
-    (bivector, $self:ident, $M:ident, $mul:ident, $exp:ident) => {{
-        //time for some fancy shit...
+    (bivector, $N:ident, $self:ident, $M:ident) => {{
 
-        //so in 4 and 5 dimensions, we can take the exponential by first decomposing the
-        //bivector into two simple bivectors that are perpendicular and commute multiplicatively
-
-        //I don't wanna explain how this works rn, so imma just say it's *m a g i c*
+        //using T explicitly here is bad, but we'll fix it later if it's a problem
 
         let n = $self.dim_generic();
+        let (b1, b2) = Blade::<T, $N, U2>::from_iter($self).separate_unit_blades();
+
+        let exp = |(l,b): (T, Blade::<T, $N, U2>)| {
+            let (s,c) = l.sin_cos();
+            let mut exp = $M::from_blade(b*s);
+            exp[0] = c;
+            exp
+        };
+
+        (b1.map_or_else($M::one, exp) * b2.map_or_else($M::one, exp)).cast_dim_generic(n)
+
+    }}
+}
+
+impl<T:RefRealField> BiVec4<T> {
+
+    #[inline(always)]
+    pub(crate) fn split_isoclinic(self) -> (Self, Self) {
+        let [b1, b2, b3, b4, b5, b6] = self.data;
+
+        (
+            BiVec4::new(b1,b2,b3,T::zero(),T::zero(),T::zero()),
+            BiVec4::new(T::zero(),T::zero(),T::zero(),b4,b5,b6)
+        )
+    }
+
+    fn separate_unit_blades(self) -> (Option<(T,BiVec4<T>)>, Option<(T,BiVec4<T>)>) {
+
         let two = T::one() + T::one();
 
-        let b = $self;
-        let mut b_sqrd = (&b).$mul(&b);
+        let b = self;
+        let q = &b^&b;
 
-        let start = b_sqrd.grade_index(4);
-        let bin4 = binom(n.value(), 4);
-        for i in start..(start+bin4) {
-            b_sqrd[i] = b_sqrd[i].ref_neg();
+        // println!("\nexp");
+        // println!("{:+}", b);
+        // println!("{:+}", q);
+
+        match q.try_normalize() {
+
+            //if q is zero and thus self is already simple
+            None => (b.try_norm_and_normalize(), None),
+
+            Some(q) => {
+
+                // println!("{:+}", q);
+
+                let b_dual = &b % q;
+                // println!("{:+}", b_dual);
+
+                //taking the undual introduces an extra minus sign, which is why the ops are fliped like that
+                let b_plus = &b - &b_dual;
+                let b_minus = &b + &b_dual;
+                // println!("{:+}, {:+}", b_plus, b_minus);
+
+                let norm_plus = (b_plus.norm_sqrd() / &two).sqrt();
+                let norm_minus = (b_minus.norm_sqrd() / &two).sqrt();
+                // println!("{:+}, {:+}", norm_plus, norm_minus);
+
+                let l1 = (norm_plus.ref_add(&norm_minus)) / &two;
+                let l2 = (norm_plus.ref_sub(&norm_minus)) / &two;
+                // println!("{:+}, {:+}", l1, l2);
+
+                let b_plus = if norm_plus.is_zero() { None } else { Some(b_plus / norm_plus) };
+                let b_minus = if norm_minus.is_zero() { None } else { Some(b_minus / norm_minus) };
+
+                match (b_plus, b_minus) {
+                    (None, None) => (None, None), //not really possible, but whatever
+
+                    //if we have some sort of isoclinic bivector
+                    (Some(b), None) | (None, Some(b)) => {
+                        let (b1, b2) = b.split_isoclinic();
+                        // println!("{:+}, {:+}", b1, b2);
+                        (Some((l1, b1)), Some((l2, b2)))
+                    },
+
+                    (Some(b_plus), Some(b_minus)) => {
+                        let b1 = (&b_plus + &b_minus) / &two;
+                        let b2 = (b_plus - b_minus) / &two;
+                        // println!("{:+}, {:+}", b1, b2);
+                        (Some((l1, b1)), Some((l2, b2)))
+                    }
+                }
+
+            }
         }
 
-        let b_conj_scaled = (&b).mul_grade_generic(&b_sqrd, b.grade_generic());
 
-        let factor = (&b).$mul(&b_conj_scaled).into_iter().next().unwrap();
 
-        //edge case that happens when both rotation planes have the same angle
-        if factor.is_zero() {
 
-            //TODO: this can probably be optimized pretty heavily
+    }
 
-            //first, we reuse the squared b from earlier
-            let mut exp = b_sqrd;
-
-            //get the angle by normalizing
-            //we can optimize a little by reusing the scalar part of `exp` for the square norm
-            let angle_sqrd = exp[0].clone();
-
-            if angle_sqrd.is_zero() { return $M::one_generic(n); }
-
-            //(the two is to adjust for the fact that there are two rotation planes)
-            //also, it's negative since 2blades square negative
-            let angle = angle_sqrd.ref_div(&two.ref_neg()).sqrt();
-            let b_hat = b / &angle;
-
-            let (s, c) = angle.clone().sin_cos();
-
-            //This also could probably be waaaay better
-
-            //scalar part
-            exp[0] = c.ref_mul(&c);
-
-            //bivec part
-            let start = exp.grade_index(2);
-            let bin2 = binom(n.value(), 2);
-            for i in 0..bin2 {
-                exp[i+start] = b_hat[i].ref_mul(&s) * &c;
-            }
-
-            //quadvec part
-            let start = exp.grade_index(4);
-            for i in 0..bin4 {
-                //we have to both cancel a negative from above and a factor of two
-                //both of which are automatically in angle_sqrd6
-                exp[i+start] *= s.ref_mul(&s) / &angle_sqrd;
-            }
-
-            return exp;
-        }
-
-        let b_conj = b_conj_scaled / factor.sqrt();
-
-        let b1 = (&b + &b_conj) / &two;
-        let b2 = (&b - &b_conj) / &two;
-
-        b1.$exp() * b2.$exp()
-    }}
 }
 
 impl<T:RefRealField+AllocBlade<N,U2>, N:Dim> BiVecN<T,N> {
@@ -234,7 +255,7 @@ impl<T:RefRealField+AllocBlade<N,G>, N:Dim, G:Dim> Blade<T,N,G> {
             (n, g) if g==1 || g+1>=n => self.exp_simple(),
 
             //*magic*
-            (n, 2) if n<6 => exp!(bivector, self, Multivector, mul_full, exp_simple),
+            (4, 2) => exp!(bivector, U4, self, Multivector),
 
             //if not simple, we gotta use the taylor series
             _ => exp_selected(self, Multivector::one_generic(n), T::default_epsilon())
@@ -254,8 +275,7 @@ impl<T:RefRealField+AllocBlade<N,G>, N:Dim, G:Dim> Blade<T,N,G> {
             //if we're guaranteed to be simple
             (n, g) if g==1 || g+1>=n => self.exp_even_simple(),
 
-            //*magic*
-            (n, 2) if n<6 => exp!(bivector, self, Even, mul_even, exp_even_simple),
+            (4, 2) => exp!(bivector, U4, self, Even),
 
             //if not simple, we gotta use the taylor series
             _ => exp_selected(self, Even::one_generic(n), T::default_epsilon())
@@ -393,7 +413,10 @@ mod tests {
                 (0..binom($n.value(),2)).into_par_iter().for_each(|i|
 
                     for a in -8..=8 {
+
                         let angle = (a as f64 * 45.0*10.0).to_radians();
+                        // println!("{} {} {}", $n.value(), i, angle.to_degrees());
+
                         let b = BiVecN::basis_generic($n, U2::name(), i) * angle;
 
                         let mut rot = Multivector::zeroed_generic($n);
@@ -454,7 +477,7 @@ mod tests {
                 //a parallelized iterator for looping over a bunch of double angles
                 let iter = {
                     (0..binom($n.value(),2)).into_par_iter()
-                    .flat_map(|i| (0..binom($n.value(),2)).into_par_iter().map(move |j| (i,j)))
+                    .flat_map(|i| (0..=i).into_par_iter().map(move |j| (i,j)))
                     .flat_map(|(i,j)| (-3..3).into_par_iter().map(move |a| (i,j,a)))
                     .flat_map(|(i,j,a)| (-3..3).into_par_iter().map(move |b| (i,j,a,b)))
                 };
@@ -528,7 +551,7 @@ mod benches {
     use test::Bencher;
 
     #[bench]
-    fn exp_taylor_4d(b: &mut Bencher) {
+    fn exp_4d_taylor(b: &mut Bencher) {
         b.iter(
             || black_box(
                 exp_selected(black_box(BiVec4::new(1.0, 0.0, 0.0, 2.0, 0.0, 0.0)), Even4::one(), f64::EPSILON)
@@ -541,6 +564,28 @@ mod benches {
         b.iter(
             || black_box(
                 black_box(BiVec4::new(1.0, 0.0, 0.0, 2.0, 0.0, 0.0)).exp()
+            )
+        )
+    }
+
+    #[bench]
+    fn exp_5d_taylor(b: &mut Bencher) {
+        b.iter(
+            || black_box(
+                exp_selected(black_box(
+                    BiVec5::new(1.0, 0.0, 0.0, 2.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0)
+                ), Even5::one(), f64::EPSILON)
+            )
+        )
+    }
+
+    #[bench]
+    fn exp_5d(b: &mut Bencher) {
+        b.iter(
+            || black_box(
+                black_box(
+                    BiVec5::new(1.0, 0.0, 0.0, 2.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0)
+                ).exp()
             )
         )
     }

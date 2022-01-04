@@ -48,7 +48,7 @@ macro_rules! norm_methods {
         pub fn try_normalize(self) -> Option<Self> where T: RefComplexField
         {
             let l = self.norm();
-            if l.is_zero() { Some(self / l) } else { None }
+            if !l.is_zero() { Some(self / l) } else { None }
         }
 
         /// Divides `self` by its norm and returns both
