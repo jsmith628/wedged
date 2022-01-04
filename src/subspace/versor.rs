@@ -165,12 +165,6 @@ versor_mul_versor!(
     Versor<T:AllocVersor,N>;
 );
 
-impl<T:AllocBlade<N,U2>+RefRealField, N:Dim> SimpleBiVecN<T, N> {
-    pub fn exp(self) -> Rotor<T,N> where T:AllocEven<N> {
-        Rotor::from_inner_unchecked(self.into_inner().exp_even_simple())
-    }
-}
-
 impl<T:AllocEven<N>, N:Dim> Rotor<T,N> {
 
     pub fn one_generic(n: N) -> Self where T: One+Zero {
@@ -201,6 +195,21 @@ impl<T:AllocEven<N>, N:Dim> Rotor<T,N> {
 
     }
 
+    #[inline(always)]
+    pub fn rot_between_unit(v1:UnitVecN<T,N>, v2: UnitVecN<T,N>) -> Self where
+        T: AllocBlade<N,U1> + AllocVersor<N> + RefRealField
+    { v1.rot_to(v2) }
+
+    #[inline(always)]
+    pub fn rot_between_simple(v1:SimpleVecN<T,N>, v2: SimpleVecN<T,N>) -> Self where
+        T: AllocBlade<N,U1> + AllocVersor<N> + RefRealField
+    { v1.rot_to(v2) }
+
+    #[inline(always)]
+    pub fn rot_between(v1:VecN<T,N>, v2: VecN<T,N>) -> Self where
+        T: AllocBlade<N,U1> + AllocVersor<N> + RefRealField
+    { v1.rot_to(v2) }
+
     pub fn rot<'a,M>(&'a self, m:M) -> <&'a Self as VersorMul<M>>::Output where &'a Self: VersorMul<M> {
         self.versor_mul(m)
     }
@@ -210,7 +219,7 @@ impl<T:AllocEven<N>, N:Dim> Rotor<T,N> {
 
         //so imma do a bad and have this method available for all rotors even though
         //I don't even know if anyone has a general algorithm for this in all dimensions
-        //oops
+        //oops + AllocVersor<N>
 
         let (n, g) = (self.dim_generic(), <U2 as na::dimension::DimName>::name());
         match n.value() {
@@ -474,6 +483,64 @@ impl<T:AllocEven<U2>+RefRealField> Rotor4<T> {
     }
 
 }
+
+impl<T:AllocBlade<N,U2>+RefRealField, N:Dim> SimpleBiVecN<T, N> {
+    pub fn exp(self) -> Rotor<T,N> where T:AllocEven<N> {
+        Rotor::from_inner_unchecked(self.into_inner().exp_even_simple())
+    }
+}
+
+impl<T:AllocBlade<N,U1>+RefRealField, N:Dim> UnitVecN<T, N> {
+    pub fn rot_to(self, v2: UnitVecN<T,N>) -> Rotor<T,N> where T:AllocVersor<N> {
+
+        //In essence, the algorithm is *almost* just v1*v2. However,
+        //what this would actually give would be a rotor doing *double* the rotation.
+        //so to fix this, we find a vector halfway between v1 and v2 and *then* do the multiplication
+
+        let two = T::one() + T::one();
+        let n = self.dim_generic();
+        let v2 = (self.as_inner() + v2.into_inner()) / &two;
+        let v1 = self;
+
+        //next, we gotta normalize v2
+        match SimpleBlade::from_inner_unchecked(v2).try_normalize() {
+            Some(v2) => (v1 * v2).unwrap_even(),
+            None => {
+                //if the midpoint is zero, we know the vectors are 180deg apart (so the half angle is 90),
+                //but there are infinitely many solutions for the plane.
+                //hence... we just pick one!
+
+                //finally, we can even optimize this a bit since we know a 180deg rotation with a
+                //given plane is just that plane normalized.
+                //Thus, this is a 180deg rot around the first bivector basis
+                Rotor::from_inner_unchecked(Even::basis_generic(n, 1))
+            },
+        }
+
+    }
+}
+
+impl<T:AllocBlade<N,U1>+RefRealField, N:Dim> SimpleVecN<T, N> {
+    #[inline]
+    pub fn rot_to(self, v2: SimpleVecN<T,N>) -> Rotor<T,N> where T:AllocVersor<N> {
+        let n = self.dim_generic();
+        match self.try_normalize() {
+            None => Rotor::from_inner_unchecked(Even::one_generic(n)),
+            Some(v1) => match v2.try_normalize() {
+                None => Rotor::from_inner_unchecked(Even::one_generic(n)),
+                Some(v2) => v1.rot_to(v2)
+            }
+        }
+    }
+}
+
+impl<T:AllocBlade<N,U1>+RefRealField, N:Dim> VecN<T, N> {
+    #[inline(always)]
+    pub fn rot_to(self, v2: VecN<T,N>) -> Rotor<T,N> where T:AllocVersor<N> {
+        SimpleVecN::from_inner_unchecked(self).rot_to(SimpleVecN::from_inner_unchecked(v2))
+    }
+}
+
 
 
 #[cfg(test)]
