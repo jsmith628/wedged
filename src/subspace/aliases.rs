@@ -273,8 +273,8 @@ pub type UnitHexVec6<T> = UnitHexVecN<T,U6>;
 ///A unit hexavector with dynamic dimension
 pub type UnitHexVecD<T> = UnitHexVecN<T,Dynamic>;
 
-pub type DualSimpleBlade<T,N,G> = SimpleBlade<T,N,DimDiff<N,G>>;
-pub type DualUnitBlade<T,N,G> = UnitBlade<T,N,DimDiff<N,G>>;
+pub type SimpleDualBlade<T,N,G> = SimpleBlade<T,N,DimDiff<N,G>>;
+pub type UnitDualBlade<T,N,G> = UnitBlade<T,N,DimDiff<N,G>>;
 
 /// An N-dimensional psuedoscalar
 pub type SimplePsuedoScalar<T,N> = SimpleBlade<T,N,N>;

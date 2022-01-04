@@ -1,5 +1,9 @@
 use super::*;
 
+//
+// Dimension casting
+//
+
 impl<T:AllocBlade<N1,G>+Zero, N1:Dim, G:Dim> SimpleBlade<T,N1,G> {
 
     pub fn cast_dim_generic<N2:Dim>(self, n:N2) -> SimpleBlade<T,N2,G> where T:AllocBlade<N2,G> {
@@ -52,6 +56,10 @@ macro_rules! impl_dim_cast {
 impl_dim_cast!(UnitBlade<T:AllocBlade,N1,G> -> N2);
 impl_dim_cast!(Rotor<T:AllocEven,N1> -> N2);
 impl_dim_cast!(Reflector<T:AllocOdd,N1> -> N2);
+
+//
+//Interpretation casting
+//
 
 impl<T:AllocBlade<N,G>, N:Dim, G:Dim> Blade<T,N,G> {
 
@@ -193,7 +201,6 @@ impl<T:AllocVersor<N>, N:Dim> Versor<T,N> {
 
 }
 
-
 impl<T:AllocBlade<N,G>, N:Dim, G:Dim> From<UnitBlade<T,N,G>> for SimpleBlade<T,N,G> {
     fn from(b: UnitBlade<T,N,G>) -> SimpleBlade<T,N,G> { b.as_simple_blade() }
 }
@@ -204,4 +211,38 @@ impl<T:AllocVersor<N>, N:Dim> From<Rotor<T,N>> for Versor<T,N> {
 
 impl<T:AllocVersor<N>, N:Dim> From<Reflector<T,N>> for Versor<T,N> {
     fn from(b: Reflector<T,N>) -> Versor<T,N> { b.into_versor() }
+}
+
+//
+//Finding the dual
+//
+
+impl<T:AllocBlade<N,G>, N:Dim, G:Dim> SimpleBlade<T,N,G> where
+    N:DimSub<G>,
+    T:AllocBlade<N,DimDiff<N,G>> + Neg<Output=T>
+{
+
+    pub fn dual(self) -> SimpleDualBlade<T,N,G> {
+        self.into_inner().dual().into_simple_unchecked()
+    }
+
+    pub fn undual(self) -> SimpleDualBlade<T,N,G> {
+        self.into_inner().undual().into_simple_unchecked()
+    }
+
+}
+
+impl<T:AllocBlade<N,G>, N:Dim, G:Dim> UnitBlade<T,N,G> where
+    N:DimSub<G>,
+    T:AllocBlade<N,DimDiff<N,G>> + Neg<Output=T>
+{
+
+    pub fn dual(self) -> UnitDualBlade<T,N,G> {
+        self.into_inner().dual().into_unit_unchecked()
+    }
+
+    pub fn undual(self) -> UnitDualBlade<T,N,G> {
+        self.into_inner().undual().into_unit_unchecked()
+    }
+
 }
