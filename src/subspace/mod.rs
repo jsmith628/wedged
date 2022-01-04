@@ -94,6 +94,6 @@ mod involute;
 mod ops;
 mod blade;
 mod versor;
-mod dim_cast;
+mod cast;
 mod aliases;
 mod constructors;

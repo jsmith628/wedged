@@ -206,56 +206,6 @@ impl_eq!(
     |self, rhs| true, self.data, &rhs.data;
 );
 
-impl<T:AllocBlade<N,G>, N:Dim, G:Dim> From<UnitBlade<T,N,G>> for SimpleBlade<T,N,G> {
-    fn from(b: UnitBlade<T,N,G>) -> SimpleBlade<T,N,G> { b.as_simple_blade() }
-}
-
-impl<T:AllocVersor<N>, N:Dim> Versor<T,N> {
-
-    pub fn even(&self) -> bool {
-        match self {
-            Versor::Even(_) => true,
-            Versor::Odd(_) => false,
-        }
-    }
-
-    pub fn try_into_even(self) -> Option<Rotor<T,N>> {
-        match self {
-            Versor::Even(x) => Some(x),
-            Versor::Odd(_) => None
-        }
-    }
-
-    pub fn unwrap_even(self) -> Rotor<T,N> {
-        match self {
-            Versor::Even(x) => x,
-            Versor::Odd(_) => panic!("Attempted to unwrap an odd versor into a Rotor")
-        }
-    }
-
-    pub fn odd(&self) -> bool {
-        match self {
-            Versor::Even(_) => false,
-            Versor::Odd(_) => true,
-        }
-    }
-
-    pub fn try_into_odd(self) -> Option<Reflector<T,N>> {
-        match self {
-            Versor::Even(_) => None,
-            Versor::Odd(x) => Some(x),
-        }
-    }
-
-    pub fn unwrap_odd(self) -> Reflector<T,N> {
-        match self {
-            Versor::Even(_) => panic!("Attempted to unwrap an even versor into a Reflector"),
-            Versor::Odd(x) => x,
-        }
-    }
-
-}
-
 impl<T:AllocVersor<N>+Eq, N:Dim> Eq for Versor<T,N> {}
 impl<T:AllocVersor<N>+PartialEq<U>, U:AllocVersor<N>, N:Dim> PartialEq<Versor<U,N>> for Versor<T,N> {
 
