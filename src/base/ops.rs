@@ -51,10 +51,15 @@ impl<'a, T:'a> RefInv<'a> for T where &'a T: Inv {
 
 macro_rules! all_ref_ops {
     ($($AllRefOp:ident = $RefOp:ident;)*) => {$(
-        pub trait $AllRefOp<Rhs:?Sized>: for<'a,'b> $RefOp<'a, &'b Rhs, Output=Self::AllOutput> {
+        pub trait $AllRefOp<Rhs:>:
+            for<'a> $RefOp<'a, Rhs, Output=Self::AllOutput> +
+            for<'a,'b> $RefOp<'a, &'b Rhs, Output=Self::AllOutput>
+        {
             type AllOutput;
         }
-        impl<T1:?Sized,T2:?Sized, U> $AllRefOp<T2> for T1 where T1: for<'a,'b> $RefOp<'a, &'b T2, Output=U> {
+        impl<T1:?Sized,T2:, U> $AllRefOp<T2> for T1 where
+            T1: for<'a> $RefOp<'a, T2, Output=U> + for<'a,'b> $RefOp<'a, &'b T2, Output=U>
+        {
             type AllOutput = U;
         }
     )*};
@@ -100,12 +105,12 @@ auto! {
     pub trait ClosedNeg = Neg<Output=Self>;
     pub trait ClosedInv = Inv<Output=Self>;
 
-    pub trait ClosedRefAdd = AllRefAdd<Self, AllOutput=Self> + for<'a> Add<&'a Self, Output=Self>;
-    pub trait ClosedRefSub = AllRefSub<Self, AllOutput=Self> + for<'a> Sub<&'a Self, Output=Self>;
-    pub trait ClosedRefMul = AllRefMul<Self, AllOutput=Self> + for<'a> Mul<&'a Self, Output=Self>;
-    pub trait ClosedRefDiv = AllRefDiv<Self, AllOutput=Self> + for<'a> Div<&'a Self, Output=Self>;
-    pub trait ClosedRefNeg = AllRefNeg<AllOutput=Self>;
-    pub trait ClosedRefInv = AllRefInv<AllOutput=Self>;
+    pub trait ClosedRefAdd = Sized + AllRefAdd<Self, AllOutput=Self> + for<'a> Add<&'a Self, Output=Self>;
+    pub trait ClosedRefSub = Sized + AllRefSub<Self, AllOutput=Self> + for<'a> Sub<&'a Self, Output=Self>;
+    pub trait ClosedRefMul = Sized + AllRefMul<Self, AllOutput=Self> + for<'a> Mul<&'a Self, Output=Self>;
+    pub trait ClosedRefDiv = Sized + AllRefDiv<Self, AllOutput=Self> + for<'a> Div<&'a Self, Output=Self>;
+    pub trait ClosedRefNeg = Sized + AllRefNeg<AllOutput=Self>;
+    pub trait ClosedRefInv = Sized + AllRefInv<AllOutput=Self>;
 
     pub trait AddMonoid = Clone + Debug + ClosedAdd + Zero;
     pub trait AddGroup  = AddMonoid     + ClosedSub + ClosedNeg;
