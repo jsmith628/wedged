@@ -197,17 +197,17 @@ impl<T:AllocEven<N>, N:Dim> Rotor<T,N> {
 
     #[inline(always)]
     pub fn rot_between_unit(v1:UnitVecN<T,N>, v2: UnitVecN<T,N>) -> Self where
-        T: AllocBlade<N,U1> + AllocVersor<N> + RefRealField
+        T: AllocBlade<N,U1> + RefRealField
     { v1.rot_to(v2) }
 
     #[inline(always)]
     pub fn rot_between_simple(v1:SimpleVecN<T,N>, v2: SimpleVecN<T,N>) -> Self where
-        T: AllocBlade<N,U1> + AllocVersor<N> + RefRealField
+        T: AllocBlade<N,U1> + RefRealField
     { v1.rot_to(v2) }
 
     #[inline(always)]
     pub fn rot_between(v1:VecN<T,N>, v2: VecN<T,N>) -> Self where
-        T: AllocBlade<N,U1> + AllocVersor<N> + RefRealField
+        T: AllocBlade<N,U1> + RefRealField
     { v1.rot_to(v2) }
 
     pub fn rot<'a,M>(&'a self, m:M) -> <&'a Self as VersorMul<M>>::Output where &'a Self: VersorMul<M> {
@@ -330,7 +330,7 @@ impl<T:AllocEven<U2>+RefRealField> Rotor4<T> {
         // println!("\nlog");
         // println!("{:+}", self);
 
-        let to_degrees = T::from_subset(&180.0) / T::pi();
+        // let to_degrees = T::from_subset(&180.0) / T::pi();
 
         let two = T::one() + T::one();
         let [s, b1, b2, b3, b4, b5, b6, q] = self.into_inner().data;
@@ -491,7 +491,7 @@ impl<T:AllocBlade<N,U2>+RefRealField, N:Dim> SimpleBiVecN<T, N> {
 }
 
 impl<T:AllocBlade<N,U1>+RefRealField, N:Dim> UnitVecN<T, N> {
-    pub fn rot_to(self, v2: UnitVecN<T,N>) -> Rotor<T,N> where T:AllocVersor<N> {
+    pub fn rot_to(self, v2: UnitVecN<T,N>) -> Rotor<T,N> where T:AllocEven<N> {
 
         //In essence, the algorithm is *almost* just v1*v2. However,
         //what this would actually give would be a rotor doing *double* the rotation.
@@ -504,7 +504,12 @@ impl<T:AllocBlade<N,U1>+RefRealField, N:Dim> UnitVecN<T, N> {
 
         //next, we gotta normalize v2
         match v2.into_simple_unchecked().try_normalize() {
-            Some(v2) => (v1 * v2).unwrap_even(),
+            Some(v2) => {
+                //ideally, we'd just do a simple multiplication, and this *does* work,
+                //but it requires an extra trait bound, so we're going to do the worse way
+                //(v1 * v2).unwrap_even()
+                v1.into_blade().mul_even(v2.into_blade()).into_rotor_unchecked()
+            },
             None => {
                 //if the midpoint is zero, we know the vectors are 180deg apart (so the half angle is 90),
                 //but there are infinitely many solutions for the plane.
@@ -522,7 +527,7 @@ impl<T:AllocBlade<N,U1>+RefRealField, N:Dim> UnitVecN<T, N> {
 
 impl<T:AllocBlade<N,U1>+RefRealField, N:Dim> SimpleVecN<T, N> {
     #[inline]
-    pub fn rot_to(self, v2: SimpleVecN<T,N>) -> Rotor<T,N> where T:AllocVersor<N> {
+    pub fn rot_to(self, v2: SimpleVecN<T,N>) -> Rotor<T,N> where T:AllocEven<N> {
         let n = self.dim_generic();
         match self.try_normalize() {
             None => Rotor::from_inner_unchecked(Even::one_generic(n)),
@@ -536,7 +541,7 @@ impl<T:AllocBlade<N,U1>+RefRealField, N:Dim> SimpleVecN<T, N> {
 
 impl<T:AllocBlade<N,U1>+RefRealField, N:Dim> VecN<T, N> {
     #[inline(always)]
-    pub fn rot_to(self, v2: VecN<T,N>) -> Rotor<T,N> where T:AllocVersor<N> {
+    pub fn rot_to(self, v2: VecN<T,N>) -> Rotor<T,N> where T:AllocEven<N> {
         self.into_simple_unchecked().rot_to(v2.into_simple_unchecked())
     }
 }
