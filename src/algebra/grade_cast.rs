@@ -18,9 +18,10 @@ impl<T:AllocBlade<N,G>+Zero, N:Dim, G:Dim> Blade<T,N,G> {
 
 impl<T:AllocEven<N>+Zero, N:Dim> Even<T,N> {
 
-    // pub(crate) fn grade_index(&self, g:usize) -> usize {
-    //     grade_index_in_versor(self.dim(), g)
-    // }
+    #[cfg(test)]
+    pub(crate) fn grade_index(&self, g:usize) -> usize {
+        grade_index_in_versor(self.dim(), g)
+    }
 
     pub fn grade_select_generic<G:Dim>(self, g:G) -> Blade<T,N,G> where T:AllocBlade<N,G> {
         let n = self.dim_generic();
@@ -57,9 +58,10 @@ impl<T:AllocEven<N>+Zero, N:Dim> Even<T,N> {
 
 impl<T:AllocOdd<N>+Zero, N:Dim> Odd<T,N> {
 
-    // pub(crate) fn grade_index(&self, g:usize) -> usize {
-    //     grade_index_in_versor(self.dim(), g)
-    // }
+    #[cfg(test)]
+    pub(crate) fn grade_index(&self, g:usize) -> usize {
+        grade_index_in_versor(self.dim(), g)
+    }
 
     pub fn grade_select_generic<G:Dim>(self, g:G) -> Blade<T,N,G> where T:AllocBlade<N,G> {
         let n = self.dim_generic();
@@ -103,9 +105,10 @@ fn grade_index(n:usize) -> impl Iterator<Item=(usize, usize)> {
 
 impl<T:AllocMultivector<N>, N:Dim> Multivector<T,N> {
 
-    // pub(crate) fn grade_index(&self, g:usize) -> usize {
-    //     grade_index_in_multivector(self.dim(), g)
-    // }
+    #[cfg(test)]
+    pub(crate) fn grade_index(&self, g:usize) -> usize {
+        grade_index_in_multivector(self.dim(), g)
+    }
 
     pub fn grade_select_generic<G:Dim>(self, g:G) -> Blade<T,N,G> where T:AllocBlade<N,G> {
         let n = self.dim_generic();

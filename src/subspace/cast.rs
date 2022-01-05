@@ -202,7 +202,7 @@ impl<T:AllocVersor<N>, N:Dim> Versor<T,N> {
 }
 
 impl<T:AllocBlade<N,G>, N:Dim, G:Dim> From<UnitBlade<T,N,G>> for SimpleBlade<T,N,G> {
-    fn from(b: UnitBlade<T,N,G>) -> SimpleBlade<T,N,G> { b.as_simple_blade() }
+    fn from(b: UnitBlade<T,N,G>) -> SimpleBlade<T,N,G> { b.into_simple() }
 }
 
 impl<T:AllocVersor<N>, N:Dim> From<Rotor<T,N>> for Versor<T,N> {

@@ -191,7 +191,7 @@ impl<T:AllocEven<N>, N:Dim> Rotor<T,N> {
         r[0] = c;
 
         //return
-        Self::from_inner_unchecked(r)
+        r.into_rotor_unchecked()
 
     }
 
@@ -268,7 +268,7 @@ impl<T:AllocEven<U2>+RefRealField> Rotor2<T> {
     {
         let two = T::one() + T::one();
         let (s, c) = (angle/two).sin_cos();
-        Self::from_inner_unchecked(Even2::new(c, s))
+        Even2::new(c, s).into_rotor_unchecked()
     }
 
     fn get_half_angle(&self) -> T where T:RefRealField {
@@ -290,7 +290,7 @@ impl<T:AllocEven<U2>+RefRealField> Rotor3<T> {
 
     pub fn from_axis_angle(axis:UnitVec3<T>, angle:T) -> Self
     {
-        Self::from_plane_angle(UnitBiVec3::from_inner_unchecked(axis.into_inner().undual()), angle)
+        Self::from_plane_angle(axis.undual(), angle)
     }
 
     fn get_half_plane_angle(self) -> Option<(UnitBiVec3<T>, T)> {
@@ -303,7 +303,7 @@ impl<T:AllocEven<U2>+RefRealField> Rotor3<T> {
             None
         } else {
             Some((
-                UnitBiVec3::from_inner_unchecked(BiVec3::new(x, y, z)/&s),
+                (BiVec3::new(x, y, z)/&s).into_unit_unchecked(),
                 angle
             ))
         }
@@ -349,7 +349,7 @@ impl<T:AllocEven<U2>+RefRealField> Rotor4<T> {
             if angle.is_zero() {
                 return (None, None);
             } else {
-                return (Some((UnitBiVec4::from_inner_unchecked(b/s), angle)), None);
+                return (Some(((b/s).into_unit_unchecked(), angle)), None);
             }
 
         }
@@ -422,8 +422,8 @@ impl<T:AllocEven<U2>+RefRealField> Rotor4<T> {
                 let(dir1, dir2) = b.split_isoclinic();
                 // println!("{:+}, {:+}", dir1, dir2);
                 (
-                    Some((UnitBlade::from_inner_unchecked(dir1), angle1)),
-                    Some((UnitBlade::from_inner_unchecked(dir2), angle2)),
+                    Some((dir1.into_unit_unchecked(), angle1)),
+                    Some((dir2.into_unit_unchecked(), angle2)),
                 )
 
             },
@@ -432,8 +432,8 @@ impl<T:AllocEven<U2>+RefRealField> Rotor4<T> {
                 let(dir1, dir2) = b.split_isoclinic();
                 // println!("{:+}, {:+}", dir1, dir2.ref_neg());
                 (
-                    Some((UnitBlade::from_inner_unchecked(dir1), angle1)),
-                    Some((UnitBlade::from_inner_unchecked(-dir2), angle2)),
+                    Some((dir1.into_unit_unchecked(), angle1)),
+                    Some((-dir2.into_unit_unchecked(), angle2)),
                 )
 
             },
@@ -447,8 +447,8 @@ impl<T:AllocEven<U2>+RefRealField> Rotor4<T> {
                 // println!("{:+}, {:+}", dir1, dir2);into_iter
 
                 (
-                    Some((UnitBiVec4::from_inner_unchecked(dir1), angle1)),
-                    Some((UnitBiVec4::from_inner_unchecked(dir2), angle2))
+                    Some((dir1.into_unit_unchecked(), angle1)),
+                    Some((dir2.into_unit_unchecked(), angle2)),
                 )
 
             }
@@ -461,8 +461,8 @@ impl<T:AllocEven<U2>+RefRealField> Rotor4<T> {
     fn get_half_scaled_planes(self) -> (SimpleBiVec4<T>, SimpleBiVec4<T>) {
         let (x1, x2) = self.get_half_plane_angles();
         (
-            x1.map_or_else(|| SimpleBiVec4::zeroed(), |(d, a)| d.as_simple_blade() * a),
-            x2.map_or_else(|| SimpleBiVec4::zeroed(), |(d, a)| d.as_simple_blade() * a),
+            x1.map_or_else(|| SimpleBiVec4::zeroed(), |(d, a)| d.into_simple() * a),
+            x2.map_or_else(|| SimpleBiVec4::zeroed(), |(d, a)| d.into_simple() * a),
         )
     }
 
@@ -477,8 +477,8 @@ impl<T:AllocEven<U2>+RefRealField> Rotor4<T> {
     pub fn get_scaled_planes(self) -> (SimpleBiVec4<T>, SimpleBiVec4<T>) {
         let (x1, x2) = self.get_plane_angles();
         (
-            x1.map_or_else(|| SimpleBiVec4::zeroed(), |(d, a)| d.as_simple_blade() * a),
-            x2.map_or_else(|| SimpleBiVec4::zeroed(), |(d, a)| d.as_simple_blade() * a),
+            x1.map_or_else(|| SimpleBiVec4::zeroed(), |(d, a)| d.into_simple() * a),
+            x2.map_or_else(|| SimpleBiVec4::zeroed(), |(d, a)| d.into_simple() * a),
         )
     }
 
@@ -486,7 +486,7 @@ impl<T:AllocEven<U2>+RefRealField> Rotor4<T> {
 
 impl<T:AllocBlade<N,U2>+RefRealField, N:Dim> SimpleBiVecN<T, N> {
     pub fn exp(self) -> Rotor<T,N> where T:AllocEven<N> {
-        Rotor::from_inner_unchecked(self.into_inner().exp_even_simple())
+        self.into_inner().exp_even_simple().into_rotor_unchecked()
     }
 }
 
@@ -503,7 +503,7 @@ impl<T:AllocBlade<N,U1>+RefRealField, N:Dim> UnitVecN<T, N> {
         let v1 = self;
 
         //next, we gotta normalize v2
-        match SimpleBlade::from_inner_unchecked(v2).try_normalize() {
+        match v2.into_simple_unchecked().try_normalize() {
             Some(v2) => (v1 * v2).unwrap_even(),
             None => {
                 //if the midpoint is zero, we know the vectors are 180deg apart (so the half angle is 90),
@@ -513,7 +513,7 @@ impl<T:AllocBlade<N,U1>+RefRealField, N:Dim> UnitVecN<T, N> {
                 //finally, we can even optimize this a bit since we know a 180deg rotation with a
                 //given plane is just that plane normalized.
                 //Thus, this is a 180deg rot around the first bivector basis
-                Rotor::from_inner_unchecked(Even::basis_generic(n, 1))
+                Even::basis_generic(n, 1).into_rotor_unchecked()
             },
         }
 
@@ -537,7 +537,7 @@ impl<T:AllocBlade<N,U1>+RefRealField, N:Dim> SimpleVecN<T, N> {
 impl<T:AllocBlade<N,U1>+RefRealField, N:Dim> VecN<T, N> {
     #[inline(always)]
     pub fn rot_to(self, v2: VecN<T,N>) -> Rotor<T,N> where T:AllocVersor<N> {
-        SimpleVecN::from_inner_unchecked(self).rot_to(SimpleVecN::from_inner_unchecked(v2))
+        self.into_simple_unchecked().rot_to(v2.into_simple_unchecked())
     }
 }
 

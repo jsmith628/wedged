@@ -147,7 +147,7 @@ impl<T, N:Dim, G1:Dim, G2:Dim> Project<SimpleBlade<T,N,G2>> for SimpleBlade<T,N,
 
     #[inline(always)]
     fn project(&self, b:SimpleBlade<T,N,G2>) -> SimpleBlade<T,N,G2> {
-        SimpleBlade::from_inner_unchecked(Project::project(self, b.into_inner()))
+        Project::project(self, b.into_inner()).into_simple_unchecked()
     }
 
 }
@@ -160,7 +160,7 @@ impl<T, N:Dim, G1:Dim, G2:Dim> Reject<SimpleBlade<T,N,G2>> for SimpleBlade<T,N,G
 
     #[inline(always)]
     fn reject(&self, b:SimpleBlade<T,N,G2>) -> SimpleBlade<T,N,G2> {
-        SimpleBlade::from_inner_unchecked(Reject::reject(self, b.into_inner()))
+        Reject::reject(self, b.into_inner()).into_simple_unchecked()
     }
 
 }
@@ -173,7 +173,7 @@ impl<T, N:Dim, G1:Dim, G2:Dim> Project<UnitBlade<T,N,G2>> for SimpleBlade<T,N,G1
 
     #[inline(always)]
     fn project(&self, b:UnitBlade<T,N,G2>) -> SimpleBlade<T,N,G2> {
-        SimpleBlade::from_inner_unchecked(Project::project(self, b.into_inner()))
+        Project::project(self, b.into_inner()).into_simple_unchecked()
     }
 
 }
@@ -186,7 +186,7 @@ impl<T, N:Dim, G1:Dim, G2:Dim> Reject<UnitBlade<T,N,G2>> for SimpleBlade<T,N,G1>
 
     #[inline(always)]
     fn reject(&self, b:UnitBlade<T,N,G2>) -> SimpleBlade<T,N,G2> {
-        SimpleBlade::from_inner_unchecked(Reject::reject(self, b.into_inner()))
+        Reject::reject(self, b.into_inner()).into_simple_unchecked()
     }
 
 }
@@ -225,7 +225,7 @@ impl<T, N:Dim, G1:Dim, G2:Dim> Project<SimpleBlade<T,N,G2>> for UnitBlade<T,N,G1
 
     #[inline(always)]
     fn project(&self, b:SimpleBlade<T,N,G2>) -> SimpleBlade<T,N,G2> {
-        SimpleBlade::from_inner_unchecked(Project::project(self, b.into_inner()))
+        Project::project(self, b.into_inner()).into_simple_unchecked()
     }
 
 }
@@ -238,7 +238,7 @@ impl<T, N:Dim, G1:Dim, G2:Dim> Reject<SimpleBlade<T,N,G2>> for UnitBlade<T,N,G1>
 
     #[inline(always)]
     fn reject(&self, b:SimpleBlade<T,N,G2>) -> SimpleBlade<T,N,G2> {
-        SimpleBlade::from_inner_unchecked(Reject::reject(self, b.into_inner()))
+        Reject::reject(self, b.into_inner()).into_simple_unchecked()
     }
 
 }
@@ -251,7 +251,7 @@ impl<T, N:Dim, G1:Dim, G2:Dim> Project<UnitBlade<T,N,G2>> for UnitBlade<T,N,G1> 
 
     #[inline(always)]
     fn project(&self, b:UnitBlade<T,N,G2>) -> SimpleBlade<T,N,G2> {
-        SimpleBlade::from_inner_unchecked(Project::project(self, b.into_inner()))
+        Project::project(self, b.into_inner()).into_simple_unchecked()
     }
 
 }
@@ -264,7 +264,7 @@ impl<T, N:Dim, G1:Dim, G2:Dim> Reject<UnitBlade<T,N,G2>> for UnitBlade<T,N,G1> w
 
     #[inline(always)]
     fn reject(&self, b:UnitBlade<T,N,G2>) -> SimpleBlade<T,N,G2> {
-        SimpleBlade::from_inner_unchecked(Reject::reject(self, b.into_inner()))
+        Reject::reject(self, b.into_inner()).into_simple_unchecked()
     }
 
 }
@@ -286,23 +286,23 @@ impl<T:AllocBlade<N,G>, N:Dim, G:Dim> SimpleBlade<T,N,G> {
 
     pub fn normalize(self) -> UnitBlade<T,N,G> where T: RefComplexField
     {
-        UnitBlade::from_inner_unchecked(self.data.normalize())
+        self.data.normalize().into_unit_unchecked()
     }
 
     pub fn try_normalize(self) -> Option<UnitBlade<T,N,G>> where T: RefComplexField {
-        self.data.try_normalize().map(|b| UnitBlade::from_inner_unchecked(b))
+        self.data.try_normalize().map(|b| b.into_unit_unchecked())
     }
 
     pub fn norm_and_normalize(self) -> (T, UnitBlade<T,N,G>) where T: RefComplexField
     {
         let (l, b) = self.data.norm_and_normalize();
-        (l, UnitBlade::from_inner_unchecked(b))
+        (l, b.into_unit_unchecked())
     }
 
     pub fn try_norm_and_normalize(self) -> Option<(T, UnitBlade<T,N,G>)> where T: RefComplexField
     {
         match self.data.try_norm_and_normalize() {
-            Some((l,b)) => Some((l, UnitBlade::from_inner_unchecked(b))),
+            Some((l,b)) => Some((l, b.into_unit_unchecked())),
             None => None
         }
     }
@@ -322,10 +322,6 @@ impl<T:AllocBlade<N,G>, N:Dim, G:Dim> SimpleBlade<T,N,G> {
 }
 
 impl<T:AllocBlade<N,G>, N:Dim, G:Dim> UnitBlade<T,N,G> {
-
-    pub fn as_simple_blade(self) -> SimpleBlade<T,N,G> {
-        SimpleBlade::from_inner_unchecked(self.into_inner())
-    }
 
     #[inline(always)]
     pub fn project<B>(&self, b: B) -> <Self as Project<B>>::Output where Self: Project<B>
