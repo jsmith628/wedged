@@ -1,6 +1,10 @@
 
 use super::*;
 
+//
+//Applying the versor operations
+//
+
 pub trait VersorMul<Rhs>: Sized {
     type Output;
     fn versor_mul(self, rhs: Rhs) -> Self::Output;
@@ -167,19 +171,48 @@ versor_mul_versor!(
 
 impl<T:AllocEven<N>, N:Dim> Rotor<T,N> {
 
+    pub fn rot<'a,M>(&'a self, m:M) -> <&'a Self as VersorMul<M>>::Output where &'a Self: VersorMul<M> {
+        self.versor_mul(m)
+    }
+
+}
+
+//
+//basic constructors
+//
+
+impl<T:AllocEven<N>, N:Dim> Rotor<T,N> {
+
     pub fn one_generic(n: N) -> Self where T: One+Zero {
         Rotor { data: Even::one_generic(n) }
     }
 
+}
+
+impl<T:AllocEven<Dynamic>> RotorD<T> {
+
+    pub fn one_dyn(n: usize) -> Rotor<T,Dynamic> where T: One+Zero {
+        Self::one_generic(Dynamic::new(n))
+    }
+
+}
+
+//
+//Constructions from bivectors / exp and log
+//
+//
+
+impl<T:AllocEven<N>+RefRealField, N:Dim> Rotor<T,N> {
+
     pub fn from_scaled_plane(plane: SimpleBiVecN<T, N>) -> Self where
-        T: AllocBlade<N,U2> + RefRealField
+        T: AllocBlade<N,U2>
     {
         let two = T::one() + T::one();
         (plane/two).exp()
     }
 
     pub fn from_plane_angle(plane: UnitBiVecN<T, N>, angle: T) -> Self where
-        T: AllocBlade<N,U2> + RefRealField
+        T: AllocBlade<N,U2>
     {
 
         //get both the sine and cosine of half the angle
@@ -195,31 +228,12 @@ impl<T:AllocEven<N>, N:Dim> Rotor<T,N> {
 
     }
 
-    #[inline(always)]
-    pub fn rot_between_unit(v1:UnitVecN<T,N>, v2: UnitVecN<T,N>) -> Self where
-        T: AllocBlade<N,U1> + RefRealField
-    { v1.rot_to(v2) }
-
-    #[inline(always)]
-    pub fn rot_between_simple(v1:SimpleVecN<T,N>, v2: SimpleVecN<T,N>) -> Self where
-        T: AllocBlade<N,U1> + RefRealField
-    { v1.rot_to(v2) }
-
-    #[inline(always)]
-    pub fn rot_between(v1:VecN<T,N>, v2: VecN<T,N>) -> Self where
-        T: AllocBlade<N,U1> + RefRealField
-    { v1.rot_to(v2) }
-
-    pub fn rot<'a,M>(&'a self, m:M) -> <&'a Self as VersorMul<M>>::Output where &'a Self: VersorMul<M> {
-        self.versor_mul(m)
-    }
-
-    pub fn log(self) -> BiVecN<T,N> where T: AllocBlade<N,U2> + RefRealField {
+    pub fn log(self) -> BiVecN<T,N> where T: AllocBlade<N,U2> {
         //oooooooh boy
 
         //so imma do a bad and have this method available for all rotors even though
         //I don't even know if anyone has a general algorithm for this in all dimensions
-        //oops + AllocVersor<N>
+        //oops
 
         let (n, g) = (self.dim_generic(), <U2 as na::dimension::DimName>::name());
         match n.value() {
@@ -253,15 +267,23 @@ impl<T:AllocEven<N>, N:Dim> Rotor<T,N> {
 
     }
 
-}
+    pub fn powf(self, t:T) -> Self where T:AllocBlade<N,U2> {
+        (self.log() * t).exp_rotor()
+    }
 
-impl<T:AllocEven<Dynamic>> RotorD<T> {
-
-    pub fn one_dyn(n: usize) -> Rotor<T,Dynamic> where T: One+Zero {
-        Self::one_generic(Dynamic::new(n))
+    pub fn slerp(self, other: Self, t:T) -> Self where T:AllocBlade<N,U2> {
+        //note that the ordering here is very important
+        //the rotations are applied in order from right to left
+        (other / &self).pow(t) * self
     }
 
 }
+
+impl<T:AllocEven<N>+AllocBlade<N,U2>+RefRealField, N:Dim> Pow<T> for Even<T,N> {
+    type Output = Even<T,N>;
+    #[inline(always)] fn pow(self, t:T) -> Even<T,N> { self.powf() }
+}
+
 
 impl<T:AllocEven<U2>+RefRealField> Rotor2<T> {
     pub fn from_angle(angle:T) -> Self
@@ -488,6 +510,29 @@ impl<T:AllocBlade<N,U2>+RefRealField, N:Dim> SimpleBiVecN<T, N> {
     pub fn exp(self) -> Rotor<T,N> where T:AllocEven<N> {
         self.into_inner().exp_even_simple().into_rotor_unchecked()
     }
+}
+
+//
+//Rotation between vectors
+//
+
+impl<T:AllocEven<N>+AllocBlade<N,U1>+RefRealField, N:Dim> Rotor<T,N> {
+
+    #[inline(always)]
+    pub fn rot_between_unit(v1:UnitVecN<T,N>, v2: UnitVecN<T,N>) -> Self where
+        T: AllocBlade<N,U1>
+    { v1.rot_to(v2) }
+
+    #[inline(always)]
+    pub fn rot_between_simple(v1:SimpleVecN<T,N>, v2: SimpleVecN<T,N>) -> Self where
+        T: AllocBlade<N,U1>
+    { v1.rot_to(v2) }
+
+    #[inline(always)]
+    pub fn rot_between(v1:VecN<T,N>, v2: VecN<T,N>) -> Self where
+        T: AllocBlade<N,U1>
+    { v1.rot_to(v2) }
+
 }
 
 impl<T:AllocBlade<N,U1>+RefRealField, N:Dim> UnitVecN<T, N> {
