@@ -105,15 +105,17 @@ auto! {
     pub trait ClosedNeg = Neg<Output=Self>;
     pub trait ClosedInv = Inv<Output=Self>;
 
-    pub trait ClosedRefAdd = Sized + AllRefAdd<Self, AllOutput=Self> + for<'a> Add<&'a Self, Output=Self>;
-    pub trait ClosedRefSub = Sized + AllRefSub<Self, AllOutput=Self> + for<'a> Sub<&'a Self, Output=Self>;
-    pub trait ClosedRefMul = Sized + AllRefMul<Self, AllOutput=Self> + for<'a> Mul<&'a Self, Output=Self>;
-    pub trait ClosedRefDiv = Sized + AllRefDiv<Self, AllOutput=Self> + for<'a> Div<&'a Self, Output=Self>;
+    pub trait ClosedRefAdd = Sized + AllRefAdd<Self, AllOutput=Self> + for<'a> Add<&'a Self, Output=Self> + for<'a> AddAssign<&'a Self>;
+    pub trait ClosedRefSub = Sized + AllRefSub<Self, AllOutput=Self> + for<'a> Sub<&'a Self, Output=Self> + for<'a> SubAssign<&'a Self>;
+    pub trait ClosedRefMul = Sized + AllRefMul<Self, AllOutput=Self> + for<'a> Mul<&'a Self, Output=Self> + for<'a> MulAssign<&'a Self>;
+    pub trait ClosedRefDiv = Sized + AllRefDiv<Self, AllOutput=Self> + for<'a> Div<&'a Self, Output=Self> + for<'a> DivAssign<&'a Self>;
     pub trait ClosedRefNeg = Sized + AllRefNeg<AllOutput=Self>;
     pub trait ClosedRefInv = Sized + AllRefInv<AllOutput=Self>;
 
     pub trait AddMonoid = Clone + Debug + ClosedAdd + Zero;
     pub trait AddGroup  = AddMonoid     + ClosedSub + ClosedNeg;
+    pub trait MulMonoid = Clone + Debug + ClosedMul + One;
+    pub trait MulGroup  = MulMonoid     + ClosedDiv + ClosedInv;
     pub trait Ring      = AddGroup      + ClosedMul;
     pub trait UnitRing  = Ring          + One;
     pub trait DivRing   = UnitRing      + ClosedDiv + ClosedInv;
@@ -123,6 +125,8 @@ auto! {
 
     pub trait RefAddMonoid = AddMonoid + ClosedRefAdd;
     pub trait RefAddGroup  = AddGroup  + RefAddMonoid + ClosedRefSub + ClosedRefNeg;
+    pub trait RefMulMonoid = MulMonoid + ClosedRefMul;
+    pub trait RefMulGroup  = MulGroup  + RefMulMonoid + ClosedRefDiv + ClosedRefInv;
     pub trait RefRing      = Ring      + RefAddGroup  + ClosedRefMul;
     pub trait RefUnitRing  = UnitRing  + RefRing;
     pub trait RefDivRing   = DivRing   + RefUnitRing  + ClosedRefDiv + ClosedRefInv;
@@ -132,3 +136,35 @@ auto! {
 
 }
 // trace_macros!(false);
+
+// pub(crate) fn repeated_doubling<T:RefMulMonoid>(x:T, p:u32) -> T {
+//
+//     let mut p = p;
+//     let mut x = x;
+//     let mut exp = T::one();
+//
+//     while p>0 {
+//         if p&1 != 0 {
+//             //if the power is odd, multiply the result by the current base
+//             exp *= &x;
+//             p -= 1;
+//         } else {
+//             //if the power is even, square the base
+//             exp = exp.ref_mul(&exp);
+//             p >>= 1;
+//         }
+//     }
+//
+//     exp
+//
+// }
+//
+// pub(crate) fn repeated_doubling_inv<T:RefMulMonoid+ClosedInv>(x:T, p:i32) -> T {
+//
+//     if p < 0 {
+//         repeated_doubling(x, (-p) as u32)
+//     } else {
+//         repeated_doubling(x, (-p) as u32).inv()
+//     }
+//
+// }

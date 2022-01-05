@@ -677,11 +677,11 @@ impl_wedge_dot!('a;   );
 impl_wedge_dot!(  ; 'b);
 impl_wedge_dot!('a; 'b);
 
-impl<T:AllocEven<N>+AddGroup+Mul<Output=T>+AllRefMul<T,AllOutput=T>+One+PartialEq, N:DimName> One for Even<T,N> {
-    fn is_one(&self) -> bool {
-        self[0].is_one() &&
-        self.iter().skip(1).all(|x| x.is_zero())
-    }
+impl<T:AllocEven<N>+AddGroup+Mul<Output=T>+AllRefMul<T,AllOutput=T>+One, N:DimName> One for Even<T,N> {
+    // fn is_one(&self) -> bool {
+    //     self[0].is_one() &&
+    //     self.iter().skip(1).all(|x| x.is_zero())
+    // }
 
     fn set_one(&mut self) {
         self[0].set_one();
@@ -693,12 +693,12 @@ impl<T:AllocEven<N>+AddGroup+Mul<Output=T>+AllRefMul<T,AllOutput=T>+One+PartialE
     }
 }
 
-impl<T:AllocMultivector<N>+AddGroup+Mul<Output=T>+AllRefMul<T,AllOutput=T>+One+PartialEq, N:DimName> One for Multivector<T,N>
+impl<T:AllocMultivector<N>+AddGroup+Mul<Output=T>+AllRefMul<T,AllOutput=T>+One, N:DimName> One for Multivector<T,N>
 {
-    fn is_one(&self) -> bool {
-        self[0].is_one() &&
-        self.iter().skip(1).all(|x| x.is_zero())
-    }
+    // fn is_one(&self) -> bool {
+    //     self[0].is_one() &&
+    //     self.iter().skip(1).all(|x| x.is_zero())
+    // }
 
     fn set_one(&mut self) {
         self[0].set_one();

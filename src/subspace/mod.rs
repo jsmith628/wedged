@@ -16,7 +16,7 @@ use std::fmt::{
 };
 
 use approx::{AbsDiffEq, RelativeEq, UlpsEq};
-use num_traits::{Zero, One, Inv};
+use num_traits::{Zero, One, Inv, Pow};
 use typenum::{True, IsLessOrEqual};
 
 use crate::base::*;

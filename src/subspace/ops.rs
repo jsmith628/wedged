@@ -164,12 +164,20 @@ impl_blade_op!(Rem.rem() where G1:DimSymSub<G2> == DimSymDiff);
 //Scalar multiplication
 //
 
-impl<T1:AllocBlade<N,G>+MulAssign<T2>,T2:Clone,N:Dim,G:Dim> MulAssign<T2> for SimpleBlade<T1,N,G> {
-    fn mul_assign(&mut self, t2: T2) { self.data *= t2 }
+impl<T:AllocBlade<N,G>+MulAssign<T>+Clone,N:Dim,G:Dim> MulAssign<T> for SimpleBlade<T,N,G> {
+    fn mul_assign(&mut self, t: T) { self.data *= t }
 }
 
-impl<T1:AllocBlade<N,G>+DivAssign<T2>,T2:Clone,N:Dim,G:Dim> DivAssign<T2> for SimpleBlade<T1,N,G> {
-    fn div_assign(&mut self, t2: T2) { self.data /= t2 }
+impl<'a, T:AllocBlade<N,G>+MulAssign<&'a T>,N:Dim,G:Dim> MulAssign<&'a T> for SimpleBlade<T,N,G> {
+    fn mul_assign(&mut self, t: &'a T) { self.data *= t }
+}
+
+impl<T:AllocBlade<N,G>+DivAssign<T>+Clone,N:Dim,G:Dim> DivAssign<T> for SimpleBlade<T,N,G> {
+    fn div_assign(&mut self, t: T) { self.data /= t }
+}
+
+impl<'a, T:AllocBlade<N,G>+DivAssign<&'a T>,N:Dim,G:Dim> DivAssign<&'a T> for SimpleBlade<T,N,G> {
+    fn div_assign(&mut self, t: &'a T) { self.data /= t }
 }
 
 macro_rules! impl_scalar_binops {

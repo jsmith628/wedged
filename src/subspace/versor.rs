@@ -274,14 +274,14 @@ impl<T:AllocEven<N>+RefRealField, N:Dim> Rotor<T,N> {
     pub fn slerp(self, other: Self, t:T) -> Self where T:AllocBlade<N,U2> {
         //note that the ordering here is very important
         //the rotations are applied in order from right to left
-        (other / &self).pow(t) * self
+        (other / &self).powf(t) * self
     }
 
 }
 
-impl<T:AllocEven<N>+AllocBlade<N,U2>+RefRealField, N:Dim> Pow<T> for Even<T,N> {
-    type Output = Even<T,N>;
-    #[inline(always)] fn pow(self, t:T) -> Even<T,N> { self.powf() }
+impl<T:AllocEven<N>+AllocBlade<N,U2>+RefRealField, N:Dim> Pow<T> for Rotor<T,N> {
+    type Output = Rotor<T,N>;
+    #[inline(always)] fn pow(self, t:T) -> Rotor<T,N> { self.powf(t) }
 }
 
 

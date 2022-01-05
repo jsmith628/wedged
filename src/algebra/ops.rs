@@ -417,11 +417,20 @@ impl_scalar_ops!(impl<T:AllocMultivector,N> for Multivector);
 macro_rules! impl_scalar_assign_binops {
     (impl<T:$Alloc:ident, $($N:ident),*> $Op:ident.$op:ident() for $Ty:ident) => {
 
-        impl<T1:$Alloc<$($N),*>+$Op<T2>, T2:Clone, $($N:Dim),*> $Op<T2> for $Ty<T1, $($N),*> {
-            fn $op(&mut self, rhs: T2) {
+        impl<T:$Alloc<$($N),*>+$Op<T>+Clone, $($N:Dim),*> $Op<T> for $Ty<T, $($N),*> {
+            fn $op(&mut self, rhs: T) {
                 //simple enough...
                 for t1 in self {
                     t1.$op(rhs.clone());
+                }
+            }
+        }
+
+        impl<'a, T:$Alloc<$($N),*>+$Op<&'a T>, $($N:Dim),*> $Op<&'a T> for $Ty<T, $($N),*> {
+            fn $op(&mut self, rhs: &'a T) {
+                //simple enough...
+                for t1 in self {
+                    t1.$op(rhs);
                 }
             }
         }
@@ -446,3 +455,72 @@ impl_forward_scalar_binops!(impl<T:AllocOdd,N> Mul.mul() for Odd);
 // impl_forward_scalar_binops!(impl<T:AllocOdd,N> Div.div() for Odd);
 impl_forward_scalar_binops!(impl<T:AllocMultivector,N> Mul.mul() for Multivector);
 // impl_forward_scalar_binops!(impl<T:AllocMultivector,N> Div.div() for Multivector);
+
+//
+//MulAssign and DivAssign
+//
+
+macro_rules! impl_mul_assign {
+    (
+        $Ty1:ident<T:$Alloc1:ident $(,$N1:ident)*> *=
+        $(&$a:lifetime)? $Ty2:ident<T:$Alloc2:ident $(,$N2:ident)*>; $($N:ident)*
+    ) => {
+
+        impl<$($a,)? T $(,$N:Dim)*> MulAssign<$(&$a)? $Ty2<T$(,$N2)*>> for $Ty1<T $(,$N1)*> where
+            T: $Alloc1<$($N1),*> + $Alloc2<$($N2),*> + AddGroup + AllRefMul<T,AllOutput=T>
+        {
+            fn mul_assign(&mut self, rhs: $(&$a)? $Ty2<T$(,$N2)*>) {
+                *self = &*self * rhs
+            }
+        }
+
+    }
+}
+
+
+impl_mul_assign!( Multivector<T:AllocMultivector,N> *= Blade<T:AllocBlade,N,G>; N G);
+impl_mul_assign!( Multivector<T:AllocMultivector,N> *= &'a Blade<T:AllocBlade,N,G>; N G);
+impl_mul_assign!( Multivector<T:AllocMultivector,N> *= Even<T:AllocEven,N>; N);
+impl_mul_assign!( Multivector<T:AllocMultivector,N> *= &'a Even<T:AllocEven,N>; N);
+impl_mul_assign!( Multivector<T:AllocMultivector,N> *= Odd<T:AllocOdd,N>; N);
+impl_mul_assign!( Multivector<T:AllocMultivector,N> *= &'a Odd<T:AllocOdd,N>; N);
+impl_mul_assign!( Multivector<T:AllocMultivector,N> *= Multivector<T:AllocMultivector,N>; N);
+impl_mul_assign!( Multivector<T:AllocMultivector,N> *= &'a Multivector<T:AllocMultivector,N>; N);
+
+
+impl_mul_assign!( Even<T:AllocEven,N> *= Even<T:AllocEven,N>; N);
+impl_mul_assign!( Even<T:AllocEven,N> *= &'a Even<T:AllocEven,N>; N);
+
+//
+//Integral powers
+//
+
+// impl<T:AllocEven<N>+RefUnitRing, N:DimName> Even<T,N> {
+//     pub fn powu(self, p:u32) -> Self { repeated_doubling(self, p) }
+//     pub fn powi(self, p:u32) -> Self where Self:ClosedInv { repeated_doubling_inv(self, p) }
+// }
+//
+// impl<T:AllocEven<N>+RefUnitRing, N:DimName> Pow<u32> for Even<T,N> {
+//     type Output = Even<T,N>;
+//     fn pow(self, p:u32) -> Even<T,N> { repeated_doubling(self, p) }
+// }
+//
+// impl<T:AllocEven<N>+RefUnitRing, N:DimName> Pow<i32> for Even<T,N> where Self:ClosedInv {
+//     type Output = Even<T,N>;
+//     fn pow(self, p:i32) -> Even<T,N> { repeated_doubling_inv(self, p) }
+// }
+//
+// impl<T:AllocMultivector<N>+RefUnitRing, N:DimName> Multivector<T,N> {
+//     pub fn powu(self, p:u32) -> Self { repeated_doubling(self, p) }
+//     pub fn powi(self, p:u32) -> Self where Self:ClosedInv { repeated_doubling_inv(self, p) }
+// }
+//
+// impl<T:AllocMultivector<N>+RefUnitRing, N:DimName> Pow<u32> for Multivector<T,N> {
+//     type Output = Multivector<T,N>;
+//     fn pow(self, p:u32) -> Multivector<T,N> { repeated_doubling(self, p) }
+// }
+//
+// impl<T:AllocMultivector<N>+RefUnitRing, N:DimName> Pow<i32> for Multivector<T,N> where Self:ClosedInv {
+//     type Output = Multivector<T,N>;
+//     fn pow(self, p:i32) -> Multivector<T,N> { repeated_doubling_inv(self, p) }
+// }
