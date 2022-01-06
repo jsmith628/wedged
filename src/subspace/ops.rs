@@ -573,6 +573,18 @@ impl<T:AllocEven<N>+AddGroup+Mul<Output=T>+AllRefMul<T,AllOutput=T>+One+PartialE
     fn one() -> Self { Rotor { data: Even::one() } }
 }
 
+impl<T:AllocEven<N>, N:Dim> Rotor<T,N> {
+    pub fn one_generic(n: N) -> Self where T: One+Zero {
+        Rotor { data: Even::one_generic(n) }
+    }
+}
+
+impl<T:AllocEven<Dynamic>> RotorD<T> {
+    pub fn one_dyn(n: usize) -> Self where T: One+Zero {
+        Self::one_generic(Dynamic::new(n))
+    }
+}
+
 impl<T:AllocVersor<N>+AddGroup+Mul<Output=T>+AllRefMul<T,AllOutput=T>+One+PartialEq, N:DimName> One for Versor<T,N> {
     fn one() -> Self { Versor::Even(Rotor::one()) }
     fn is_one(&self) -> bool {
@@ -590,6 +602,18 @@ impl<T:AllocVersor<N>+AddGroup+Mul<Output=T>+AllRefMul<T,AllOutput=T>+One+Partia
 
 }
 
+impl<T:AllocVersor<N>, N:Dim> Versor<T,N> {
+    pub fn one_generic(n: N) -> Self where T: One+Zero {
+        Versor::Even(Rotor::one_generic(n))
+    }
+}
+
+impl<T:AllocVersor<Dynamic>> VersorD<T> {
+    pub fn one_dyn(n: usize) -> Self where T: One+Zero {
+        Self::one_generic(Dynamic::new(n))
+    }
+}
+
 //
 // Iterator Ops
 //
@@ -603,3 +627,28 @@ impl_fold!(impl<T:AllocBlade,U:AllocVersor,N,G> Product<UnitBlade<T,N,G>> for Ve
 impl_fold!(impl<T:AllocEven,U:AllocVersor,N> Product<Rotor<T,N>> for Versor<U,N>);
 impl_fold!(impl<T:AllocOdd,U:AllocVersor,N> Product<Reflector<T,N>> for Versor<U,N>);
 impl_fold!(impl<T:AllocVersor,U:AllocVersor,N> Product<Versor<T,N>> for Versor<U,N>);
+
+//
+//Integral powers
+//
+
+macro_rules! impl_pow {
+    ($Ty:ident<T:$Alloc:ident $(,$N:ident)*>) => {
+        impl<T:$Alloc<$($N),*>+RefUnitRing $(, $N:Dim)*> $Ty<T $(,$N)*> {
+
+            pub fn powu(self, p:u32) -> Self {
+                let n = self.dim_generic();
+                repeated_doubling(self, Self::one_generic(n), p)
+            }
+
+            pub fn powi(self, p:i32) -> Self {
+                let n = self.dim_generic();
+                repeated_doubling_inv(self, Self::one_generic(n), p)
+            }
+
+        }
+    };
+}
+
+impl_pow!(Rotor<T:AllocEven,N>);
+impl_pow!(Versor<T:AllocVersor,N>);

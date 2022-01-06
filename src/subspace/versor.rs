@@ -178,26 +178,6 @@ impl<T:AllocEven<N>, N:Dim> Rotor<T,N> {
 }
 
 //
-//basic constructors
-//
-
-impl<T:AllocEven<N>, N:Dim> Rotor<T,N> {
-
-    pub fn one_generic(n: N) -> Self where T: One+Zero {
-        Rotor { data: Even::one_generic(n) }
-    }
-
-}
-
-impl<T:AllocEven<Dynamic>> RotorD<T> {
-
-    pub fn one_dyn(n: usize) -> Rotor<T,Dynamic> where T: One+Zero {
-        Self::one_generic(Dynamic::new(n))
-    }
-
-}
-
-//
 //Constructions from bivectors / exp and log
 //
 //
@@ -278,12 +258,6 @@ impl<T:AllocEven<N>+RefRealField, N:Dim> Rotor<T,N> {
     }
 
 }
-
-impl<T:AllocEven<N>+AllocBlade<N,U2>+RefRealField, N:Dim> Pow<T> for Rotor<T,N> {
-    type Output = Rotor<T,N>;
-    #[inline(always)] fn pow(self, t:T) -> Rotor<T,N> { self.powf(t) }
-}
-
 
 impl<T:AllocEven<U2>+RefRealField> Rotor2<T> {
     pub fn from_angle(angle:T) -> Self

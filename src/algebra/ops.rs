@@ -491,36 +491,24 @@ impl_mul_assign!( Multivector<T:AllocMultivector,N> *= &'a Multivector<T:AllocMu
 impl_mul_assign!( Even<T:AllocEven,N> *= Even<T:AllocEven,N>; N);
 impl_mul_assign!( Even<T:AllocEven,N> *= &'a Even<T:AllocEven,N>; N);
 
-//
-//Integral powers
-//
 
-// impl<T:AllocEven<N>+RefUnitRing, N:DimName> Even<T,N> {
-//     pub fn powu(self, p:u32) -> Self { repeated_doubling(self, p) }
-//     pub fn powi(self, p:u32) -> Self where Self:ClosedInv { repeated_doubling_inv(self, p) }
-// }
-//
-// impl<T:AllocEven<N>+RefUnitRing, N:DimName> Pow<u32> for Even<T,N> {
-//     type Output = Even<T,N>;
-//     fn pow(self, p:u32) -> Even<T,N> { repeated_doubling(self, p) }
-// }
-//
-// impl<T:AllocEven<N>+RefUnitRing, N:DimName> Pow<i32> for Even<T,N> where Self:ClosedInv {
-//     type Output = Even<T,N>;
-//     fn pow(self, p:i32) -> Even<T,N> { repeated_doubling_inv(self, p) }
-// }
-//
-// impl<T:AllocMultivector<N>+RefUnitRing, N:DimName> Multivector<T,N> {
-//     pub fn powu(self, p:u32) -> Self { repeated_doubling(self, p) }
-//     pub fn powi(self, p:u32) -> Self where Self:ClosedInv { repeated_doubling_inv(self, p) }
-// }
-//
-// impl<T:AllocMultivector<N>+RefUnitRing, N:DimName> Pow<u32> for Multivector<T,N> {
-//     type Output = Multivector<T,N>;
-//     fn pow(self, p:u32) -> Multivector<T,N> { repeated_doubling(self, p) }
-// }
-//
-// impl<T:AllocMultivector<N>+RefUnitRing, N:DimName> Pow<i32> for Multivector<T,N> where Self:ClosedInv {
-//     type Output = Multivector<T,N>;
-//     fn pow(self, p:i32) -> Multivector<T,N> { repeated_doubling_inv(self, p) }
-// }
+macro_rules! impl_pow {
+    ($Ty:ident<T:$Alloc:ident $(,$N:ident)*>) => {
+        impl<T:$Alloc<$($N),*>+RefUnitRing $(, $N:Dim)*> $Ty<T $(,$N)*> {
+
+            pub fn powu(self, p:u32) -> Self {
+                let n = self.dim_generic();
+                repeated_doubling(self, Self::one_generic(n), p)
+            }
+
+            pub fn powi(self, p:i32) -> Self where Self:ClosedInv {
+                let n = self.dim_generic();
+                repeated_doubling_inv(self, Self::one_generic(n), p)
+            }
+
+        }
+    };
+}
+
+impl_pow!(Even<T:AllocEven,N>);
+impl_pow!(Multivector<T:AllocMultivector,N>);

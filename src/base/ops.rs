@@ -105,12 +105,12 @@ auto! {
     pub trait ClosedNeg = Neg<Output=Self>;
     pub trait ClosedInv = Inv<Output=Self>;
 
-    pub trait ClosedRefAdd = Sized + AllRefAdd<Self, AllOutput=Self> + for<'a> Add<&'a Self, Output=Self> + for<'a> AddAssign<&'a Self>;
-    pub trait ClosedRefSub = Sized + AllRefSub<Self, AllOutput=Self> + for<'a> Sub<&'a Self, Output=Self> + for<'a> SubAssign<&'a Self>;
-    pub trait ClosedRefMul = Sized + AllRefMul<Self, AllOutput=Self> + for<'a> Mul<&'a Self, Output=Self> + for<'a> MulAssign<&'a Self>;
-    pub trait ClosedRefDiv = Sized + AllRefDiv<Self, AllOutput=Self> + for<'a> Div<&'a Self, Output=Self> + for<'a> DivAssign<&'a Self>;
-    pub trait ClosedRefNeg = Sized + AllRefNeg<AllOutput=Self>;
-    pub trait ClosedRefInv = Sized + AllRefInv<AllOutput=Self>;
+    pub trait ClosedRefAdd = 'static + Sized + AllRefAdd<Self, AllOutput=Self> + for<'a> Add<&'a Self, Output=Self> + for<'a> AddAssign<&'a Self>;
+    pub trait ClosedRefSub = 'static + Sized + AllRefSub<Self, AllOutput=Self> + for<'a> Sub<&'a Self, Output=Self> + for<'a> SubAssign<&'a Self>;
+    pub trait ClosedRefMul = 'static + Sized + AllRefMul<Self, AllOutput=Self> + for<'a> Mul<&'a Self, Output=Self> + for<'a> MulAssign<&'a Self>;
+    pub trait ClosedRefDiv = 'static + Sized + AllRefDiv<Self, AllOutput=Self> + for<'a> Div<&'a Self, Output=Self> + for<'a> DivAssign<&'a Self>;
+    pub trait ClosedRefNeg = 'static + Sized + AllRefNeg<AllOutput=Self>;
+    pub trait ClosedRefInv = 'static + Sized + AllRefInv<AllOutput=Self>;
 
     pub trait AddMonoid = Clone + Debug + ClosedAdd + Zero;
     pub trait AddGroup  = AddMonoid     + ClosedSub + ClosedNeg;
@@ -137,34 +137,34 @@ auto! {
 }
 // trace_macros!(false);
 
-// pub(crate) fn repeated_doubling<T:RefMulMonoid>(x:T, p:u32) -> T {
-//
-//     let mut p = p;
-//     let mut x = x;
-//     let mut exp = T::one();
-//
-//     while p>0 {
-//         if p&1 != 0 {
-//             //if the power is odd, multiply the result by the current base
-//             exp *= &x;
-//             p -= 1;
-//         } else {
-//             //if the power is even, square the base
-//             exp = exp.ref_mul(&exp);
-//             p >>= 1;
-//         }
-//     }
-//
-//     exp
-//
-// }
-//
-// pub(crate) fn repeated_doubling_inv<T:RefMulMonoid+ClosedInv>(x:T, p:i32) -> T {
-//
-//     if p < 0 {
-//         repeated_doubling(x, (-p) as u32)
-//     } else {
-//         repeated_doubling(x, (-p) as u32).inv()
-//     }
-//
-// }
+pub(crate) fn repeated_doubling<T:ClosedRefMul>(x:T, one:T, p:u32) -> T {
+
+    let mut p = p;
+    let mut x = x;
+    let mut exp = one;
+
+    while p>0 {
+        if p&1 != 0 {
+            //if the power is odd, multiply the result by the current base
+            exp *= &x;
+            p -= 1;
+        } else {
+            //if the power is even, square the base
+            x = x.ref_mul(&x);
+            p >>= 1;
+        }
+    }
+
+    exp
+
+}
+
+pub(crate) fn repeated_doubling_inv<T:ClosedRefMul+ClosedInv>(x:T, one:T, p:i32) -> T {
+
+    if p < 0 {
+        repeated_doubling(x, one, (-p) as u32)
+    } else {
+        repeated_doubling(x, one, (-p) as u32).inv()
+    }
+
+}

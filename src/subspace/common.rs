@@ -206,6 +206,21 @@ impl_eq!(
     |self, rhs| true, self.data, &rhs.data;
 );
 
+impl<T:AllocVersor<N>, N:Dim> Versor<T,N> {
+
+    pub fn dim(&self) -> usize {
+        self.dim_generic().value()
+    }
+
+    pub fn dim_generic(&self) -> N {
+        match self {
+            Versor::Even(r) => r.dim_generic(),
+            Versor::Odd(r) => r.dim_generic()
+        }
+    }
+
+}
+
 impl<T:AllocVersor<N>+Eq, N:Dim> Eq for Versor<T,N> {}
 impl<T:AllocVersor<N>+PartialEq<U>, U:AllocVersor<N>, N:Dim> PartialEq<Versor<U,N>> for Versor<T,N> {
 

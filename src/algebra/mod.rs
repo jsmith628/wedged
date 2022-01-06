@@ -15,7 +15,7 @@ use std::ops::{
 };
 use std::iter::{IntoIterator, FromIterator, Sum, Product};
 
-use num_traits::{Zero, One, Pow};
+use num_traits::{Zero, One};
 
 use na::{ComplexField, /*RealField*/};
 use approx::{AbsDiffEq, RelativeEq, UlpsEq};
