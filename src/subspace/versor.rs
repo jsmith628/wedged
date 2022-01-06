@@ -32,7 +32,7 @@ macro_rules! impl_versor_mul {
             fn versor_mul(self, rhs: $(&$b)? $Ty2<T2,N $(,$G2)?>) -> $Ty2<U,N $(,$G2)?> {
                 use crate::algebra::MultivectorSrc;
                 let shape = rhs.shape();
-                versor_mul_selected(self, rhs, shape)
+                versor_mul_selected(self.odd(), self, rhs, shape)
             }
         }
 
@@ -565,6 +565,35 @@ impl<T:AllocBlade<N,U1>+RefRealField, N:Dim> VecN<T, N> {
     }
 }
 
+//
+//Reflections
+//
+
+impl<T:AllocOdd<N>+Zero, N:Dim> Reflector<T,N> {
+
+    pub fn reflect_normal(n: VecN<T,N>) -> Self where T:AllocBlade<N,U1>+RefComplexField {
+        n.normalize().into_odd().into_reflector_unchecked()
+    }
+
+    pub fn reflect_unit_normal(n: UnitVecN<T,N>) -> Self where T:AllocBlade<N,U1> {
+        n.into_inner().into_odd().into_reflector_unchecked()
+    }
+
+    pub fn reflect_hyperplane<G:Dim>(plane: Blade<T,N,G>) -> Self where
+        T: AllocBlade<N,G> + AllocBlade<N,U1> + RefComplexField,
+        N: DimSub<G,Output=U1>
+    {
+        Self::reflect_normal(plane.dual())
+    }
+
+    pub fn reflect_unit_hyperplane<G:Dim>(plane: UnitBlade<T,N,G>) -> Self where
+        T: AllocBlade<N,G> + AllocBlade<N,U1> + ClosedNeg,
+        N: DimSub<G,Output=U1>
+    {
+        Self::reflect_unit_normal(plane.dual())
+    }
+
+}
 
 
 #[cfg(test)]
