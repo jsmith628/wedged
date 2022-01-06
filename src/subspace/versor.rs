@@ -522,7 +522,7 @@ impl<T:AllocBlade<N,U1>+RefRealField, N:Dim> UnitVecN<T, N> {
         let v1 = self;
 
         //next, we gotta normalize v2
-        match v2.into_simple_unchecked().try_normalize() {
+        match v2.into_simple_vec().try_normalize() {
             Some(v2) => {
                 //ideally, we'd just do a simple multiplication, and this *does* work,
                 //but it requires an extra trait bound, so we're going to do the worse way

@@ -61,6 +61,14 @@ impl_dim_cast!(Reflector<T:AllocOdd,N1> -> N2);
 //Interpretation casting
 //
 
+
+impl<T:AllocBlade<N,U1>, N:Dim> VecN<T,N> {
+
+    #[inline(always)]
+    pub fn into_simple_vec(self) -> SimpleVecN<T,N> { self.into_simple_unchecked() }
+
+}
+
 impl<T:AllocBlade<N,G>, N:Dim, G:Dim> Blade<T,N,G> {
 
     #[inline(always)]
