@@ -1,7 +1,13 @@
 
 use std::ops::*;
 use std::fmt::Debug;
-use num_traits::{Zero, One, Inv};
+
+pub use std::ops::{
+    Add, AddAssign, Sub, SubAssign,
+    Mul, MulAssign, Div, DivAssign,
+    BitXor, BitXorAssign, Rem, RemAssign,
+};
+pub use num_traits::{Zero, One, Inv};
 
 macro_rules! ref_ops {
 
