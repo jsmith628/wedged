@@ -8,6 +8,9 @@ use crate::base::*;
 //So we can maybe change it later though there really is no reason it needs any more bits than this
 type Bits = i32;
 
+///
+/// Represents a single signed basis element in geometric algebra
+///
 #[repr(transparent)]
 #[derive(Clone, Copy, PartialEq, Eq, Hash)]
 pub struct BasisBlade {
@@ -16,7 +19,14 @@ pub struct BasisBlade {
 
 impl BasisBlade {
 
-    ///The maximum number of dimensions supported
+    /// The maximum number of dimensions supported. This is currently 31
+    ///
+    /// This limit was put in place so that no dynamic allocation is required for BasisBlade and
+    /// we can keep the struct `Copy`. The tradeoff is that
+    /// while we can't have objects in dimensions higher than 31, it's faster and easier to use.
+    /// However, seeing as 31D multivectors have 2<sup>31</sup> components, it is unlikely those
+    /// extra dimensions will ever be needed, but the limit is open to be increased if deemed necessary
+    ///
     pub const MAX_DIM: usize = (Bits::BITS - 1) as usize; //the bit width minus one for the sign
 
     ///The multiplicative identity
@@ -25,9 +35,7 @@ impl BasisBlade {
     ///Negative one
     pub const NEG_ONE: BasisBlade = BasisBlade { bits: Bits::MIN }; //0 with the leading bit flipped
 
-    ///
     /// Quickly does `(-1)^n`
-    ///
     #[inline(always)]
     const fn neg_one_pow(n:usize) -> BasisBlade {
         BasisBlade { bits:((n & 1) as Bits) << Self::MAX_DIM }
@@ -169,6 +177,7 @@ impl BasisBlade {
         self.unchecked_fast_mul(Self::neg_one_pow(self.grade()))
     }
 
+    /// Multiplication for const expressions
     pub const fn const_mul(self, rhs: Self) -> Self {
         //we only have to abs() self since it will mask out the sign of rhs
         let a = self.abs().bits;
@@ -195,6 +204,7 @@ impl BasisBlade {
         self.unchecked_fast_mul(rhs).unchecked_fast_mul(sign)
     }
 
+    /// Division for const expressions
     pub const fn const_div(self, rhs: Self) -> Self { self.const_mul(rhs.reverse()) }
 
     ///
@@ -218,13 +228,59 @@ impl BasisBlade {
         BasisBlade { bits: 1 << n }.abs()
     }
 
+    ///
+    /// Gives the `i`th basis blade of grade `g` in dimension `n`
+    ///
+    /// Besides basis vectors, the choice of the ordering of basis blades is entirely arbitrary,
+    /// so there is no particular *mathematical* reason for any given ordering.
+    /// That being said, the convention used here has been chosen in order to achieve a number of
+    /// helpful properties:
+    /// 1. The index of a basis bade should be the same as its dual. There are some
+    ///    technicalities regarding signs and grades that are half the dimension,
+    ///    but this allows for the very nice properties:
+    ///    - The components of (most) blades will be the exact same (up to sign) as its dual,
+    ///      potentially speeding up computation
+    ///    - A psuedovector for a hyperplane will have the same components as its normal, simplifying
+    ///      the code for making planes.
+    /// 2. When going up in dimension, any components lower dimension should stay grouped in the same
+    ///    order with the same signs, preferably at the beginning or end of the components in the
+    ///    higher dimension. This has the potential to speed up and simplify the code for casting
+    ///    between dimensions
+    ///
+    /// Unfortunately, the above have a couple technical issues, so the following extra conventions
+    /// are chosen:
+    /// - When taking the dual with a grade in the upper half of the dimension, the result
+    ///   should have the exact same components. When taking the dual in the lower half, the
+    ///   components will be negated depending on the dimension.
+    /// - When moving up a dimension, blades with grades in the bottom half will have extra
+    ///   components *appended* whereas blades in the upper half will have their components
+    ///   *prepended*
+    ///
+    /// In order to codify these, the following formal rules are followed:
+    /// 1. if `g==0`, then the basis is just the identity
+    /// 2. if `g==1`, then the basis is e<sub>i</sub>
+    /// 3. if `g<=n/2` and `i<binom(n-1,g)`, then `basis_blade(n,g,i) == basis_blade(n-1,g,i)`
+    /// 4. if `g>n/2` and `i>binom(n-1,n-g)`, then
+    ///      `basis_blade(n,g,i) == basis_blade(n-1,g,i-binom(n-1,n-g))`
+    ///
+    /// 5. for `g<n/2`, `basis_blade(n,g,i) == basis_blade(n,n-g,i) / psuedoscalar(n)`
+    ///    - Lemma #1: for `g>n/2`, `basis_blade(n,g,i) == basis_blade(n,n-g,i) * psuedoscalar(n)`
+    ///
+    /// 6. for `g==n/2`, `i<binom(n,g)/2`,
+    ///      `basis_blade(n,g,i) == basis_blade(n,n-g,i+binom(n,g)/2) / psuedoscalar(n)`
+    ///    - Lemma #2: for `g==n/2`, `i>binom(n,g)/2`,
+    ///         `basis_blade(n,g,i) == basis_blade(n,n-g,i-binom(n,g)/2) * psuedoscalar(n)`
+    ///
     pub fn basis_blade(n:usize, g:usize, i:usize) -> BasisBlade {
-        if n >= Self::MAX_DIM {
-            panic!("Only Blades up to dimension {} are currently supported", Self::MAX_DIM );
-        }
 
-        if g>n || i>binom(n,g) {
-            panic!("No basis {}-dimensional blade of grade {} at index {}", n, g, i);
+        if cfg!(debug_assertions) {
+            if n >= Self::MAX_DIM {
+                panic!("Only Blades up to dimension {} are currently supported", Self::MAX_DIM );
+            }
+
+            if g>n || i>binom(n,g) {
+                panic!("No basis {}-dimensional blade of grade {} at index {}", n, g, i);
+            }
         }
 
         Self::const_basis_blade(n, g, i)
@@ -276,6 +332,7 @@ impl BasisBlade {
 
     }
 
+    /// Exactly like [`basis_blade()`](BasisBlade::basis_blade) but made `const` by removing some debug runtime checks
     pub const fn const_basis_blade(n:usize, g:usize, i:usize) -> BasisBlade {
 
         //invalid basis vectors
@@ -381,6 +438,7 @@ impl BasisBlade {
 
     }
 
+    /// Gets the `i`th basis blade in the even subalgebra for dimension `n`
     pub fn basis_even(n: usize, i: usize) -> BasisBlade {
         let mut i = i;
         for (g, binom) in components_of(n).enumerate().step_by(2) {
@@ -394,6 +452,7 @@ impl BasisBlade {
         panic!("index out of range: {}>{}", i, even_elements(n))
     }
 
+    /// Gets the `i`th basis blade in the odd subalgebra for dimension `n`
     pub fn basis_odd(n: usize, i: usize) -> BasisBlade {
         let mut i = i;
         for (g, binom) in components_of(n).enumerate().skip(1).step_by(2) {
@@ -407,6 +466,7 @@ impl BasisBlade {
         panic!("index out of range: {}>{}", i, odd_elements(n))
     }
 
+    /// Gets the `i`th basis blade in the geometric algebra of dimension `n`
     pub fn basis(n: usize, i: usize) -> BasisBlade {
         let mut i = i;
         for (g, binom) in components_of(n).enumerate() {
@@ -474,11 +534,13 @@ impl BasisBlade {
 
     }
 
+    /// Gets the index and sign of this basis blade in a `Blade` of dimension `n`
     pub const fn blade_index_sign(&self, n: usize) -> (usize, bool) {
         let n = if n > Self::MAX_DIM { Self::MAX_DIM } else { n };
         self.get_index_sign_in(n, self.grade())
     }
 
+    /// Gets the index and sign of this basis blade in an `Even` of dimension `n`
     pub const fn even_index_sign(&self, n: usize) -> (usize, bool) {
         if self.grade()%2 == 1 { return (0,self.positive()); }
         let (i, sign) = self.blade_index_sign(n);
@@ -492,6 +554,7 @@ impl BasisBlade {
         (get_start(n,self.grade()) + i, sign)
     }
 
+    /// Gets the index and sign of this basis blade in an `Odd` of dimension `n`
     pub const fn odd_index_sign(&self, n: usize) -> (usize, bool) {
         if self.grade()%2 == 0 { return (0,self.positive()); }
         let (i, sign) = self.blade_index_sign(n);
@@ -505,6 +568,7 @@ impl BasisBlade {
         (get_start(n,self.grade()) + i, sign)
     }
 
+    /// Gets the index and sign of this basis blade in a `Multivector` of dimension `n`
     pub const fn multivector_index_sign(&self, n: usize) -> (usize, bool) {
         let (i, sign) = self.blade_index_sign(n);
 
