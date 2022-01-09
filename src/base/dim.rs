@@ -16,20 +16,27 @@ use typenum::{
 
 use crate::base::binom;
 
+/// A crate-local version of [`nalgebra::dimension::DimName`] to make certain type-level `impl`s possible
 pub trait DimName: na::dimension::DimName {}
 impl<const N: usize> DimName for na::dimension::Const<N> {}
 
+///Converts a [`Dim`] to a type from `Typenum`
 pub type AsTypenum<D> = <D as ToTypenum>::Typenum;
+///Converts a type from `Typenum` to a [`Dim`]
 pub type AsConst<D> = <D as ToConst>::Const;
 
+/// Performs symmetric division between `D1` and `D2`: `|D1 - D2|`
 pub type DimSymDiff<D1, D2> = <D1 as DimSymSub<D2>>::Output;
+/// Performs symmetric division between `D1` and `D2`: `|D1 - D2|`
 pub type DimNameSymDiff<D1, D2> = <D1 as DimNameSymSub<D2>>::Output;
 
+/// Trait for performing symmetric division between two [`Dim`]s
 pub trait DimSymSub<D:Dim>: Dim {
     type Output: Dim;
     fn sym_sub(self, other: D) -> Self::Output;
 }
 
+/// Trait for performing symmetric division between two [`DimName`]s
 pub trait DimNameSymSub<D: na::dimension::DimName>: na::dimension::DimName {
     type Output: na::dimension::DimName;
     fn sym_sub(self, other: D) -> Self::Output;
@@ -94,14 +101,18 @@ impl<const A:usize, const B:usize> DimNameSymSub<Const<B>> for Const<A> where
 
 }
 
+/// Computes the binomial coefficient `N` choose `K`
 pub type DimBinom<N,K> = <N as DimBinomCoeff<K>>::Output;
+/// Computes the binomial coefficient `N` choose `K`
 pub type DimNameBinom<N,K> = <N as DimNameBinomCoeff<K>>::Output;
 
+/// Trait for computing the binomial coefficients for `Dim`s
 pub trait DimBinomCoeff<K:Dim>: Dim {
     type Output: Dim;
     fn binom(self, k: K) -> Self::Output;
 }
 
+/// Trait for computing the binomial coefficients for `DimName`s
 pub trait DimNameBinomCoeff<K:na::dimension::DimName>: na::dimension::DimName {
     type Output: na::dimension::DimName;
     fn binom(self, k: K) -> Self::Output;
@@ -149,12 +160,14 @@ impl<const N:usize, const K:usize> DimNameBinomCoeff<Const<K>> for Const<N> wher
     }
 }
 
+/// Marker trait for if a [`Dim`] is even
 pub trait DimEven: Dim {}
 impl<D:Dim> DimEven for D where
     D: ToTypenum,
     AsTypenum<D>: Even
 {}
 
+/// Marker trait for if a [`Dim`] is odd
 pub trait DimOdd: Dim {}
 impl<D:Dim> DimOdd for D where
     D: ToTypenum,
