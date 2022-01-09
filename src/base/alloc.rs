@@ -134,6 +134,8 @@ pub trait AllocMultivector<N:Dim>: Sized {
 ///
 pub trait AllocSimpleBlade<N:Dim,G:Dim>: AllocBlade<N,G> {}
 
+impl<T:AllocBlade<Dynamic,Const<0>>> AllocSimpleBlade<Dynamic,Const<0>> for T {}
+impl<T:AllocBlade<Dynamic,Const<1>>> AllocSimpleBlade<Dynamic,Const<1>> for T {}
 impl<T:AllocBlade<N,G>,N:Dim,G:Dim> AllocSimpleBlade<N,G> for T where
     //establish that `N` and `G` are constant numbers
     N: DimName+ToTypenum,
