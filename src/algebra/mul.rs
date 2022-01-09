@@ -1046,10 +1046,9 @@ mod tests {
     #[test]
     fn basis() {
 
-        use crate::basis_blade::*;
         use rayon::prelude::*;
 
-        let count = (1 as Bits) << 8;
+        let count = (1 as i32) << 8;
 
         (0..count).into_par_iter().for_each(
             |bits1| {

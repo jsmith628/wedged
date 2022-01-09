@@ -22,8 +22,6 @@ use typenum::{True, IsLessOrEqual};
 use crate::base::*;
 use crate::algebra::*;
 
-use crate::basis_blade::BasisBlade;
-
 #[cfg(test)] use crate::TEST_DIM;
 
 pub type Iter<'a, T> = std::slice::Iter<'a, T>;

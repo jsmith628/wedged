@@ -293,6 +293,5 @@ macro_rules! dim_name_test_loop {
 
 pub mod base;
 
-pub mod basis_blade;
 pub mod algebra;
 pub mod subspace;

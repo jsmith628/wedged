@@ -6,12 +6,12 @@ use std::fmt::{Formatter, Debug, Display, Binary, Result as FmtResult, Alignment
 use crate::base::*;
 
 //So we can maybe change it later though there really is no reason it needs any more bits than this
-pub type Bits = i32;
+type Bits = i32;
 
 #[repr(transparent)]
 #[derive(Clone, Copy, PartialEq, Eq, Hash)]
 pub struct BasisBlade {
-    pub bits: Bits
+    bits: Bits
 }
 
 impl BasisBlade {
@@ -44,14 +44,14 @@ impl BasisBlade {
         BasisBlade { bits: self.bits ^ rhs.bits }
     }
 
-    pub const fn from_bits(bits:Bits) -> BasisBlade { BasisBlade { bits } }
+    pub(crate) const fn from_bits(bits:Bits) -> BasisBlade { BasisBlade { bits } }
 
     ///
     /// Computes the minimum dimension this `BasisBlade` is contained in
     ///
     /// # Examples
     ///```
-    /// # use galgebra::basis_blade::*;
+    /// # use galgebra::base::*;
     /// # use num_traits::One;
     ///
     /// let e = BasisBlade::one();
@@ -84,7 +84,7 @@ impl BasisBlade {
     ///
     /// # Examples
     ///```
-    /// # use galgebra::basis_blade::*;
+    /// # use galgebra::base::*;
     /// # use num_traits::One;
     ///
     /// let e = BasisBlade::one();

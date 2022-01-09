@@ -23,7 +23,6 @@ use approx::{AbsDiffEq, RelativeEq, UlpsEq};
 #[cfg(test)] use crate::TEST_DIM;
 
 use crate::base::*;
-use crate::basis_blade::BasisBlade;
 
 
 pub type Iter<'a, T> = std::slice::Iter<'a, T>;
