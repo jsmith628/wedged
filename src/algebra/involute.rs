@@ -31,28 +31,28 @@ macro_rules! norm_methods {
         /// even though [`ComplexField`] is a requirement.
         ///
         pub fn norm(&self) -> T::AllOutput where
-            T: AllRefMul<T>, T::AllOutput: ComplexField
+            T: AllRefMul<T>, T::AllOutput: RealField
         {
             //TODO: optimize special case where there is only one element
             self.norm_sqrd().sqrt()
         }
 
         /// Divides `self` by its norm
-        pub fn normalize(self) -> Self where T: RefComplexField
+        pub fn normalize(self) -> Self where T: RefRealField
         {
             let l = self.norm();
             self / l
         }
 
         /// Divides `self` by its norm if it is non-zero
-        pub fn try_normalize(self) -> Option<Self> where T: RefComplexField
+        pub fn try_normalize(self) -> Option<Self> where T: RefRealField
         {
             let l = self.norm();
             if !l.is_zero() { Some(self / l) } else { None }
         }
 
         /// Divides `self` by its norm and returns both
-        pub fn norm_and_normalize(self) -> (T, Self) where T:RefComplexField
+        pub fn norm_and_normalize(self) -> (T, Self) where T:RefRealField
         {
             let l = self.norm();
             let normalized = self / &l;
@@ -60,7 +60,7 @@ macro_rules! norm_methods {
         }
 
         /// Divides `self` by its norm and returns both if it is non-zero
-        pub fn try_norm_and_normalize(self) -> Option<(T, Self)> where T:RefComplexField
+        pub fn try_norm_and_normalize(self) -> Option<(T, Self)> where T:RefRealField
         {
             let l = self.norm_sqrd();
             if !l.is_zero() {

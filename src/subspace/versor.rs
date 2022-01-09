@@ -571,7 +571,7 @@ impl<T:AllocBlade<N,U1>+RefRealField, N:Dim> VecN<T, N> {
 
 impl<T:AllocOdd<N>+Zero, N:Dim> Reflector<T,N> {
 
-    pub fn reflect_normal(n: VecN<T,N>) -> Self where T:AllocBlade<N,U1>+RefComplexField {
+    pub fn reflect_normal(n: VecN<T,N>) -> Self where T:AllocBlade<N,U1>+RefRealField {
         n.normalize().into_odd().into_reflector_unchecked()
     }
 
@@ -580,7 +580,7 @@ impl<T:AllocOdd<N>+Zero, N:Dim> Reflector<T,N> {
     }
 
     pub fn reflect_hyperplane<G:Dim>(plane: Blade<T,N,G>) -> Self where
-        T: AllocBlade<N,G> + AllocBlade<N,U1> + RefComplexField,
+        T: AllocBlade<N,G> + AllocBlade<N,U1> + RefRealField,
         N: DimSub<G,Output=U1>
     {
         Self::reflect_normal(plane.dual())

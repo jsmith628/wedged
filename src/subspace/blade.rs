@@ -61,7 +61,7 @@ pub trait Reject<B> {
 
 impl<T, N:Dim, G1:Dim, G2:Dim> Project<Blade<T,N,G2>> for Blade<T,N,G1> where
     G2:DimSymSub<G1>,
-    T:AllocBlade<N,G1>+AllocSimpleBlade<N,G2>+AllocBlade<N,DimSymDiff<G2,G1>>+RefComplexField
+    T:AllocBlade<N,G1>+AllocSimpleBlade<N,G2>+AllocBlade<N,DimSymDiff<G2,G1>>+RefDivRing
 {
     type Output = Blade<T,N,G2>;
     fn project(&self, b:Blade<T,N,G2>) -> Blade<T,N,G2> { project_blade(self, b) / factor!(self) }
@@ -69,7 +69,7 @@ impl<T, N:Dim, G1:Dim, G2:Dim> Project<Blade<T,N,G2>> for Blade<T,N,G1> where
 
 impl<T, N:Dim, G1:Dim, G2:Dim> Reject<Blade<T,N,G2>> for Blade<T,N,G1> where
     G2:DimAdd<G1>,
-    T:AllocBlade<N,G1>+AllocSimpleBlade<N,G2>+AllocBlade<N,DimSum<G2,G1>>+RefComplexField
+    T:AllocBlade<N,G1>+AllocSimpleBlade<N,G2>+AllocBlade<N,DimSum<G2,G1>>+RefDivRing
 {
     type Output = Blade<T,N,G2>;
     fn reject(&self, b:Blade<T,N,G2>) -> Blade<T,N,G2> { reject_blade(self, b) / factor!(self) }
@@ -77,7 +77,7 @@ impl<T, N:Dim, G1:Dim, G2:Dim> Reject<Blade<T,N,G2>> for Blade<T,N,G1> where
 
 impl<T, N:Dim, G1:Dim, G2:Dim> Project<SimpleBlade<T,N,G2>> for Blade<T,N,G1> where
     G2:DimSymSub<G1>,
-    T:AllocBlade<N,G1>+AllocSimpleBlade<N,G2>+AllocBlade<N,DimSymDiff<G2,G1>>+RefComplexField
+    T:AllocBlade<N,G1>+AllocSimpleBlade<N,G2>+AllocBlade<N,DimSymDiff<G2,G1>>+RefDivRing
 {
     type Output = SimpleBlade<T,N,G2>;
     #[inline(always)]
@@ -88,7 +88,7 @@ impl<T, N:Dim, G1:Dim, G2:Dim> Project<SimpleBlade<T,N,G2>> for Blade<T,N,G1> wh
 
 impl<T, N:Dim, G1:Dim, G2:Dim> Reject<SimpleBlade<T,N,G2>> for Blade<T,N,G1> where
     G2:DimAdd<G1>,
-    T:AllocBlade<N,G1>+AllocSimpleBlade<N,G2>+AllocBlade<N,DimSum<G2,G1>>+RefComplexField
+    T:AllocBlade<N,G1>+AllocSimpleBlade<N,G2>+AllocBlade<N,DimSum<G2,G1>>+RefDivRing
 {
     type Output = SimpleBlade<T,N,G2>;
     #[inline(always)]
@@ -99,7 +99,7 @@ impl<T, N:Dim, G1:Dim, G2:Dim> Reject<SimpleBlade<T,N,G2>> for Blade<T,N,G1> whe
 
 impl<T, N:Dim, G1:Dim, G2:Dim> Project<UnitBlade<T,N,G2>> for Blade<T,N,G1> where
     G2:DimSymSub<G1>,
-    T:AllocBlade<N,G1>+AllocSimpleBlade<N,G2>+AllocBlade<N,DimSymDiff<G2,G1>>+RefComplexField
+    T:AllocBlade<N,G1>+AllocSimpleBlade<N,G2>+AllocBlade<N,DimSymDiff<G2,G1>>+RefDivRing
 {
     type Output = SimpleBlade<T,N,G2>;
 
@@ -112,7 +112,7 @@ impl<T, N:Dim, G1:Dim, G2:Dim> Project<UnitBlade<T,N,G2>> for Blade<T,N,G1> wher
 
 impl<T, N:Dim, G1:Dim, G2:Dim> Reject<UnitBlade<T,N,G2>> for Blade<T,N,G1> where
     G2:DimAdd<G1>,
-    T:AllocBlade<N,G1>+AllocSimpleBlade<N,G2>+AllocBlade<N,DimSum<G2,G1>>+RefComplexField
+    T:AllocBlade<N,G1>+AllocSimpleBlade<N,G2>+AllocBlade<N,DimSum<G2,G1>>+RefDivRing
 {
     type Output = SimpleBlade<T,N,G2>;
 
@@ -125,7 +125,7 @@ impl<T, N:Dim, G1:Dim, G2:Dim> Reject<UnitBlade<T,N,G2>> for Blade<T,N,G1> where
 
 impl<T, N:Dim, G1:Dim, G2:Dim> Project<Blade<T,N,G2>> for SimpleBlade<T,N,G1> where
     G2:DimSymSub<G1>,
-    T:AllocBlade<N,G1>+AllocBlade<N,G2>+AllocBlade<N,DimSymDiff<G2,G1>>+RefComplexField
+    T:AllocBlade<N,G1>+AllocBlade<N,G2>+AllocBlade<N,DimSymDiff<G2,G1>>+RefDivRing
 {
     type Output = Blade<T,N,G2>;
     fn project(&self, b:Blade<T,N,G2>) -> Blade<T,N,G2> { project_blade(self.as_inner(), b) / factor!(self)}
@@ -133,7 +133,7 @@ impl<T, N:Dim, G1:Dim, G2:Dim> Project<Blade<T,N,G2>> for SimpleBlade<T,N,G1> wh
 
 impl<T, N:Dim, G1:Dim, G2:Dim> Reject<Blade<T,N,G2>> for SimpleBlade<T,N,G1> where
     G2:DimAdd<G1>,
-    T:AllocBlade<N,G1>+AllocBlade<N,G2>+AllocBlade<N,DimSum<G2,G1>>+RefComplexField
+    T:AllocBlade<N,G1>+AllocBlade<N,G2>+AllocBlade<N,DimSum<G2,G1>>+RefDivRing
 {
     type Output = Blade<T,N,G2>;
     fn reject(&self, b:Blade<T,N,G2>) -> Blade<T,N,G2> { reject_blade(self.as_inner(), b) / factor!(self)}
@@ -141,7 +141,7 @@ impl<T, N:Dim, G1:Dim, G2:Dim> Reject<Blade<T,N,G2>> for SimpleBlade<T,N,G1> whe
 
 impl<T, N:Dim, G1:Dim, G2:Dim> Project<SimpleBlade<T,N,G2>> for SimpleBlade<T,N,G1> where
     G2:DimSymSub<G1>,
-    T:AllocBlade<N,G1>+AllocBlade<N,G2>+AllocBlade<N,DimSymDiff<G2,G1>>+RefComplexField
+    T:AllocBlade<N,G1>+AllocBlade<N,G2>+AllocBlade<N,DimSymDiff<G2,G1>>+RefDivRing
 {
     type Output = SimpleBlade<T,N,G2>;
 
@@ -154,7 +154,7 @@ impl<T, N:Dim, G1:Dim, G2:Dim> Project<SimpleBlade<T,N,G2>> for SimpleBlade<T,N,
 
 impl<T, N:Dim, G1:Dim, G2:Dim> Reject<SimpleBlade<T,N,G2>> for SimpleBlade<T,N,G1> where
     G2:DimAdd<G1>,
-    T:AllocBlade<N,G1>+AllocBlade<N,G2>+AllocBlade<N,DimSum<G2,G1>>+RefComplexField
+    T:AllocBlade<N,G1>+AllocBlade<N,G2>+AllocBlade<N,DimSum<G2,G1>>+RefDivRing
 {
     type Output = SimpleBlade<T,N,G2>;
 
@@ -167,7 +167,7 @@ impl<T, N:Dim, G1:Dim, G2:Dim> Reject<SimpleBlade<T,N,G2>> for SimpleBlade<T,N,G
 
 impl<T, N:Dim, G1:Dim, G2:Dim> Project<UnitBlade<T,N,G2>> for SimpleBlade<T,N,G1> where
     G2:DimSymSub<G1>,
-    T:AllocBlade<N,G1>+AllocBlade<N,G2>+AllocBlade<N,DimSymDiff<G2,G1>>+RefComplexField
+    T:AllocBlade<N,G1>+AllocBlade<N,G2>+AllocBlade<N,DimSymDiff<G2,G1>>+RefDivRing
 {
     type Output = SimpleBlade<T,N,G2>;
 
@@ -180,7 +180,7 @@ impl<T, N:Dim, G1:Dim, G2:Dim> Project<UnitBlade<T,N,G2>> for SimpleBlade<T,N,G1
 
 impl<T, N:Dim, G1:Dim, G2:Dim> Reject<UnitBlade<T,N,G2>> for SimpleBlade<T,N,G1> where
     G2:DimAdd<G1>,
-    T:AllocBlade<N,G1>+AllocBlade<N,G2>+AllocBlade<N,DimSum<G2,G1>>+RefComplexField
+    T:AllocBlade<N,G1>+AllocBlade<N,G2>+AllocBlade<N,DimSum<G2,G1>>+RefDivRing
 {
     type Output = SimpleBlade<T,N,G2>;
 
@@ -193,7 +193,7 @@ impl<T, N:Dim, G1:Dim, G2:Dim> Reject<UnitBlade<T,N,G2>> for SimpleBlade<T,N,G1>
 
 impl<T, N:Dim, G1:Dim, G2:Dim> Project<Blade<T,N,G2>> for UnitBlade<T,N,G1> where
     G2:DimSymSub<G1>,
-    T:AllocBlade<N,G1>+AllocBlade<N,G2>+AllocBlade<N,DimSymDiff<G2,G1>>+RefComplexField
+    T:AllocBlade<N,G1>+AllocBlade<N,G2>+AllocBlade<N,DimSymDiff<G2,G1>>+RefDivRing
 {
     type Output = Blade<T,N,G2>;
 
@@ -206,7 +206,7 @@ impl<T, N:Dim, G1:Dim, G2:Dim> Project<Blade<T,N,G2>> for UnitBlade<T,N,G1> wher
 
 impl<T, N:Dim, G1:Dim, G2:Dim> Reject<Blade<T,N,G2>> for UnitBlade<T,N,G1> where
     G2:DimAdd<G1>,
-    T:AllocBlade<N,G1>+AllocBlade<N,G2>+AllocBlade<N,DimSum<G2,G1>>+RefComplexField
+    T:AllocBlade<N,G1>+AllocBlade<N,G2>+AllocBlade<N,DimSum<G2,G1>>+RefDivRing
 {
     type Output = Blade<T,N,G2>;
 
@@ -219,7 +219,7 @@ impl<T, N:Dim, G1:Dim, G2:Dim> Reject<Blade<T,N,G2>> for UnitBlade<T,N,G1> where
 
 impl<T, N:Dim, G1:Dim, G2:Dim> Project<SimpleBlade<T,N,G2>> for UnitBlade<T,N,G1> where
     G2:DimSymSub<G1>,
-    T:AllocBlade<N,G1>+AllocBlade<N,G2>+AllocBlade<N,DimSymDiff<G2,G1>>+RefComplexField
+    T:AllocBlade<N,G1>+AllocBlade<N,G2>+AllocBlade<N,DimSymDiff<G2,G1>>+RefDivRing
 {
     type Output = SimpleBlade<T,N,G2>;
 
@@ -232,7 +232,7 @@ impl<T, N:Dim, G1:Dim, G2:Dim> Project<SimpleBlade<T,N,G2>> for UnitBlade<T,N,G1
 
 impl<T, N:Dim, G1:Dim, G2:Dim> Reject<SimpleBlade<T,N,G2>> for UnitBlade<T,N,G1> where
     G2:DimAdd<G1>,
-    T:AllocBlade<N,G1>+AllocBlade<N,G2>+AllocBlade<N,DimSum<G2,G1>>+RefComplexField
+    T:AllocBlade<N,G1>+AllocBlade<N,G2>+AllocBlade<N,DimSum<G2,G1>>+RefDivRing
 {
     type Output = SimpleBlade<T,N,G2>;
 
@@ -245,7 +245,7 @@ impl<T, N:Dim, G1:Dim, G2:Dim> Reject<SimpleBlade<T,N,G2>> for UnitBlade<T,N,G1>
 
 impl<T, N:Dim, G1:Dim, G2:Dim> Project<UnitBlade<T,N,G2>> for UnitBlade<T,N,G1> where
     G2:DimSymSub<G1>,
-    T:AllocBlade<N,G1>+AllocBlade<N,G2>+AllocBlade<N,DimSymDiff<G2,G1>>+RefComplexField
+    T:AllocBlade<N,G1>+AllocBlade<N,G2>+AllocBlade<N,DimSymDiff<G2,G1>>+RefDivRing
 {
     type Output = SimpleBlade<T,N,G2>;
 
@@ -258,7 +258,7 @@ impl<T, N:Dim, G1:Dim, G2:Dim> Project<UnitBlade<T,N,G2>> for UnitBlade<T,N,G1> 
 
 impl<T, N:Dim, G1:Dim, G2:Dim> Reject<UnitBlade<T,N,G2>> for UnitBlade<T,N,G1> where
     G2:DimAdd<G1>,
-    T:AllocBlade<N,G1>+AllocBlade<N,G2>+AllocBlade<N,DimSum<G2,G1>>+RefComplexField
+    T:AllocBlade<N,G1>+AllocBlade<N,G2>+AllocBlade<N,DimSum<G2,G1>>+RefDivRing
 {
     type Output = SimpleBlade<T,N,G2>;
 
@@ -284,22 +284,22 @@ impl<T:AllocSimpleBlade<N,G>, N:Dim, G:Dim> Blade<T,N,G> {
 
 impl<T:AllocBlade<N,G>, N:Dim, G:Dim> SimpleBlade<T,N,G> {
 
-    pub fn normalize(self) -> UnitBlade<T,N,G> where T: RefComplexField
+    pub fn normalize(self) -> UnitBlade<T,N,G> where T: RefRealField
     {
         self.data.normalize().into_unit_unchecked()
     }
 
-    pub fn try_normalize(self) -> Option<UnitBlade<T,N,G>> where T: RefComplexField {
+    pub fn try_normalize(self) -> Option<UnitBlade<T,N,G>> where T: RefRealField {
         self.data.try_normalize().map(|b| b.into_unit_unchecked())
     }
 
-    pub fn norm_and_normalize(self) -> (T, UnitBlade<T,N,G>) where T: RefComplexField
+    pub fn norm_and_normalize(self) -> (T, UnitBlade<T,N,G>) where T: RefRealField
     {
         let (l, b) = self.data.norm_and_normalize();
         (l, b.into_unit_unchecked())
     }
 
-    pub fn try_norm_and_normalize(self) -> Option<(T, UnitBlade<T,N,G>)> where T: RefComplexField
+    pub fn try_norm_and_normalize(self) -> Option<(T, UnitBlade<T,N,G>)> where T: RefRealField
     {
         match self.data.try_norm_and_normalize() {
             Some((l,b)) => Some((l, b.into_unit_unchecked())),
