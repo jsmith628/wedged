@@ -22,7 +22,7 @@ use typenum::{True, IsLessOrEqual};
 use crate::base::*;
 use crate::algebra::*;
 
-#[cfg(test)] use crate::TEST_DIM;
+// #[cfg(test)] use crate::TEST_DIM;
 
 pub type Iter<'a, T> = std::slice::Iter<'a, T>;
 pub type IterMut<'a, T> = std::slice::IterMut<'a, T>;

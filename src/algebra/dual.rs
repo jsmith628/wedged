@@ -10,16 +10,17 @@ impl<T:AllocBlade<N,G>, N:Dim, G:Dim> Blade<T,N,G> where
     /// Computes the dual of this element in the current dimension
     ///
     /// This produces a blade representing the subspace(s) containing all vectors perpendicular
-    /// to `self`. For example, the dual of a vector will give a psuedovector representing the
+    /// to `self`. For example, the dual of a vector will give a psuedovector representing a
     /// hyperplane with the vector as its normal, and the dual of the psuedovector of a hyperplane
     /// will give its vector normal.
     ///
     /// This computation is equivalent to `self / I` where `I` is the psuedoscalar of the space,
-    /// but due to symmetries in how the [basis blades](BasisBlade) are chosen, this _usually_
-    /// is done with just a simple copy or negation of the components.
+    /// but due to symmetries in how the basis blades are [chosen](BasisBlade::basis_blade),
+    /// this _usually_ is done with just a simple copy or negation of the components.
     ///
     /// In fact, the bases are chosen **specifically** so that the components of a psuedovector
-    /// are the same as the components of its dual. Though, the converse is not always true
+    /// are exactly the same as the components of its dual/normal. Though, the converse is not
+    /// always true
     ///
     /// # Examples
     /// ```
@@ -84,12 +85,11 @@ impl<T:AllocBlade<N,G>, N:Dim, G:Dim> Blade<T,N,G> where
     ///
     /// Computes the element whose dual is this value
     ///
-    /// Even though it sounds like it would be a complex inverse opperation, it is essentially
-    /// just the [dual](Blade::dual()), but negated in certain dimensions.
+    /// This is essentially just the [dual](Blade::dual()), but negated in certain dimensions.
     ///
     /// Specifially, whereas the _dual_ is found by `self / I`, the _undual_ is found by
-    /// `self * I`. So in dimensions where `I⁻¹ == I`, this is the same as the dual, and in
-    /// dimensions where `I⁻¹ == -I`, it is the negative dual.
+    /// `self * I`. So in dimensions where `I⁻¹ == I`, the undual is the same as the dual, and in
+    /// dimensions where `I⁻¹ == -I`, it is the negative of the dual.
     ///
     pub fn undual(self) -> DualBlade<T,N,G> {
 

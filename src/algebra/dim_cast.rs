@@ -70,8 +70,15 @@ fn cast_subspace<T:Zero, B:Iterator<Item=T>, I:Iterator<Item=(usize, usize, usiz
     }
 }
 
+macro_rules! cast_doc {
+    () => {
+        "Embeds `self` into a different dimension by either removing elements or inserting zeros"
+    }
+}
+
 impl<T:AllocBlade<N1,G>+Zero, N1:Dim, G:Dim> Blade<T,N1,G> {
 
+    #[doc = cast_doc!()]
     pub fn cast_dim_generic<N2:Dim>(self, n:N2) -> Blade<T,N2,G> where T:AllocBlade<N2,G> {
         //the destination value
         let mut uninit = AllocateBlade::<T,N2,G>::uninit(n, self.grade_generic());
@@ -84,10 +91,12 @@ impl<T:AllocBlade<N1,G>+Zero, N1:Dim, G:Dim> Blade<T,N1,G> {
         Blade { data: unsafe { uninit.assume_init() } }
     }
 
+    #[doc = cast_doc!()]
     pub fn cast_dim_dyn(self, n:usize) -> Blade<T,Dynamic,G> where T:AllocBlade<Dynamic,G> {
         self.cast_dim_generic(Dynamic::new(n))
     }
 
+    #[doc = cast_doc!()]
     pub fn cast_dim<N2:DimName>(self) -> Blade<T,N2,G> where T:AllocBlade<N2,G> {
         self.cast_dim_generic(N2::name())
     }
@@ -100,6 +109,7 @@ macro_rules! impl_dim_cast {
         $(
             impl<T:$Alloc<N1>+Zero, N1:Dim> $Ty<T,N1> {
 
+                #[doc = cast_doc!()]
                 pub fn cast_dim_generic<N2:Dim>(self, n:N2) -> $Ty<T,N2> where T:$Alloc<N2> {
                     //the destination value
                     let mut uninit = Allocate::<$Ty<T,N2>>::uninit(n);
@@ -112,10 +122,12 @@ macro_rules! impl_dim_cast {
                     $Ty { data: unsafe { uninit.assume_init() } }
                 }
 
+                #[doc = cast_doc!()]
                 pub fn cast_dim_dyn(self, n:usize) -> $Ty<T,Dynamic> where T:$Alloc<Dynamic> {
                     self.cast_dim_generic(Dynamic::new(n))
                 }
 
+                #[doc = cast_doc!()]
                 pub fn cast_dim<N2:DimName>(self) -> $Ty<T,N2> where T:$Alloc<N2> {
                     self.cast_dim_generic(N2::name())
                 }
@@ -142,7 +154,8 @@ impl_dim_cast!(
 #[cfg(test)]
 mod tests {
 
-    use super::*;
+    use super::*;/// Embeds `self` into a different dimension by either removing elements or inserting zeros
+
 
     const N: usize = TEST_DIM;
 

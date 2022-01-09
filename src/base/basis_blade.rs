@@ -52,6 +52,7 @@ impl BasisBlade {
         BasisBlade { bits: self.bits ^ rhs.bits }
     }
 
+    #[cfg(test)]
     pub(crate) const fn from_bits(bits:Bits) -> BasisBlade { BasisBlade { bits } }
 
     ///

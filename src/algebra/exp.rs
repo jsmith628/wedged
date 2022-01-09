@@ -214,6 +214,17 @@ impl<T:RefRealField> BiVec4<T> {
 
 impl<T:RefRealField+AllocBlade<N,U2>, N:Dim> BiVecN<T,N> {
 
+    ///
+    /// Exponentiates this bivector into a `Rotor`
+    ///
+    /// In 2D and 3D, this produces a rotation in the plane of this bivector rotated by an angle
+    /// *twice* its length.
+    ///
+    /// In general, a bivector can always be decomposed into the sum of perpendicular simple bivectors,
+    /// each of which can be interpreted as a plane with an angle as its length. Then, the
+    /// exponential of the sum, is just the the compositions of the simple rotations gotten from
+    /// each of the simple bivectors.
+    ///
     #[inline]
     pub fn exp_rotor(self) -> Rotor<T,N> where T:AllocEven<N> {
         Rotor::from_inner_unchecked(self.exp_even())
@@ -242,6 +253,7 @@ impl<T:RefRealField+AllocBlade<N,G>, N:Dim, G:Dim> Blade<T,N,G> {
 
 impl<T:RefRealField+AllocBlade<N,G>, N:Dim, G:Dim> Blade<T,N,G> {
 
+    ///Computes the exponential of `self` as a multivector
     pub fn exp(self) -> Multivector<T,N> where T:AllocMultivector<N> {
 
         //match the dimension so we can optimize for the first few dimensions
@@ -263,7 +275,13 @@ impl<T:RefRealField+AllocBlade<N,G>, N:Dim, G:Dim> Blade<T,N,G> {
 
     }
 
-    pub fn exp_even(self) -> Even<T,N> where T:AllocEven<N> {
+
+    ///
+    /// Computes the exponential of `self` while selecting only the even elements
+    ///
+    /// For blades of *even* grade, this is equivalent in value to [`Blade::exp`]
+    ///
+    pub fn exp_even(self) -> Even<T,N> where T:AllocEven<N>, G:DimEven {
 
         //match the dimension so we can optimize for the first few dimensions
         let (n, g) = self.shape();
@@ -288,6 +306,7 @@ impl<T:RefRealField+AllocBlade<N,G>, N:Dim, G:Dim> Blade<T,N,G> {
 //TODO: make work for Dynamic dims
 impl<T:RefRealField+AllocEven<N>, N:Dim> Even<T,N> {
 
+    ///Computes the exponential of `self`
     pub fn exp(self) -> Even<T,N> {
 
         //match the dimension so we can optimize for the first few dimensions
@@ -351,6 +370,7 @@ impl<T:RefRealField+AllocEven<N>, N:Dim> Even<T,N> {
 
 impl<T:RefRealField+AllocOdd<N>, N:Dim> Odd<T,N> {
 
+    ///Computes the exponential of `self`
     pub fn exp(self) -> Multivector<T,N> where T:AllocMultivector<N> {
         let n = self.dim_generic();
         exp_selected(self, Multivector::one_generic(n), T::default_epsilon())
@@ -360,6 +380,7 @@ impl<T:RefRealField+AllocOdd<N>, N:Dim> Odd<T,N> {
 
 impl<T:RefRealField+AllocMultivector<N>, N:Dim> Multivector<T,N> {
 
+    ///Computes the exponential of `self`
     pub fn exp(self) -> Multivector<T,N> {
 
         //match the dimension so we can optimize for the first few dimensions

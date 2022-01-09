@@ -79,7 +79,7 @@ macro_rules! common_functions {
         /// the dimension of the surrounding space the blade lives in.
         ///
         /// More concretely, the grade is the number of vector basis elements multiplied together
-        /// to get the basis of this blade. So to get a blade of grade 3, you would need to
+        /// to get a basis of this blade. So to get a blade of grade 3, you would need to
         /// wedge three vectors together.
         ///
         /// # Examples
@@ -213,10 +213,10 @@ macro_rules! common_functions {
         /// Borrows the components of this value as a mutable slice
         pub fn as_mut_slice(&mut self) -> &mut [T] { self.data.borrow_mut() }
 
-        /// Creates an iterator of references over each component
+        /// Creates an iterator over references of each component
         pub fn iter(&self) -> Iter<T> { self.as_slice().iter() }
 
-        /// Creates an iterator of mutable references over each component
+        /// Creates an iterator over mutable references of each component
         pub fn iter_mut(&mut self) -> IterMut<T> { self.as_mut_slice().iter_mut() }
     }
 }
@@ -358,6 +358,7 @@ impl<T:AllocBlade<N,G>, N:Dim, G:Dim> Blade<T,N,G> {
 
 impl<T1:AllocBlade<N1,G1>, N1:Dim, G1:Dim> Blade<T1,N1,G1> {
 
+    ///Determines if the dimension and grade of two `Blade`s are equal
     pub fn shape_eq<T2:AllocBlade<N2,G2>, N2:Dim, G2:Dim>(&self, rhs: &Blade<T2,N2,G2>) -> bool {
         self.dim()==rhs.dim() && self.grade()==rhs.grade()
     }
@@ -376,6 +377,7 @@ impl<T:AllocEven<N>, N:Dim> Even<T,N> {
 
 impl<T1:AllocEven<N1>, N1:Dim> Even<T1,N1> {
 
+    ///Determines if the dimension of two `Even`s are equal
     pub fn shape_eq<T2:AllocEven<N2>, N2:Dim>(&self, rhs: &Even<T2,N2>) -> bool {
         self.dim()==rhs.dim()
     }
@@ -394,6 +396,7 @@ impl<T:AllocOdd<N>, N:Dim> Odd<T,N> {
 
 impl<T1:AllocOdd<N1>, N1:Dim> Odd<T1,N1> {
 
+    ///Determines if the dimension of two `Odd`s are equal
     pub fn shape_eq<T2:AllocOdd<N2>, N2:Dim>(&self, rhs: &Odd<T2,N2>) -> bool {
         self.dim()==rhs.dim()
     }
@@ -402,6 +405,7 @@ impl<T1:AllocOdd<N1>, N1:Dim> Odd<T1,N1> {
 
 impl<T1:AllocMultivector<N1>, N1:Dim> Multivector<T1,N1> {
 
+    ///Determines if the dimension of two `Multivectors`s are equal
     pub fn shape_eq<T2:AllocMultivector<N2>, N2:Dim>(&self, rhs: &Multivector<T2,N2>) -> bool {
         self.dim()==rhs.dim()
     }

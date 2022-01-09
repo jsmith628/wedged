@@ -150,8 +150,8 @@ impl<T:AllocEven<N>, N:Dim> Even<T,N> {
     /// basis element. This way, for invertible versers, `r * r.reverse() == r.norm_sqrd()` and for
     /// unit invertible versers, this is the same as computing the inverse
     ///
-    /// Furthermore, for invertible rotors, this operation inverts the rotational action of this
-    /// rotor without affecting the scaling action.
+    /// Furthermore, for invertible evens, this operation inverts the rotational action of the
+    /// even without affecting the scaling action.
     ///
     pub fn reverse(self) -> Self where T: Neg<Output=T> {
         let n = self.dim();
@@ -165,8 +165,8 @@ impl<T:AllocEven<N>, N:Dim> Even<T,N> {
     ///
     /// Negates every odd-grade component of this rotor
     ///
-    /// However, seeing as this is the even subalgebra, this does nothing and is
-    /// only included for completeness and to simplify macros.
+    /// However, seeing as this is the even subalgebra, this function does nothing and is
+    /// included only for completeness and to simplify macros.
     ///
     pub fn involute(self) -> Self where T: Neg<Output=T> { self }
 
@@ -199,7 +199,7 @@ impl<T:AllocOdd<N>, N:Dim> Odd<T,N> {
     /// Negates every odd-grade component of this rotor
     ///
     /// However, seeing as rotors are apart of the odd subspace, this just applies a negation
-    /// and is just here for completeness
+    /// and is here just for completeness and to simplify macros
     ///
     pub fn involute(self) -> Self where T: Neg<Output=T> { -self }
 

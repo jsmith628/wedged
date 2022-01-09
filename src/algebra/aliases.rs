@@ -187,4 +187,4 @@ pub type PsuedoScalar<T,N> = Blade<T,N,N>;
 /// Psuedovectors are useful as they represent hyperplanes in N-dimensions and are the dual of
 /// vectors.
 ///
-pub type PsuedoVecN<T,N> = Blade<T,N,DimNameDiff<N,U1>>;
+pub type PsuedoVecN<T,N> = Blade<T,N,DimDiff<N,U1>>;

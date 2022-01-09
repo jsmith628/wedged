@@ -355,24 +355,28 @@ impl<T:AllocBlade<N,G>, N:Dim, G:Dim> UnitBlade<T,N,G> {
 //
 // }
 
-#[test]
-fn project() {
+#[cfg(tests)]
+mod tests {
 
-    use crate::algebra::*;
+    use super::*;
 
-    let x = SimpleVec3::new(1.0, 0.0, 0.0);
-    let y = SimpleVec3::new(1.0, 1.0, 0.0);
+    #[test]
+    fn project() {
 
-    assert_eq!(x.project(y), SimpleVec3::new(1.0, 0.0, 0.0));
-    assert_eq!(y.project(x), SimpleVec3::new(0.5, 0.5, 0.0));
+        let x = SimpleVec3::new(1.0, 0.0, 0.0);
+        let y = SimpleVec3::new(1.0, 1.0, 0.0);
 
-    let plane = SimpleBiVec3::new(0.0, 1.0, 0.0);
+        assert_eq!(x.project(y), SimpleVec3::new(1.0, 0.0, 0.0));
+        assert_eq!(y.project(x), SimpleVec3::new(0.5, 0.5, 0.0));
 
-    assert_eq!(plane.project(x), SimpleVec3::new(1.0, 0.0, 0.0));
-    assert_eq!(plane.project(y), SimpleVec3::new(1.0, 0.0, 0.0));
+        let plane = SimpleBiVec3::new(0.0, 1.0, 0.0);
+
+        assert_eq!(plane.project(x), SimpleVec3::new(1.0, 0.0, 0.0));
+        assert_eq!(plane.project(y), SimpleVec3::new(1.0, 0.0, 0.0));
+
+    }
 
 }
-
 
 #[cfg(test)]
 mod benches {
