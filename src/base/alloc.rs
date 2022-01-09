@@ -1,11 +1,11 @@
 //!
-//! Traits for selecting types to store the internal data of the algebraic structs
+//! Traits for picking the types to store the internal data of the algebraic structs
 //!
 //! Ideally, this would be done using entirely `const` generics, but this is impossible for a
 //! couple reasons:
 //! 1. Unlike for simple vectors and matrices, the number of elements in blades, evens, etc
 //!    is not simply the dimension or grade but instead a more involved function of them. Hence,
-//!    since `const` expressions using generics aren't currently allowed in array sizes, we
+//!    since generic `const` expressions aren't currently supported, we
 //!    cannot use them to construct the backing array.
 //! 2. We need to *also* support non-array storage for [`Dynamic`] dimensions and grades
 //!
@@ -13,16 +13,14 @@
 //! should be.
 //!
 //! The core of this system are the [`AllocBlade<N,G>`], [`AllocEven<N>`], [`AllocOdd<N>`], and
-//! [`AllocMultivector<N>`]. These are all given blanket `impl`s on all types with the generics `N`
-//! and `G` filled in with every supported combination of dimension and grade.
-//! Then, order retrieve the type used for storage in a particular algebraic struct, we can
-//! use the corresponding `Alloc*` trait and use the `Buffer` associated type. And whenever
-//! using a generic dimension or grade on an algebraic struct, we can just add an `Alloc*` bound
-//! to the scalar in order to test support for that particular dimension/grade combination
+//! [`AllocMultivector<N>`] traits. These are all given blanket `impl`s on all types for all
+//! supported of dimensions and grades `N` and `G`. Then, in order to retrieve the storage the
+//! for a particular algebraic struct, we can use the corresponding `Alloc*` trait and its
+//! associated type `Buffer`, adding the `Alloc*` bound to the current scalar being used.
 //!
-//! At the moment, only dimensions and grades up to 16 are supported for static array-based
-//! allocation. This is due both to limitations of this system *and* out of practical considerations
-//! regarding the amount of memory used by the structures in high numbers of dimensions.
+//! At the moment, for static array allocation, only dimensions and grades up to 16 are supported.
+//! This is both due to the fact we don't have generic const expressions *and* out of practical
+//! considerations regarding sizes in high numbers of dimensions.
 //! (`f32` Multivectors in 16D already use ~**260KB**!!) However,
 //! if a high number of dimensions are required, using a [`Dynamic`] dimension or grade will allow
 //! that number of dimensions to be used, just using the heap instead
@@ -42,7 +40,7 @@ use typenum::{
 #[cfg(doc)] use crate::algebra::*;
 #[cfg(doc)] use crate::subspace::*;
 
-/// Implements [`Alloc`] and makes the default choise for what storage types to use
+/// Implements [`Alloc`] and makes the default choice for what storage types to use
 pub struct DefaultAllocator;
 
 /// The storage type to use for `M`
@@ -63,15 +61,19 @@ pub type AllocateMultivector<T,N> = <T as AllocMultivector<N>>::Buffer;
 ///
 /// Picks the buffer type to use for the generic type `M` and provides extra helper methods
 ///
-/// This trait serves two purposes:
-/// 1. Unifies the different algebraic systems into one trait to make some of the code more consistent
-/// 2. Can be implemented on multiple structs to represent different systems of allocating backing
-///   buffers. At the moment, the only one of these is [`DefaultAllocator`], but more might be added
-///   in the future
+/// The intent is that this is implemented onto a ZST for every supported algebraic struct
+/// in order to represent a particular allocation system. At the moment, only one exists
+/// ([`DefaultAllocator`]), but more may be added in the future.
+///
+/// Additionally, this allows us to make the [`Allocate`] type alias so that every algebraic
+/// struct uses `Allocate<Self>` for it's internal buffer.
+///
+/// Finally, this trait includes some helper methods for actually creating and managing the backing
+/// buffer.
 ///
 pub unsafe trait Alloc<M> {
 
-    ///The type to store in the backing buffer
+    ///The type to store in the backing bufferfor a simplification of some of the systems
     type Scalar: Sized;
 
     ///A type representing the dimension and/or grade of this structure
@@ -97,12 +99,12 @@ pub trait AllocBlade<N:Dim,G:Dim>: Sized {
     type Buffer: BladeStorage<Self,N,G>;
 }
 
-///Picks the buffer to use for an [`Even`] of dimension `N`, grade `G`, and using `Self` as the scalar
+///Picks the buffer to use for an [`Even`] of dimension `N` and using `Self` as the scalar
 pub trait AllocEven<N:Dim>: Sized {
     type Buffer: EvenStorage<Self,N>;
 }
 
-///Picks the buffer to use for an [`Odd`] of dimension `N`, grade `G`, and using `Self` as the scalar
+///Picks the buffer to use for an [`Odd`] of dimension `N` and using `Self` as the scalar
 pub trait AllocOdd<N:Dim>: Sized {
     type Buffer: OddStorage<Self,N>;
 }
@@ -127,8 +129,8 @@ pub trait AllocMultivector<N:Dim>: Sized {
 ///
 /// At the moment, the implementation uses `typenum` expressions to determine type eligibility,
 /// which may be lead to some provability issues when using generic types, especially
-/// for psuedoscalars and psuedovectors. However, once the `#[marker]` feature is stabilized,
-/// this can be simplified dramatically and will prevent most issues.
+/// for psuedoscalars and psuedovectors. However, this will be simplified dramatically once the
+/// `#[feature(marker_trait_attr)]` is stabilized,
 ///
 pub trait AllocSimpleBlade<N:Dim,G:Dim>: AllocBlade<N,G> {}
 

@@ -1,3 +1,6 @@
+//!
+//! Items common to all subsystems
+//!
 
 pub use self::storage::*;
 pub use self::alloc::*;
