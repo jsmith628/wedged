@@ -43,7 +43,7 @@ interpretation of the underlying algebra:
 Additionally, the module `galgebra::base` contains the core components common
 to all subsystems.
 
-## Nomenclature
+## Nomenclature and Conventions
 
 Naming in geometric algebra can vary slightly across authors, so the particular
 conventions have been chosen:
@@ -55,6 +55,10 @@ conventions have been chosen:
 - `Multivector`s refer to a general element in the algebra
 - The operators `*`/`Mul`, `^`/`BitXor`, and `%`/`Rem` are used for the geometric,
  wedge, and generalized dot products respectively
+
+Additionally, most structs in this crate support indexing where each component
+is ordered according to a particular basis convention chosen for this crate.
+See the docs on `BasisBlade` For more information.
 
 ## Generic programming
 

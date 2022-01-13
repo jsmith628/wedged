@@ -17,6 +17,12 @@ extern crate nalgebra as na;
 //too much memory, we may need to lower it a little :/
 #[cfg(test)] pub(crate) const TEST_DIM: usize = 16;
 
+macro_rules! cast_dim_doc {
+    () => {
+        "Embeds `self` into a different dimension by either removing elements or inserting zeros"
+    }
+}
+
 //Takes in normal rust code and quotes it but with a basic impl of trait aliases added
 macro_rules! auto {
 

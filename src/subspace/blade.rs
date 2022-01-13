@@ -49,11 +49,23 @@ macro_rules! factor {
     ($b:ident) => { if $b.neg_sig() { -$b.norm_sqrd() } else { $b.norm_sqrd() } };
 }
 
+///
+/// Trait for finding the parallel component of a blade `B` onto `Self`
+///
+/// Used primarily to drive [`Blade::project()`], [`SimpleBlade::project()`],
+/// and [`UnitBlade::project()`]
+///
 pub trait Project<B> {
     type Output;
     fn project(&self, b:B) -> Self::Output;
 }
 
+///
+/// Trait for finding the perpendicular component of a blade `B` onto `Self`
+///
+/// Used primarily to drive [`Blade::reject()`], [`SimpleBlade::reject()`],
+/// and [`UnitBlade::reject()`]
+///
 pub trait Reject<B> {
     type Output;
     fn reject(&self, b:B) -> Self::Output;
@@ -269,12 +281,19 @@ impl<T, N:Dim, G1:Dim, G2:Dim> Reject<UnitBlade<T,N,G2>> for UnitBlade<T,N,G1> w
 
 }
 
+macro_rules! proj_doc { () => { "Finds the parallel component of `b` onto `self`" } }
+macro_rules! rej_doc { () => { "Finds the perpendicular component of `b` onto `self`" } }
+
 impl<T:AllocSimpleBlade<N,G>, N:Dim, G:Dim> Blade<T,N,G> {
+
+    #[doc = proj_doc!()]
     #[inline(always)]
     pub fn project<B>(&self, b: B) -> <Self as Project<B>>::Output where Self: Project<B>
     {
         Project::project(self, b)
     }
+
+    #[doc = rej_doc!()]
     #[inline(always)]
     pub fn reject<B>(&self, b: B) -> <Self as Reject<B>>::Output where Self: Reject<B>
     {
@@ -284,21 +303,25 @@ impl<T:AllocSimpleBlade<N,G>, N:Dim, G:Dim> Blade<T,N,G> {
 
 impl<T:AllocBlade<N,G>, N:Dim, G:Dim> SimpleBlade<T,N,G> {
 
+    /// Divides `self` by its norm
     pub fn normalize(self) -> UnitBlade<T,N,G> where T: RefRealField
     {
         self.data.normalize().into_unit_unchecked()
     }
 
+    /// Divides `self` by its norm if it is non-zero
     pub fn try_normalize(self) -> Option<UnitBlade<T,N,G>> where T: RefRealField {
         self.data.try_normalize().map(|b| b.into_unit_unchecked())
     }
 
+    /// Normalizes `self` and returns its norm and its normalization
     pub fn norm_and_normalize(self) -> (T, UnitBlade<T,N,G>) where T: RefRealField
     {
         let (l, b) = self.data.norm_and_normalize();
         (l, b.into_unit_unchecked())
     }
 
+    /// Normalizes `self` and returns its norm and its normalization if the norm is non-zero
     pub fn try_norm_and_normalize(self) -> Option<(T, UnitBlade<T,N,G>)> where T: RefRealField
     {
         match self.data.try_norm_and_normalize() {
@@ -307,12 +330,14 @@ impl<T:AllocBlade<N,G>, N:Dim, G:Dim> SimpleBlade<T,N,G> {
         }
     }
 
+    #[doc = proj_doc!()]
     #[inline(always)]
     pub fn project<B>(&self, b: B) -> <Self as Project<B>>::Output where Self: Project<B>
     {
         Project::project(self, b)
     }
 
+    #[doc = rej_doc!()]
     #[inline(always)]
     pub fn reject<B>(&self, b: B) -> <Self as Reject<B>>::Output where Self: Reject<B>
     {
@@ -323,6 +348,7 @@ impl<T:AllocBlade<N,G>, N:Dim, G:Dim> SimpleBlade<T,N,G> {
 
 impl<T:AllocBlade<N,G>, N:Dim, G:Dim> UnitBlade<T,N,G> {
 
+    #[doc = proj_doc!()]
     #[inline(always)]
     pub fn project<B>(&self, b: B) -> <Self as Project<B>>::Output where Self: Project<B>
     {

@@ -6,14 +6,17 @@ use super::*;
 
 impl<T:AllocBlade<N1,G>+Zero, N1:Dim, G:Dim> SimpleBlade<T,N1,G> {
 
+    #[doc = cast_dim_doc!()]
     pub fn cast_dim_generic<N2:Dim>(self, n:N2) -> SimpleBlade<T,N2,G> where T:AllocBlade<N2,G> {
         SimpleBlade::from_inner_unchecked(self.into_inner().cast_dim_generic(n))
     }
 
+    #[doc = cast_dim_doc!()]
     pub fn cast_dim_dyn(self, n:usize) -> SimpleBlade<T,Dynamic,G> where T:AllocBlade<Dynamic,G> {
         SimpleBlade::from_inner_unchecked(self.into_inner().cast_dim_dyn(n))
     }
 
+    #[doc = cast_dim_doc!()]
     pub fn cast_dim<N2:DimName>(self) -> SimpleBlade<T,N2,G> where T:AllocBlade<N2,G> {
         SimpleBlade::from_inner_unchecked(self.into_inner().cast_dim())
     }
@@ -24,24 +27,28 @@ macro_rules! impl_dim_cast {
     ($Ty:ident<T:$Alloc:ident,$N1:ident $(, $N:ident)*> -> $N2:ident) => {
         impl<T:$Alloc<$N1 $(,$N)*>+Zero, $N1:Dim $(, $N:Dim)*> $Ty<T, $N1 $(,$N)*> {
 
+            #[doc = cast_dim_doc!()]
             pub fn cast_dim_generic_unchecked<N2:Dim>(self, n:N2) -> $Ty<T, $N2 $(,$N)*> where
                 T:$Alloc<$N2 $(,$N)*>
             {
                 $Ty::from_inner_unchecked(self.into_inner().cast_dim_generic(n))
             }
 
+            #[doc = cast_dim_doc!()]
             pub fn cast_dim_dyn_unchecked(self, n:usize) -> $Ty<T, Dynamic $(,$N)*> where
                 T:$Alloc<Dynamic $(,$N)*>
             {
                 $Ty::from_inner_unchecked(self.into_inner().cast_dim_dyn(n))
             }
 
+            #[doc = cast_dim_doc!()]
             pub fn cast_dim_unchecked<N2:DimName>(self) -> $Ty<T, $N2 $(,$N)*> where
                 T:$Alloc<$N2 $(,$N)*>
             {
                 $Ty::from_inner_unchecked(self.into_inner().cast_dim())
             }
 
+            #[doc = cast_dim_doc!()]
             pub fn cast_dim<N2:DimName>(self) -> $Ty<T, $N2 $(,$N)*> where
                 T:$Alloc<$N2 $(,$N)*>,
                 N1:IsLessOrEqual<N2,Output=True>
@@ -165,6 +172,7 @@ impl<T:AllocOdd<N>, N:Dim> Reflector<T,N> {
 
 impl<T:AllocVersor<N>, N:Dim> Versor<T,N> {
 
+    /// Returns `true` if `self` is an even versor
     pub fn even(&self) -> bool {
         match self {
             Versor::Even(_) => true,
@@ -172,6 +180,7 @@ impl<T:AllocVersor<N>, N:Dim> Versor<T,N> {
         }
     }
 
+    /// Converts `self` into a `Rotor` if even and returns `None` otherwise
     pub fn try_into_even(self) -> Option<Rotor<T,N>> {
         match self {
             Versor::Even(x) => Some(x),
@@ -179,6 +188,7 @@ impl<T:AllocVersor<N>, N:Dim> Versor<T,N> {
         }
     }
 
+    /// Converts `self` into a `Rotor` if even and panics otherwise
     pub fn unwrap_even(self) -> Rotor<T,N> {
         match self {
             Versor::Even(x) => x,
@@ -186,6 +196,7 @@ impl<T:AllocVersor<N>, N:Dim> Versor<T,N> {
         }
     }
 
+    /// Returns `true` if `self` is an odd versor
     pub fn odd(&self) -> bool {
         match self {
             Versor::Even(_) => false,
@@ -193,6 +204,8 @@ impl<T:AllocVersor<N>, N:Dim> Versor<T,N> {
         }
     }
 
+
+    /// Converts `self` into a `Reflector` if odd and returns `None` otherwise
     pub fn try_into_odd(self) -> Option<Reflector<T,N>> {
         match self {
             Versor::Even(_) => None,
@@ -200,6 +213,7 @@ impl<T:AllocVersor<N>, N:Dim> Versor<T,N> {
         }
     }
 
+    /// Converts `self` into a `Reflector` if odd and panics otherwise
     pub fn unwrap_odd(self) -> Reflector<T,N> {
         match self {
             Versor::Even(_) => panic!("Attempted to unwrap an even versor into a Reflector"),
@@ -230,10 +244,12 @@ impl<T:AllocBlade<N,G>, N:Dim, G:Dim> SimpleBlade<T,N,G> where
     T:AllocBlade<N,DimDiff<N,G>> + Neg<Output=T>
 {
 
+    /// Finds the dual of this simple blade. See [`Blade::dual()`] for more information
     pub fn dual(self) -> SimpleDualBlade<T,N,G> {
         self.into_inner().dual().into_simple_unchecked()
     }
 
+    /// Finds the inverse dual of this simple blade. See [`Blade::undual()`] for more information
     pub fn undual(self) -> SimpleDualBlade<T,N,G> {
         self.into_inner().undual().into_simple_unchecked()
     }
@@ -245,10 +261,12 @@ impl<T:AllocBlade<N,G>, N:Dim, G:Dim> UnitBlade<T,N,G> where
     T:AllocBlade<N,DimDiff<N,G>> + Neg<Output=T>
 {
 
+    /// Finds the dual of this unit blade. See [`Blade::dual()`] for more information
     pub fn dual(self) -> UnitDualBlade<T,N,G> {
         self.into_inner().dual().into_unit_unchecked()
     }
 
+    /// Finds the inverse dual of this unit blade. See [`Blade::undual()`] for more information
     pub fn undual(self) -> UnitDualBlade<T,N,G> {
         self.into_inner().undual().into_unit_unchecked()
     }

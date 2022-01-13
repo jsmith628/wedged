@@ -162,7 +162,7 @@ pub type HexVec6<T> = HexVecN<T,U6>;
 ///A hexavector with dynamic dimension
 pub type HexVecD<T> = HexVecN<T,Dynamic>;
 
-
+///An n-dimensional blade of grade `N-G`
 pub type DualBlade<T,N,G> = Blade<T,N,DimDiff<N,G>>;
 
 ///
