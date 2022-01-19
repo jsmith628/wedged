@@ -416,6 +416,12 @@ where
 //TODO: when we have specialization, we'll use this to impl optimized varients for each
 //statically sized type instead of using if statements in mul_selected
 
+///
+/// For multiplying two elements of geometric algebra while selecting only certain components
+///
+/// This can be helpful in situations where it is mathematically known that the product would fit
+/// in a particular type, but it is not provable to the compiler.
+///
 pub trait SelectedGeometricMul<Rhs>: Sized {
     type OutputScalar;
     type N: Dim;
@@ -444,34 +450,40 @@ pub trait SelectedGeometricMul<Rhs>: Sized {
 
 }
 
-pub trait SelectedVersorMul<Rhs>: Sized {
-
-    type OutputScalar;
-    type N: Dim;
-
-    fn versor_mul_grade_generic<G:Dim>(self, rhs: Rhs, g:G) -> Blade<Self::OutputScalar, Self::N, G>
-    where Self::OutputScalar: AllocBlade<Self::N, G>;
-
-    fn versor_mul_dyn_grade(self, rhs: Rhs, g:usize) -> Blade<Self::OutputScalar, Self::N, Dynamic>
-    where Self::OutputScalar: AllocBlade<Self::N, Dynamic> {
-        self.versor_mul_grade_generic(rhs, Dynamic::new(g))
-    }
-
-    fn versor_mul_grade<G:DimName>(self, rhs: Rhs) -> Blade<Self::OutputScalar, Self::N, G>
-    where Self::OutputScalar: AllocBlade<Self::N, G> {
-        self.versor_mul_grade_generic(rhs, G::name())
-    }
-
-    fn versor_mul_even(self, rhs: Rhs) -> Even<Self::OutputScalar, Self::N>
-    where Self::OutputScalar: AllocEven<Self::N>;
-
-    fn versor_mul_odd(self, rhs: Rhs) -> Odd<Self::OutputScalar, Self::N>
-    where Self::OutputScalar: AllocOdd<Self::N>;
-
-    fn versor_mul_full(self, rhs: Rhs) -> Multivector<Self::OutputScalar, Self::N>
-    where Self::OutputScalar: AllocMultivector<Self::N>;
-
-}
+// ///
+// /// For applying a versor to an object while selecting only certain components
+// ///
+// /// This can be helpful in situations where it is mathematically known that the product would fit
+// /// in a particular type, but it is not provable to the compiler.
+// ///
+// pub trait SelectedVersorMul<Rhs>: Sized {
+//
+//     type OutputScalar;
+//     type N: Dim;
+//
+//     fn versor_mul_grade_generic<G:Dim>(self, rhs: Rhs, g:G) -> Blade<Self::OutputScalar, Self::N, G>
+//     where Self::OutputScalar: AllocBlade<Self::N, G>;
+//
+//     fn versor_mul_dyn_grade(self, rhs: Rhs, g:usize) -> Blade<Self::OutputScalar, Self::N, Dynamic>
+//     where Self::OutputScalar: AllocBlade<Self::N, Dynamic> {
+//         self.versor_mul_grade_generic(rhs, Dynamic::new(g))
+//     }
+//
+//     fn versor_mul_grade<G:DimName>(self, rhs: Rhs) -> Blade<Self::OutputScalar, Self::N, G>
+//     where Self::OutputScalar: AllocBlade<Self::N, G> {
+//         self.versor_mul_grade_generic(rhs, G::name())
+//     }
+//
+//     fn versor_mul_even(self, rhs: Rhs) -> Even<Self::OutputScalar, Self::N>
+//     where Self::OutputScalar: AllocEven<Self::N>;
+//
+//     fn versor_mul_odd(self, rhs: Rhs) -> Odd<Self::OutputScalar, Self::N>
+//     where Self::OutputScalar: AllocOdd<Self::N>;
+//
+//     fn versor_mul_full(self, rhs: Rhs) -> Multivector<Self::OutputScalar, Self::N>
+//     where Self::OutputScalar: AllocMultivector<Self::N>;
+//
+// }
 
 
 macro_rules! impl_geometric_mul {
@@ -596,92 +608,92 @@ impl_geometric_mul!(
 
 );
 
-macro_rules! impl_versor_mul {
-
-    () => {};
-
-    (
-        @impl
-        $(&$a:lifetime)? $Ty1:ident<T:$Alloc1:ident $(, $G1:ident)*>
-        $(&$b:lifetime)? $Ty2:ident<T:$Alloc2:ident $(, $G2:ident)*>;
-        $($rest:tt)*
-    ) => {
-        impl<$($a, )? $($b, )? T1, T2, U, N:Dim $(, $G1:Dim)* $(, $G2:Dim)*>
-        SelectedVersorMul<$(&$b)? $Ty2<T2,N $(,$G2)*>> for $(&$a)? $Ty1<T1,N $(,$G1)*> where
-            T1: $Alloc1<N $(, $G1)*> + AllRefMul<T2, AllOutput=U>,
-            T2: $Alloc2<N $(, $G2)*>,
-            U: for<'c> Mul<&'c T1, Output=U> + AddGroup,
-        {
-            type OutputScalar = U;
-            type N = N;
-
-            fn versor_mul_grade_generic<G:Dim>(
-                self, rhs: $(&$b)? $Ty2<T2,N $(,$G2)*>, g:G
-            ) -> Blade<U, N, G>
-            where U: AllocBlade<Self::N, G>
-            {
-                let shape = (self.dim_generic(), g);
-                versor_mul_selected(self.odd(), self, rhs, shape)
-            }
-
-            fn versor_mul_even(self, rhs: $(&$b)? $Ty2<T2,N $(,$G2)*>) -> Even<U, N>
-            where U: AllocEven<N>
-            {
-                let n = self.dim_generic();
-                versor_mul_selected(self.odd(), self, rhs, n)
-            }
-
-            fn versor_mul_odd(self, rhs: $(&$b)? $Ty2<T2,N $(,$G2)*>) -> Odd<U, N>
-            where U: AllocOdd<N>
-            {
-                let n = self.dim_generic();
-                versor_mul_selected(self.odd(), self, rhs, n)
-            }
-
-            fn versor_mul_full(self, rhs: $(&$b)? $Ty2<T2,N $(,$G2)*>) -> Multivector<U, N>
-            where U: AllocMultivector<N>
-            {
-                let n = self.dim_generic();
-                versor_mul_selected(self.odd(), self, rhs, n)
-            }
-
-        }
-    };
-
-    (
-        $Ty1:ident<T:$Alloc1:ident $(, $G1:ident)*>
-        $Ty2:ident<T:$Alloc2:ident $(, $G2:ident)*>;
-        $($rest:tt)*
-    ) => {
-        impl_versor_mul!(
-            @impl     $Ty1<T:$Alloc1 $(, $G1)*>     $Ty2<T:$Alloc2 $(, $G2)*>;
-            @impl &'a $Ty1<T:$Alloc1 $(, $G1)*>     $Ty2<T:$Alloc2 $(, $G2)*>;
-            @impl     $Ty1<T:$Alloc1 $(, $G1)*> &'a $Ty2<T:$Alloc2 $(, $G2)*> ;
-            @impl &'a $Ty1<T:$Alloc1 $(, $G1)*> &'b $Ty2<T:$Alloc2 $(, $G2)*>;
-            $($rest)*
-        );
-    };
-}
-
-impl_versor_mul!(
-
-    Blade<T:AllocBlade,G1>  Blade<T:AllocBlade,G2>;
-    Blade<T:AllocBlade,G1>  Even<T:AllocEven>;
-    Blade<T:AllocBlade,G1>  Odd<T:AllocOdd>;
-    Blade<T:AllocBlade,G1>  Multivector<T:AllocMultivector>;
-
-    Even<T:AllocEven>  Blade<T:AllocBlade,G2>;
-    Even<T:AllocEven>  Even<T:AllocEven>;
-    Even<T:AllocEven>  Odd<T:AllocOdd>;
-    Even<T:AllocEven>  Multivector<T:AllocMultivector>;
-
-    Odd<T:AllocOdd>  Blade<T:AllocBlade,G2>;
-    Odd<T:AllocOdd>  Even<T:AllocEven>;
-    Odd<T:AllocOdd>  Odd<T:AllocOdd>;
-    Odd<T:AllocOdd>  Multivector<T:AllocMultivector>;
-
-
-);
+// macro_rules! impl_versor_mul {
+//
+//     () => {};
+//
+//     (
+//         @impl
+//         $(&$a:lifetime)? $Ty1:ident<T:$Alloc1:ident $(, $G1:ident)*>
+//         $(&$b:lifetime)? $Ty2:ident<T:$Alloc2:ident $(, $G2:ident)*>;
+//         $($rest:tt)*
+//     ) => {
+//         impl<$($a, )? $($b, )? T1, T2, U, N:Dim $(, $G1:Dim)* $(, $G2:Dim)*>
+//         SelectedVersorMul<$(&$b)? $Ty2<T2,N $(,$G2)*>> for $(&$a)? $Ty1<T1,N $(,$G1)*> where
+//             T1: $Alloc1<N $(, $G1)*> + AllRefMul<T2, AllOutput=U>,
+//             T2: $Alloc2<N $(, $G2)*>,
+//             U: for<'c> Mul<&'c T1, Output=U> + AddGroup,
+//         {
+//             type OutputScalar = U;
+//             type N = N;
+//
+//             fn versor_mul_grade_generic<G:Dim>(
+//                 self, rhs: $(&$b)? $Ty2<T2,N $(,$G2)*>, g:G
+//             ) -> Blade<U, N, G>
+//             where U: AllocBlade<Self::N, G>
+//             {
+//                 let shape = (self.dim_generic(), g);
+//                 versor_mul_selected(self.odd(), self, rhs, shape)
+//             }
+//
+//             fn versor_mul_even(self, rhs: $(&$b)? $Ty2<T2,N $(,$G2)*>) -> Even<U, N>
+//             where U: AllocEven<N>
+//             {
+//                 let n = self.dim_generic();
+//                 versor_mul_selected(self.odd(), self, rhs, n)
+//             }
+//
+//             fn versor_mul_odd(self, rhs: $(&$b)? $Ty2<T2,N $(,$G2)*>) -> Odd<U, N>
+//             where U: AllocOdd<N>
+//             {
+//                 let n = self.dim_generic();
+//                 versor_mul_selected(self.odd(), self, rhs, n)
+//             }
+//
+//             fn versor_mul_full(self, rhs: $(&$b)? $Ty2<T2,N $(,$G2)*>) -> Multivector<U, N>
+//             where U: AllocMultivector<N>
+//             {
+//                 let n = self.dim_generic();
+//                 versor_mul_selected(self.odd(), self, rhs, n)
+//             }
+//
+//         }
+//     };
+//
+//     (
+//         $Ty1:ident<T:$Alloc1:ident $(, $G1:ident)*>
+//         $Ty2:ident<T:$Alloc2:ident $(, $G2:ident)*>;
+//         $($rest:tt)*
+//     ) => {
+//         impl_versor_mul!(
+//             @impl     $Ty1<T:$Alloc1 $(, $G1)*>     $Ty2<T:$Alloc2 $(, $G2)*>;
+//             @impl &'a $Ty1<T:$Alloc1 $(, $G1)*>     $Ty2<T:$Alloc2 $(, $G2)*>;
+//             @impl     $Ty1<T:$Alloc1 $(, $G1)*> &'a $Ty2<T:$Alloc2 $(, $G2)*> ;
+//             @impl &'a $Ty1<T:$Alloc1 $(, $G1)*> &'b $Ty2<T:$Alloc2 $(, $G2)*>;
+//             $($rest)*
+//         );
+//     };
+// }
+//
+// impl_versor_mul!(
+//
+//     Blade<T:AllocBlade,G1>  Blade<T:AllocBlade,G2>;
+//     Blade<T:AllocBlade,G1>  Even<T:AllocEven>;
+//     Blade<T:AllocBlade,G1>  Odd<T:AllocOdd>;
+//     Blade<T:AllocBlade,G1>  Multivector<T:AllocMultivector>;
+//
+//     Even<T:AllocEven>  Blade<T:AllocBlade,G2>;
+//     Even<T:AllocEven>  Even<T:AllocEven>;
+//     Even<T:AllocEven>  Odd<T:AllocOdd>;
+//     Even<T:AllocEven>  Multivector<T:AllocMultivector>;
+//
+//     Odd<T:AllocOdd>  Blade<T:AllocBlade,G2>;
+//     Odd<T:AllocOdd>  Even<T:AllocEven>;
+//     Odd<T:AllocOdd>  Odd<T:AllocOdd>;
+//     Odd<T:AllocOdd>  Multivector<T:AllocMultivector>;
+//
+//
+// );
 
 macro_rules! impl_wedge_dot {
     ($($a:lifetime)?; $($b:lifetime)?) => {

@@ -70,25 +70,25 @@ pub type Iter<'a, T> = std::slice::Iter<'a, T>;
 /// An iterator of mutable references of each element
 pub type IterMut<'a, T> = std::slice::IterMut<'a, T>;
 
-/// A general element of a particular dimension and grade
+/// An element of a particular dimension and grade
 #[repr(transparent)]
 pub struct Blade<T:AllocBlade<N,G>, N:Dim, G:Dim> {
     pub data: AllocateBlade<T,N,G>
 }
 
-/// A general element with all even components in the given dimension
+/// An element in the given dimension with all even components
 #[repr(transparent)]
 pub struct Even<T:AllocEven<N>, N:Dim> {
     pub data: AllocateEven<T,N>
 }
 
-/// A general element with all odd components in the given dimension
+/// An element in the given dimension with all odd components
 #[repr(transparent)]
 pub struct Odd<T:AllocOdd<N>, N:Dim> {
     pub data: AllocateOdd<T,N>
 }
 
-/// A general element in the geometric algebra in the given dimension
+/// A general element in the given dimension
 #[repr(transparent)]
 pub struct Multivector<T:AllocMultivector<N>, N:Dim> {
     pub data: AllocateMultivector<T,N>
