@@ -57,7 +57,9 @@ macro_rules! impl_zero_basis_constructors {
             $expr
         }
 
-        /// Returns the `i`th basis element or panics if `i` is out of range
+        /// Uses a generic shape to returns an element where the `i`th value is one and the rest are zeroes
+        ///
+        /// Panics if `i` is out of range
         pub fn basis_generic($($n: $N, )* i: usize) -> Self where T:Zero+One {
             let mut basis = Self::zeroed_generic($($n),*);
             basis.data[i] = T::one();
@@ -102,6 +104,7 @@ impl<T:AllocEven<N>, N:Dim> Even<T,N> {
     impl_generic_constructors!( pub fn new(n:N) -> Self { } );
     impl_zero_basis_constructors!( pub fn new(n:N) -> Self { } );
 
+    /// Uses a generic shape to construct the multiplicative identity
     pub fn one_generic(n: N) -> Self where T:One+Zero {
         Self::from_iter_generic(n, once_with(T::one).chain(repeat_with(T::zero)))
     }
@@ -117,6 +120,7 @@ impl<T:AllocMultivector<N>, N:Dim> Multivector<T,N> {
     impl_generic_constructors!( pub fn new(n:N) -> Self { } );
     impl_zero_basis_constructors!( pub fn new(n:N) -> Self { } );
 
+    /// Uses a generic shape to construct the multiplicative identity
     pub fn one_generic(n: N) -> Self where T:One+Zero {
         Self::from_iter_generic(n, once_with(T::one).chain(repeat_with(T::zero)))
     }
@@ -215,10 +219,50 @@ macro_rules! impl_general_constructors {
             Self::from_element_generic($($call)*, x)
         }
 
+        ///
+        /// Constructs an elements by cloning values from a slice
+        ///
+        /// Panics if not enough values are provided
+        ///
+        /// ```
+        /// # use galgebra::algebra::*;
+        ///
+        /// let values = [6, 2, 8, 3];
+        ///
+        /// let v1 = Vec4::from_slice(&values);
+        /// let v2 = VecD::from_slice(4, &values);
+        /// let q = Even3::from_slice(&values);
+        ///
+        /// assert_eq!(v1.as_slice(), &values);
+        /// assert_eq!(v2.as_slice(), &values);
+        /// assert_eq!(q.as_slice(), &values);
+        ///
+        /// ```
+        ///
         pub fn from_slice($($args: usize,)* data: &[T]) -> Self where T:Clone {
             Self::from_slice_generic($($call)*, data)
         }
 
+        ///
+        /// Constructs an elements by moving values from a `Vec`
+        ///
+        /// Panics if not enough values are provided
+        ///
+        /// ```
+        /// # use galgebra::algebra::*;
+        ///
+        /// let values = vec![6, 2, 8, 3];
+        ///
+        /// let v1 = Vec4::from_vec(values.clone());
+        /// let v2 = VecD::from_vec(4, values.clone());
+        /// let q = Even3::from_vec(values.clone());
+        ///
+        /// assert_eq!(v1.as_slice(), &*values);
+        /// assert_eq!(v2.as_slice(), &*values);
+        /// assert_eq!(q.as_slice(), &*values);
+        ///
+        /// ```
+        ///
         pub fn from_vec($($args: usize,)* data: Vec<T>) -> Self where T:Clone {
             Self::from_vec_generic($($call)*, data)
         }
@@ -253,6 +297,9 @@ macro_rules! impl_general_zero_basis_constructors {
             Self::zeroed_generic($($call)*)
         }
 
+        /// Returns an element where the `i`th value is one and the rest are zeroes
+        ///
+        /// Panics if `i` is out of range
         pub fn basis($($args: usize,)* i:usize) -> Self where T:Zero+One {
             Self::basis_generic($($call)*, i)
         }
@@ -307,6 +354,7 @@ impl<T:AllocEven<Dynamic>> EvenD<T> {
     impl_general_constructors!(n; Dynamic::new(n));
     impl_general_zero_basis_constructors!(n; Dynamic::new(n));
 
+    //Constructs the multiplicative identity element using a dynamic dimension
     pub fn one_dyn(n: usize) -> Self where T:One+Zero {
         Self::one_generic(Dynamic::new(n))
     }
@@ -335,6 +383,7 @@ impl<T:AllocMultivector<Dynamic>> MultivectorD<T> {
     impl_general_constructors!(n; Dynamic::new(n));
     impl_general_zero_basis_constructors!(n; Dynamic::new(n));
 
+    //Constructs the multiplicative identity element using a dynamic dimension
     pub fn one_dyn(n: usize) -> Self where T:One+Zero {
         Self::one_generic(Dynamic::new(n))
     }
