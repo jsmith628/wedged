@@ -71,7 +71,7 @@ pub type Reflector4<T> = Reflector<T,U4>;
 pub type Reflector5<T> = Reflector<T,U5>;
 ///A 6-dimensional reflector
 pub type Reflector6<T> = Reflector<T,U6>;
-///An reflector with dynamic dimension
+///A reflector with dynamic dimension
 pub type ReflectorD<T> = Reflector<T,Dynamic>;
 
 ///A 0-dimensional versor
@@ -278,14 +278,14 @@ pub type SimpleDualBlade<T,N,G> = SimpleBlade<T,N,DimDiff<N,G>>;
 //An N-dimension unit blade of grade `N-G`
 pub type UnitDualBlade<T,N,G> = UnitBlade<T,N,DimDiff<N,G>>;
 
-/// An N-dimensional psuedoscalar
+/// A N-dimensional psuedoscalar
 pub type SimplePsuedoScalar<T,N> = SimpleBlade<T,N,N>;
 
-/// An N-dimensional unit psuedoscalar
+/// A N-dimensional unit psuedoscalar
 pub type UnitPsuedoScalar<T,N> = UnitBlade<T,N,N>;
 
-/// An N-dimensional psuedovector
+/// A N-dimensional psuedovector
 pub type SimplePsuedoVecN<T,N> = SimpleBlade<T,N,DimNameDiff<N,U1>>;
 
-/// An N-dimensional unit psuedovector
+/// A N-dimensional unit psuedovector
 pub type UnitPsuedoVecN<T,N> = UnitBlade<T,N,DimNameDiff<N,U1>>;
