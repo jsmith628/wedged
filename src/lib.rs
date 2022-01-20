@@ -23,6 +23,50 @@ macro_rules! cast_dim_doc {
     }
 }
 
+macro_rules! new_docs {
+    //starts the loop
+    ($ty:ident::new($($arg:ident),*);) => { new_docs!(@vals 0 $($arg)*; $ty) };
+
+    //picks out the numbers that will be used in the doc test
+    (@vals 0  $arg:ident $($tt:tt)*) => { new_docs!(@vals 1  $($tt)* $arg 6) };
+    (@vals 1  $arg:ident $($tt:tt)*) => { new_docs!(@vals 2  $($tt)* $arg 2) };
+    (@vals 2  $arg:ident $($tt:tt)*) => { new_docs!(@vals 3  $($tt)* $arg 8) };
+    (@vals 3  $arg:ident $($tt:tt)*) => { new_docs!(@vals 4  $($tt)* $arg 3) };
+    (@vals 4  $arg:ident $($tt:tt)*) => { new_docs!(@vals 5  $($tt)* $arg 1) };
+    (@vals 5  $arg:ident $($tt:tt)*) => { new_docs!(@vals 6  $($tt)* $arg 8) };
+    (@vals 6  $arg:ident $($tt:tt)*) => { new_docs!(@vals 7  $($tt)* $arg 5) };
+    (@vals 7  $arg:ident $($tt:tt)*) => { new_docs!(@vals 8  $($tt)* $arg 3) };
+    (@vals 8  $arg:ident $($tt:tt)*) => { new_docs!(@vals 9  $($tt)* $arg 0) };
+    (@vals 9  $arg:ident $($tt:tt)*) => { new_docs!(@vals 10 $($tt)* $arg 7) };
+    (@vals 10 $arg:ident $($tt:tt)*) => { new_docs!(@vals 11 $($tt)* $arg 1) };
+    (@vals 11 $arg:ident $($tt:tt)*) => { new_docs!(@vals 12 $($tt)* $arg 7) };
+    (@vals 12 $arg:ident $($tt:tt)*) => { new_docs!(@vals 13 $($tt)* $arg 9) };
+    (@vals 13 $arg:ident $($tt:tt)*) => { new_docs!(@vals 14 $($tt)* $arg 5) };
+    (@vals 14 $arg:ident $($tt:tt)*) => { new_docs!(@vals 15 $($tt)* $arg 8) };
+    (@vals 15 $arg:ident $($tt:tt)*) => { new_docs!(@vals 16 $($tt)* $arg 6) };
+    (@vals 16 $arg:ident $($tt:tt)*) => { new_docs!(@vals 17 $($tt)* $arg 4) };
+    (@vals 17 $arg:ident $($tt:tt)*) => { new_docs!(@vals 18 $($tt)* $arg 7) };
+    (@vals 18 $arg:ident $($tt:tt)*) => { new_docs!(@vals 19 $($tt)* $arg 6) };
+    (@vals 19 $arg:ident $($tt:tt)*) => { new_docs!(@vals 20 $($tt)* $arg 9) };
+
+    //creates the function at the end of the vals loop
+    (@vals $n:literal; $ty:ident $($arg:ident $val:literal)*) => {
+        concat!(
+            //yes, this is kinda gross, but it *does* work
+            "Constructs a [`", stringify!($ty), "`] directly from components\n",
+            "\n",
+            " # Examples\n",
+            "```\n",
+            " # use galgebra::algebra::*;\n",
+            "let arr = [", stringify!($($val),*), "];\n",
+            "let x = ", stringify!($ty), "::new(", stringify!($($val),*), ");\n",
+            "\n",
+            "assert_eq!(x.as_slice(), &arr);\n",
+            "```"
+        )
+    }
+}
+
 //Takes in normal rust code and quotes it but with a basic impl of trait aliases added
 macro_rules! auto {
 

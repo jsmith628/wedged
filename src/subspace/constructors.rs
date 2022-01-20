@@ -5,9 +5,7 @@ macro_rules! impl_specific_constructors {
     ($($ty:ident::new($($arg:ident),*);)*) => {
         $(
             impl<T> $ty<T> {
-                #[doc = concat!(
-                    "Constructs a [`", stringify!($ty), "`] directly from components"
-                )]
+                #[doc = new_docs!($ty::new($($arg),*);)]
                 pub const fn new($($arg: T),*) -> $ty<T> {
                     $ty { data: <Self as Deref>::Target::new($($arg),*) }
                 }
