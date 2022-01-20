@@ -1,3 +1,8 @@
+//!
+//! Structs interpreting geometric algebra as vector spaces and orthogal transformations
+//!
+//!
+//!
 
 use std::borrow::{Borrow, BorrowMut};
 use std::convert::{AsRef, AsMut};

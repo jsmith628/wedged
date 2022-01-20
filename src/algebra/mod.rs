@@ -1,5 +1,5 @@
 //!
-//! Contains the structs for the core algebra
+//! The structs for the core algebra
 //!
 //! # Design
 //!
