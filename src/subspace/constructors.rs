@@ -65,7 +65,7 @@ impl<T:AllocBlade<N,N>, N:DimName> SimplePsuedoScalar<T,N> {
     /// use galgebra::base::U3;
     ///
     /// let x = 6.2831;
-    /// let s = Blade::<_,U3>::new_psuedoscalar(x);
+    /// let s = SimpleBlade::<_,U3,U3>::new_psuedoscalar(x);
     ///
     /// assert_eq!(s.value, x);
     /// assert_eq!(s.grade(), 3);

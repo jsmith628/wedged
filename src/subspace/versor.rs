@@ -371,7 +371,7 @@ impl<T:AllocEven<U2>+RefRealField> Rotor3<T> {
 
     /// Returns the axis of rotation scaled by the angle of rotation
     pub fn get_scaled_axis(self) -> Vec3<T> {
-        self.get_plane_angle().map_or_else(|| Zero::zero(), |(d, a)| SimpleBiVec3::from(d).dual() * a)
+        self.get_plane_angle().map_or_else(|| Zero::zero(), |(d, a)| BiVec3::from(d).dual() * a)
     }
 
 }
