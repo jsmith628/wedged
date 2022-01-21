@@ -451,6 +451,18 @@ impl_new!{
 
 impl<T:AllocBlade<N,U0>, N:DimName> Scalar<T,N> {
 
+    /// Creates a new `Scalar` directly from its component
+    ///
+    /// ```
+    /// use galgebra::algebra::*;
+    /// use galgebra::base::U1;
+    ///
+    /// let x = 6.2831;
+    /// let s = Scalar::<_,U1>::new(x);
+    ///
+    /// assert_eq!(s.value, x);
+    /// ```
+    ///
     pub fn new(x:T) -> Self {
         Self::from_iterator(std::iter::once(x))
     }
@@ -459,10 +471,24 @@ impl<T:AllocBlade<N,U0>, N:DimName> Scalar<T,N> {
 
 impl<T:AllocBlade<N,N>, N:DimName> PsuedoScalar<T,N> {
 
+    /// Creates a psuedoscalar directly from its component
+    ///
+    /// ```
+    /// use galgebra::algebra::*;
+    /// use galgebra::base::U3;
+    ///
+    /// let x = 6.2831;
+    /// let s = Blade::<_,U3,U3>::new_psuedoscalar(x);
+    ///
+    /// assert_eq!(s.value, x);
+    /// assert_eq!(s.grade(), 3);
+    /// ```
+    ///
     pub fn new_psuedoscalar(x:T) -> Self {
         Self::from_iterator(std::iter::once(x))
     }
 
+    /// Returns the unit psuedoscalar in dimension `N`
     pub fn unit_psuedoscalar() -> Self where T:One {
         Self::from_iterator(repeat_with(|| T::one()))
     }
