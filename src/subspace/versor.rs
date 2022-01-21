@@ -596,17 +596,32 @@ impl<T:AllocBlade<N,U1>+RefRealField, N:Dim> UnitVecN<T, N> {
                 //ideally, we'd just do a simple multiplication, and this *does* work,
                 //but it requires an extra trait bound, so we're going to do the worse way
                 //(v1 * v2).unwrap_even()
-                v1.into_blade().mul_even(v2.into_blade()).into_rotor_unchecked()
+                v2.into_blade().mul_even(v1.into_blade()).into_rotor_unchecked()
             },
             None => {
                 //if the midpoint is zero, we know the vectors are 180deg apart (so the half angle is 90),
                 //but there are infinitely many solutions for the plane.
                 //hence... we just pick one!
 
-                //finally, we can even optimize this a bit since we know a 180deg rotation with a
-                //given plane is just that plane normalized.
-                //Thus, this is a 180deg rot around the first bivector basis
-                Even::basis_generic(n, 1).into_rotor_unchecked()
+                //now, in order to do this, we need a plane that includes the given vectors
+                //so we first find a basis vector that is not parallel, and then construct a plane
+                //going through it and v1
+
+                for i in 0..n.value() {
+
+                    //the way this is done is somewhat suboptimal, but it's kinda necessary
+                    //unless we want to add an T:Alloc<N,U2> bound to allow for using ^ instead
+                    let ei = Blade::basis_generic(n, v1.grade_generic(), i);
+                    let mut plane = v1.as_inner().mul_even(ei);
+                    plane[0] = T::zero();
+
+                    if let Some(plane) = plane.try_normalize() {
+                        return plane.into_rotor_unchecked();
+                    }
+                }
+
+                //as a special case if everything is broken:
+                panic!("Cannot find rotation between vectors in 1D")
             },
         }
 
@@ -769,6 +784,52 @@ mod tests {
         }
 
     }
+
+    #[test]
+    fn rot_to() {
+
+        for n in 2usize..=4 {
+
+            let s:usize = 3;
+
+            for k in 0..s.pow(2*n as u32) {
+
+                let mut k = k;
+
+                let mut v1 = VecD::zeroed(n);
+                for i in 0..n {
+                    let (q, r) = (k/s, k%s);
+                    v1[i] = r as f64 - (s-1) as f64/2.0;
+                    k = q;
+                }
+
+                let mut v2 = VecD::zeroed(n);
+                for i in 0..n {
+                    let (q, r) = (k/s, k%s);
+                    v2[i] = r as f64 - (s-1) as f64/2.0;
+                    k = q;
+                }
+
+                let rot1 = v1.clone().rot_to(v2.clone());
+                let rot2 = v2.clone().rot_to(v1.clone());
+
+                if v1.norm_sqrd() == 0.0 || v2.norm_sqrd() == 0.0 {
+                    assert_relative_eq!(rot1, Rotor::one_dyn(n));
+                    assert_relative_eq!(rot2, Rotor::one_dyn(n));
+                } else {
+                    assert_relative_eq!(v2.clone().normalize(), rot1.rot(&v1).normalize(), epsilon=1e-10);
+                    assert_relative_eq!(v1.clone().normalize(), rot2.rot(&v2).normalize(), epsilon=1e-10);
+                }
+
+            }
+
+
+        }
+
+
+
+    }
+
 
 
 
