@@ -4,9 +4,13 @@ use super::*;
 macro_rules! wrap_involute {
     ($($ref_mul:ident)? |$self:ident| $inv:expr) => {
 
+        /// Reverses the order of the vectors in each basis blade
         pub fn reverse(self) -> Self { Self { data: self.data.reverse() } }
+
+        /// Negates `self` of each component with an odd grade
         pub fn involute(self) -> Self { Self { data: self.data.involute() } }
 
+        /// The multiplicative inverse of this element
         pub fn inverse($self) -> Self
         $(where T: $ref_mul)?
         { $inv }
@@ -15,7 +19,7 @@ macro_rules! wrap_involute {
 }
 
 impl<T:AllocBlade<N,G>+Neg<Output=T>, N:Dim, G:Dim> SimpleBlade<T,N,G> {
-    wrap_involute!(RefComplexField |self| {let l=self.norm_sqrd(); self.reverse() / l} );
+    wrap_involute!(RefDivRing |self| {let l=self.norm_sqrd(); self.reverse() / l} );
 }
 
 impl<T:AllocBlade<N,G>+Neg<Output=T>, N:Dim, G:Dim> UnitBlade<T,N,G> { wrap_involute!(|self| self.reverse()); }
@@ -24,6 +28,9 @@ impl<T:AllocOdd<N>+Neg<Output=T>, N:Dim> Reflector<T,N> { wrap_involute!(|self| 
 
 impl<T:AllocVersor<N>+Neg<Output=T>, N:Dim> Versor<T,N> {
 
+    /// Reverses the order of the vectors in each basis blade
+    ///
+    /// Wraps [`Even::reverse()`] and [`Odd::reverse()`]
     pub fn reverse(self) -> Self {
         match self {
             Versor::Even(r) => Versor::Even(r.reverse()),
@@ -31,6 +38,9 @@ impl<T:AllocVersor<N>+Neg<Output=T>, N:Dim> Versor<T,N> {
         }
     }
 
+    /// Negates `self` if odd
+    ///
+    /// Wraps [`Even::involute()`] and [`Odd::involute()`]
     pub fn involute(self) -> Self {
         match self {
             Versor::Even(r) => Versor::Even(r.involute()),
@@ -38,6 +48,9 @@ impl<T:AllocVersor<N>+Neg<Output=T>, N:Dim> Versor<T,N> {
         }
     }
 
+    /// The multiplicative inverse of this element
+    ///
+    /// Wraps [`Even::inverse()`] and [`Odd::inverse()`]
     pub fn inverse(self) -> Self {
         match self {
             Versor::Even(r) => Versor::Even(r.inverse()),

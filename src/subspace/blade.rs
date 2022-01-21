@@ -314,14 +314,14 @@ impl<T:AllocBlade<N,G>, N:Dim, G:Dim> SimpleBlade<T,N,G> {
         self.data.try_normalize().map(|b| b.into_unit_unchecked())
     }
 
-    /// Normalizes `self` and returns its norm and its normalization
+    /// Normalizes `self` and returns its norm and normalization
     pub fn norm_and_normalize(self) -> (T, UnitBlade<T,N,G>) where T: RefRealField
     {
         let (l, b) = self.data.norm_and_normalize();
         (l, b.into_unit_unchecked())
     }
 
-    /// Normalizes `self` and returns its norm and its normalization if the norm is non-zero
+    /// Normalizes `self` and returns its norm and normalization if non-zero
     pub fn try_norm_and_normalize(self) -> Option<(T, UnitBlade<T,N,G>)> where T: RefRealField
     {
         match self.data.try_norm_and_normalize() {

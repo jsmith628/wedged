@@ -1,8 +1,6 @@
 //!
 //! The structs for the core algebra
 //!
-//! # Design
-//!
 //! Everything in this module is implemented purely algebraically and is maximally
 //! permittive of which operations are implemented and allowed.
 //!
@@ -25,7 +23,7 @@
 //! - [`Odd`]: represents an element with components of odd grade
 //! - [`Blade`]: represents an element with components of odd grade
 //!
-//! # Use case
+//! # Use cases
 //!
 //! The primary use purpose of this module is to provide the core algebra for the
 //! geometric interpretations and modules, but there are a few important additional use cases.

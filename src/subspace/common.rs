@@ -12,8 +12,23 @@ macro_rules! impl_common {
 
             impl<T:$Alloc<$($N),*>, $($N:Dim),*> $Ty<T,$($N),*> {
 
+                /// Unrwaps `self` into its internal [algebraic](galgebra::algebra) type
                 pub fn into_inner(self) -> $Target<T,$($N),*> { self.data }
+
+                /// Unrwaps `self` into a reference to its internal [algebraic](galgebra::algebra) type
                 pub fn as_inner(&self) -> &$Target<T,$($N),*> { &self.data }
+
+                ///
+                /// Creates a new value of `Self` from an internal [algebraic](galgebra::algebra) type
+                /// assuming that it satisfies all the guarrantees of this type
+                ///
+                /// # Safety
+                ///
+                /// This function is **not** marked `unsafe` since there is no way an invalid
+                /// argument could violate any of Rust's memory safety rules. *However*, caution
+                /// should still be taken since an invalid input can still dramatically break
+                /// many other functions of this type.
+                ///
                 pub fn from_inner_unchecked(b: $Target<T,$($N),*>) -> Self { Self { data: b } }
 
             }
@@ -208,10 +223,15 @@ impl_eq!(
 
 impl<T:AllocVersor<N>, N:Dim> Versor<T,N> {
 
+    /// The dimension of this `Versor`
     pub fn dim(&self) -> usize {
         self.dim_generic().value()
     }
 
+    ///
+    /// The dimension of this `Versor` as the generic type
+    ///
+    /// Useful for generic code that needs to support both static and [dynamic](Dynamic) dimensions
     pub fn dim_generic(&self) -> N {
         match self {
             Versor::Even(r) => r.dim_generic(),

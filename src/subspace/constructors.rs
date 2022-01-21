@@ -38,6 +38,18 @@ impl_specific_constructors!{
 
 impl<T:AllocBlade<N,U0>, N:DimName> SimpleScalar<T,N> {
 
+    /// Creates a new `SimpleScalar` directly from its component
+    ///
+    /// ```
+    /// use galgebra::subspace::*;
+    /// use galgebra::base::U1;
+    ///
+    /// let x = 6.2831;
+    /// let s = SimpleScalar::<_,U1>::new(x);
+    ///
+    /// assert_eq!(s.value, x);
+    /// ```
+    ///
     pub fn new(x:T) -> Self {
         Self::from_inner_unchecked(Scalar::new(x))
     }
@@ -46,10 +58,24 @@ impl<T:AllocBlade<N,U0>, N:DimName> SimpleScalar<T,N> {
 
 impl<T:AllocBlade<N,N>, N:DimName> SimplePsuedoScalar<T,N> {
 
+    /// Creates a psuedoscalar directly from its component
+    ///
+    /// ```
+    /// use galgebra::subspace::*;
+    /// use galgebra::base::U3;
+    ///
+    /// let x = 6.2831;
+    /// let s = Blade::<_,U3>::new_psuedoscalar(x);
+    ///
+    /// assert_eq!(s.value, x);
+    /// assert_eq!(s.grade(), 3);
+    /// ```
+    ///
     pub fn new_psuedoscalar(x:T) -> Self {
         Self::from_inner_unchecked(PsuedoScalar::new_psuedoscalar(x))
     }
 
+    /// Returns the unit psuedoscalar in dimension `N`
     pub fn unit_psuedoscalar() -> Self where T:One {
         Self::from_inner_unchecked(PsuedoScalar::unit_psuedoscalar())
     }
@@ -58,6 +84,7 @@ impl<T:AllocBlade<N,N>, N:DimName> SimplePsuedoScalar<T,N> {
 
 impl<T:AllocBlade<N,N>, N:DimName> UnitPsuedoScalar<T,N> {
 
+    /// Returns the unit psuedoscalar in dimension `N`
     pub fn unit_psuedoscalar() -> Self where T:One {
         Self::from_inner_unchecked(PsuedoScalar::unit_psuedoscalar())
     }

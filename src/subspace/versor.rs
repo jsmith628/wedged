@@ -5,6 +5,12 @@ use super::*;
 //Applying the versor operations
 //
 
+///
+/// Implemented on versor types in order to apply their transformation to various values
+///
+/// This is mainly intended as a driver for member fuctions of the different versor types
+/// (eg [`Rotor::rot()`], [`Versor::apply()`], etc) and not to be used on its own.
+///
 pub trait VersorMul<Rhs>: Sized {
     type Output;
     fn versor_mul(self, rhs: Rhs) -> Self::Output;
@@ -171,6 +177,7 @@ versor_mul_versor!(
 
 impl<T:AllocEven<N>, N:Dim> Rotor<T,N> {
 
+    /// Rotates the given input by self
     pub fn rot<'a,M>(&'a self, m:M) -> <&'a Self as VersorMul<M>>::Output where &'a Self: VersorMul<M> {
         self.versor_mul(m)
     }
@@ -184,6 +191,7 @@ impl<T:AllocEven<N>, N:Dim> Rotor<T,N> {
 
 impl<T:AllocEven<N>+RefRealField, N:Dim> Rotor<T,N> {
 
+    /// Creates a new `Rotor` rotating in the plane of the input and by the angle given by its [`norm`]
     pub fn from_scaled_plane(plane: SimpleBiVecN<T, N>) -> Self where
         T: AllocBlade<N,U2>
     {
@@ -191,6 +199,7 @@ impl<T:AllocEven<N>+RefRealField, N:Dim> Rotor<T,N> {
         (plane/two).exp()
     }
 
+    /// Creates a new `Rotor` that rotates in the given plane by the given angle
     pub fn from_plane_angle(plane: UnitBiVecN<T, N>, angle: T) -> Self where
         T: AllocBlade<N,U2>
     {
@@ -208,6 +217,23 @@ impl<T:AllocEven<N>+RefRealField, N:Dim> Rotor<T,N> {
 
     }
 
+    ///
+    /// Computes a [bivector](BiVecN) whos [exponential](BiVecN::exp_rotor) is `self`
+    ///
+    /// The result should be a bivector that is the sum of `floor(N/2)` simple bivectors
+    /// with directions and magnitudes corresponding to the planes and angles of the simple rotations
+    /// making up this `Rotor`.
+    ///
+    /// # Uniqueness
+    ///
+    /// As with other non-real logarithms, the result of this function is not unique:
+    ///  - As with complex logarithms, an angle of `2π` can always be added in the direction of
+    ///    the output to get a result with the same exponential.
+    ///  - When `self == -1` and `N >= 3`, there are infinitely many planes in which
+    ///    the rotation could have taken place, so an arbitrary choice is picked.
+    ///  - For isoclinic rotations (ie double rotations where both rotations have the same angle),
+    ///    the choice of rotation planes is also not unique, so again, an arbitrary choice is picked.
+    ///
     pub fn log(self) -> BiVecN<T,N> where T: AllocBlade<N,U2> {
         //oooooooh boy
 
@@ -247,10 +273,22 @@ impl<T:AllocEven<N>+RefRealField, N:Dim> Rotor<T,N> {
 
     }
 
+    ///
+    /// Raises this rotor to the power of a real number
+    ///
+    /// Geometrically, this scales the angles of rotation of this rotor by t.
+    ///
+    /// More concretely, this is calulated as `x^t == exp(t*log(x))`. As such,
+    /// whenever [`log()`](Rotor::log()) makes an arbitrary choice for the rotation plane,
+    /// this function does as well.
+    ///
     pub fn powf(self, t:T) -> Self where T:AllocBlade<N,U2> {
         (self.log() * t).exp_rotor()
     }
 
+    /// Smoothly interpolates the rotations of `self` and `other`
+    ///
+    /// Concretely, this is computed as `(other/self)^t * self`
     pub fn slerp(self, other: Self, t:T) -> Self where T:AllocBlade<N,U2> {
         //note that the ordering here is very important
         //the rotations are applied in order from right to left
@@ -260,6 +298,8 @@ impl<T:AllocEven<N>+RefRealField, N:Dim> Rotor<T,N> {
 }
 
 impl<T:AllocEven<U2>+RefRealField> Rotor2<T> {
+
+    /// Creates a 2D rotation from an angle
     pub fn from_angle(angle:T) -> Self
     {
         let two = T::one() + T::one();
@@ -267,10 +307,12 @@ impl<T:AllocEven<U2>+RefRealField> Rotor2<T> {
         Even2::new(c, s).into_rotor_unchecked()
     }
 
+    /// Returns *half* the angle of this `Rotor`'s rotation
     fn get_half_angle(&self) -> T where T:RefRealField {
         self.im.clone().atan2(self.re.clone())
     }
 
+    /// Returns the angle of this `Rotor`'s rotation
     pub fn get_angle(&self) -> T where T:RefRealField {
         self.get_half_angle() * (T::one() + T::one())
     }
@@ -278,12 +320,15 @@ impl<T:AllocEven<U2>+RefRealField> Rotor2<T> {
 }
 
 impl<T:AllocEven<U2>+RefRealField> Rotor3<T> {
+
+    /// Creates a 3D rotation about the given vector axis where the angle is the norm of the vector
     pub fn from_scaled_axis(scaled_axis: Vec3<T>) -> Self
     {
         //TODO: make sure this is actually undual and not dual
         Self::from_scaled_plane(scaled_axis.undual().into())
     }
 
+    /// Creates a 3D rotation about the given axis with the given angle
     pub fn from_axis_angle(axis:UnitVec3<T>, angle:T) -> Self
     {
         Self::from_plane_angle(axis.undual(), angle)
@@ -309,12 +354,24 @@ impl<T:AllocEven<U2>+RefRealField> Rotor3<T> {
         self.get_half_plane_angle().map_or_else(|| Zero::zero(), |(d, a)| SimpleBiVec3::from(d) * a)
     }
 
+    /// Returns the plane and angle of rotation or `None` if the angle is 0
     pub fn get_plane_angle(self) -> Option<(UnitBiVec3<T>, T)> {
         self.get_half_plane_angle().map(|(b,a)| (b, a*(T::one()+T::one())))
     }
 
+    /// Returns the plane of rotation scaled by the angle of rotation
     pub fn get_scaled_plane(self) -> SimpleBiVec3<T> {
         self.get_plane_angle().map_or_else(|| Zero::zero(), |(d, a)| SimpleBiVec3::from(d) * a)
+    }
+
+    /// Returns the axis and angle of rotation or `None` if the angle is 0
+    pub fn get_axis_angle(self) -> Option<(UnitVec3<T>, T)> {
+        self.get_half_plane_angle().map(|(b,a)| (b.dual(), a*(T::one()+T::one())))
+    }
+
+    /// Returns the axis of rotation scaled by the angle of rotation
+    pub fn get_scaled_axis(self) -> Vec3<T> {
+        self.get_plane_angle().map_or_else(|| Zero::zero(), |(d, a)| SimpleBiVec3::from(d).dual() * a)
     }
 
 }
@@ -462,6 +519,7 @@ impl<T:AllocEven<U2>+RefRealField> Rotor4<T> {
         )
     }
 
+    /// Returns both planes and both angles of rotation or `None` for either if they are 0
     pub fn get_plane_angles(self) -> (Option<(UnitBiVec4<T>, T)>, Option<(UnitBiVec4<T>, T)>) {
         let (x1, x2) = self.get_half_plane_angles();
         (
@@ -470,6 +528,7 @@ impl<T:AllocEven<U2>+RefRealField> Rotor4<T> {
         )
     }
 
+    /// Returns both planes of rotation scaled by their angles of rotation
     pub fn get_scaled_planes(self) -> (SimpleBiVec4<T>, SimpleBiVec4<T>) {
         let (x1, x2) = self.get_plane_angles();
         (
@@ -481,6 +540,16 @@ impl<T:AllocEven<U2>+RefRealField> Rotor4<T> {
 }
 
 impl<T:AllocBlade<N,U2>+RefRealField, N:Dim> SimpleBiVecN<T, N> {
+
+    ///
+    /// Computes the exponential of this bivector as a [`Rotor`]
+    ///
+    /// This will produce a `Rotor` that performs a simple rotation in the plane of `self`
+    /// by an angle **twice** the norm of `self`
+    ///
+    /// This is almost always faster than `[BiVecN::exp_rotor()]`, but can only result in
+    /// simple rotations.
+    ///
     pub fn exp(self) -> Rotor<T,N> where T:AllocEven<N> {
         self.into_inner().exp_even_simple().into_rotor_unchecked()
     }
@@ -571,14 +640,38 @@ impl<T:AllocBlade<N,U1>+RefRealField, N:Dim> VecN<T, N> {
 
 impl<T:AllocOdd<N>+Zero, N:Dim> Reflector<T,N> {
 
+    /// Creates a rotation about the hyperplane normal to the given vector
+    ///
+    /// Concretely, this produces a reflection that flips any components of blades *in* the direction
+    /// of the given vector.
+    ///
+    /// Same as [`Reflector::reflect_unit_normal()`], but performs an extra normalization step
+    /// which may be costly in certain contexts
+    ///
     pub fn reflect_normal(n: VecN<T,N>) -> Self where T:AllocBlade<N,U1>+RefRealField {
         n.normalize().into_odd().into_reflector_unchecked()
     }
 
+    /// Creates a rotation about the hyperplane normal to the given vector
+    ///
+    /// Concretely, this produces a reflection that flips any components of blades *in* the direction
+    /// of the given vector.
+    ///
+    /// Same as [`Reflector::reflect_normal()`], but avoids an extra normalization step
+    /// which may be costly in certain contexts
+    ///
     pub fn reflect_unit_normal(n: UnitVecN<T,N>) -> Self where T:AllocBlade<N,U1> {
         n.into_inner().into_odd().into_reflector_unchecked()
     }
 
+    /// Creates a rotation about the given hyperplane
+    ///
+    /// Concretely, this produces a reflection that flips any components of blades *perpendicular*
+    /// to the given hyperplane
+    ///
+    /// Same as [`Reflector::reflect_unit_hyperplane()`], but performs an extra normalization step
+    /// which may be costly in certain contexts
+    ///
     pub fn reflect_hyperplane<G:Dim>(plane: Blade<T,N,G>) -> Self where
         T: AllocBlade<N,G> + AllocBlade<N,U1> + RefRealField,
         N: DimSub<G,Output=U1>
@@ -586,6 +679,14 @@ impl<T:AllocOdd<N>+Zero, N:Dim> Reflector<T,N> {
         Self::reflect_normal(plane.dual())
     }
 
+    /// Creates a rotation about the given hyperplane
+    ///
+    /// Concretely, this produces a reflection that flips any components of blades *perpendicular*
+    /// to the given hyperplane
+    ///
+    /// Same as [`Reflector::reflect_unit_hyperplane()`], but avoids an extra normalization step
+    /// which may be costly in certain contexts
+    ///
     pub fn reflect_unit_hyperplane<G:Dim>(plane: UnitBlade<T,N,G>) -> Self where
         T: AllocBlade<N,G> + AllocBlade<N,U1> + ClosedNeg,
         N: DimSub<G,Output=U1>
