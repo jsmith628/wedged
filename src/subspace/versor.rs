@@ -742,31 +742,39 @@ mod tests {
 
     }
 
+    fn double_rot_iter(n:usize) -> impl ParallelIterator<Item=(usize,usize,f64,f64)> {
+        (0..binom(n,2)).into_par_iter()
+        .flat_map(|i| (0..=i).into_par_iter().map(move |j| (i,j)))
+        .flat_map(|(i,j)| (-45i32..45).into_par_iter().map(move |a| (i,j,a)))
+        .flat_map(|(i,j,a)| (-45i32..45).into_par_iter().map(move |b| (i,j,a,b)))
+        .map(|(i,j,a,b)| (i,j, (8.0*a as f64).to_radians(), (8.0*b as f64).to_radians()))
+    }
+
+    // fn double_rot_iter(n:usize) -> impl Iterator<Item=(usize,usize,f64,f64)> {
+    //     (0..binom(n,2)).into_iter()
+    //     .flat_map(|i| (0..=i).into_iter().map(move |j| (i,j)))
+    //     .flat_map(|(i,j)| (-45i32..45).into_iter().map(move |a| (i,j,a)))
+    //     .flat_map(|(i,j,a)| (-45i32..45).into_iter().map(move |b| (i,j,a,b)))
+    //     .map(|(i,j,a,b)| (i,j, (8.0*a as f64).to_radians(), (8.0*b as f64).to_radians()))
+    // }
+
     #[test]
     fn double_rot_log() {
 
 
         for n in 0..=4 {
 
-            let iter = {
-                (0..binom(n,2)).into_par_iter()
-                .flat_map(|i| (0..=i).into_par_iter().map(move |j| (i,j)))
-                .flat_map(|(i,j)| (-45i32..45).into_par_iter().map(move |a| (i,j,a)))
-                .flat_map(|(i,j,a)| (-45i32..45).into_par_iter().map(move |b| (i,j,a,b)))
-            };
+            let iter = double_rot_iter(n);
 
             iter.for_each(
                 |(i,j,a,b)| {
-
-                    let a = 8.0*a as f64;
-                    let b = 8.0*b as f64;
 
                     // if a==b || -a==b || a%180.0==0.0 || b%180.0==0.0 { return; }
 
                     // println!("\ni={} j={} a={} b={}", i,j,a,b);
 
-                    let b1 = BiVecD::basis(n, i) * a.to_radians();
-                    let b2 = BiVecD::basis(n, j) * b.to_radians();
+                    let b1 = BiVecD::basis(n, i) * a;
+                    let b2 = BiVecD::basis(n, j) * b;
                     let b = b1 + b2;
 
                     let rot = b.clone().exp_rotor();
@@ -830,7 +838,39 @@ mod tests {
 
     }
 
+    #[test]
+    fn double_rot_sqrt() {
 
+        for n in 0..=4 {
+
+            let iter = double_rot_iter(n);
+
+            iter.for_each(
+                |(i,j,a,b)| {
+
+                    let b1 = BiVecD::basis(n, i) * a;
+                    let b2 = BiVecD::basis(n, j) * b;
+                    let b = &b1 + &b2;
+
+                    let rot = b.clone().exp_rotor();
+                    let sqrt1 = (b.clone()/2.0).exp_rotor();
+                    let sqrt2 = rot.clone().powf(0.5);
+
+                    let eps = 1024.0*f64::EPSILON;
+
+                    //We cannot directly compare sqrt1 and sqrt2 since they could differ by
+                    //a factor of `-1` or some other square root of unity
+
+                    assert_relative_eq!(&sqrt2*&sqrt2, rot, epsilon=eps);
+                    assert_relative_eq!(&sqrt1*&sqrt1, rot, epsilon=eps);
+
+                }
+            )
+
+        }
+
+
+    }
 
 
 }
