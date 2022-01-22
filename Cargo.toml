@@ -1,7 +1,16 @@
 [package]
+authors = ["Joshua Smith <jsmith62831@gmail.com>"]
 name = "galgebra"
+description = "A robust and generalized library for Geometric Algebra in Rust."
 version = "0.1.0"
-edition = "2018"
+edition = "2021"
+keywords = ["vector", "algebra", "geometry", "clifford", "grassmann"]
+categories = ["mathematics", "algorithms", "science", "game-development", "graphics"]
+repository = "https://github.com/jsmith628/galgebra"
+documentation = "https://docs.rs/galgebra"
+license = "Apache-2.0"
+license-file = "LICENSE"
+readme = "README.md"
 
 [dependencies]
 derivative = "^2.2"
