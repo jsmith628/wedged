@@ -16,6 +16,7 @@ extern crate nalgebra as na;
 //16D should work ok... a 16D multivector takes *only* 65K components, but if this takes
 //too much memory, we may need to lower it a little :/
 #[cfg(test)] pub(crate) const TEST_DIM: usize = 16;
+#[cfg(test)] pub(crate) const SHORT_TEST_DIM: usize = 6;
 
 macro_rules! cast_dim_doc {
     () => {

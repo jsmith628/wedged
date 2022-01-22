@@ -184,6 +184,24 @@ impl<T:AllocEven<N>, N:Dim> Rotor<T,N> {
 
 }
 
+impl<T:AllocOdd<N>, N:Dim> Reflector<T,N> {
+
+    /// Applies the reflection and rotations of self
+    pub fn apply<'a,M>(&'a self, m:M) -> <&'a Self as VersorMul<M>>::Output where &'a Self: VersorMul<M> {
+        self.versor_mul(m)
+    }
+
+}
+
+impl<T:AllocVersor<N>, N:Dim> Versor<T,N> {
+
+    /// Applies the reflection and rotations of self
+    pub fn apply<'a,M>(&'a self, m:M) -> <&'a Self as VersorMul<M>>::Output where &'a Self: VersorMul<M> {
+        self.versor_mul(m)
+    }
+
+}
+
 //
 //Constructions from bivectors / exp and log
 //
@@ -719,6 +737,8 @@ mod tests {
     use approx::*;
     use rayon::prelude::*;
 
+    use crate::SHORT_TEST_DIM;
+
     #[test]
     fn circle_fractions_2d() {
 
@@ -853,7 +873,7 @@ mod tests {
                     let b = &b1 + &b2;
 
                     let rot = b.clone().exp_rotor();
-                    let sqrt1 = (b.clone()/2.0).exp_rotor();
+                    let sqrt1 = (b/2.0).exp_rotor();
                     let sqrt2 = rot.clone().powf(0.5);
 
                     let eps = 1024.0*f64::EPSILON;
@@ -872,5 +892,49 @@ mod tests {
 
     }
 
+
+    #[test]
+    fn basis_reflection() {
+
+        for n in 0..=SHORT_TEST_DIM {
+
+            for i in 0..n {
+
+                //create a reflection about one of the axes
+                let normal = VecD::<f64>::basis(n, i);
+                let r = Reflector::reflect_normal(normal.clone());
+
+                //compute the input and output directly
+                let v1 = VecD::from_element(n, 1.0);
+                let v2 = VecD::from_index_fn(n, |j| if j==i {-1.0} else {1.0});
+
+
+                assert_eq!(r.apply(&v1), v2);
+
+            }
+
+        }
+
+        dim_name_test_loop!(
+            {U1 U2 U3 U4 U5 U6}
+            |$N| for i in 0..$N::dim() {
+
+                let normal = VecN::<f64, $N>::basis(i);
+                let plane = PsuedoVecN::<f64, $N>::basis(i);
+
+                let r1 = Reflector::reflect_normal(normal);
+                let r2 = Reflector::reflect_hyperplane(plane);
+
+                let v1 = VecN::<_,$N>::from_element(1.0);
+                let v2 = VecN::<_,$N>::from_index_fn(|j| if j==i {-1.0} else {1.0});
+
+                assert_eq!(r1, r2);
+                assert_eq!(r1.apply(&v1), v2);
+                assert_eq!(r2.apply(&v1), v2);
+
+            }
+        );
+
+    }
 
 }
