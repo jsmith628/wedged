@@ -40,7 +40,7 @@ impl<T:AllocVersor<N>+Neg<Output=T>, N:Dim> Versor<T,N> {
 
     /// Negates `self` if odd
     ///
-    /// Wraps [`Even::involute()`] and [`Odd::involute()`]
+    /// Wraps [`Rotor::involute()`] and [`Reflector::involute()`]
     pub fn involute(self) -> Self {
         match self {
             Versor::Even(r) => Versor::Even(r.involute()),
@@ -50,7 +50,7 @@ impl<T:AllocVersor<N>+Neg<Output=T>, N:Dim> Versor<T,N> {
 
     /// The multiplicative inverse of this element
     ///
-    /// Wraps [`Even::inverse()`] and [`Odd::inverse()`]
+    /// Wraps [`Rotor::inverse()`] and [`Reflector::inverse()`]
     pub fn inverse(self) -> Self {
         match self {
             Versor::Even(r) => Versor::Even(r.inverse()),

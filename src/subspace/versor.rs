@@ -306,12 +306,11 @@ impl<T:AllocVersor<N>, N:Dim> Versor<T,N> {
 //
 //Constructions from bivectors / exp and log
 //
-//
 
 impl<T:AllocEven<N>+RefRealField, N:Dim> Rotor<T,N> {
 
-    /// Creates a new `Rotor` rotating in the plane of the input and by the angle given by its [`norm`]
-    pub fn from_scaled_plane(plane: SimpleBiVecN<T, N>) -> Self where
+    /// Creates a new `Rotor` rotating in the plane of the input and by the angle given by its [`norm`](Blade::norm())
+    pub fn from_scaled_plane(plane: SimpleBiVecN<T,N>) -> Self where
         T: AllocBlade<N,U2>
     {
         let two = T::one() + T::one();
@@ -319,7 +318,7 @@ impl<T:AllocEven<N>+RefRealField, N:Dim> Rotor<T,N> {
     }
 
     /// Creates a new `Rotor` that rotates in the given plane by the given angle
-    pub fn from_plane_angle(plane: UnitBiVecN<T, N>, angle: T) -> Self where
+    pub fn from_plane_angle(plane: UnitBiVecN<T,N>, angle: T) -> Self where
         T: AllocBlade<N,U2>
     {
 

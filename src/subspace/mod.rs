@@ -2,7 +2,7 @@
 //! Structs for interpreting geometric algebra as vector spaces and orthogonal transformations
 //!
 //! This module aims to streamline the use of the algebra for geometric uses by adding additional
-//! constraints onto the types from [`galgebra::algebra`]. This is accomplished by wrapping the
+//! constraints onto the types from [`crate::algebra`]. This is accomplished by wrapping the
 //! algebraic types in additional structs where the allowed operations are much more limited.
 //!
 //! For example, in order to preserve the fact it represents a rotation, a [`Rotor`] cannot be

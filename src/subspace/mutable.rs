@@ -48,11 +48,11 @@ impl<T:AllocSimpleBlade<N,G>,N:Dim,G:Dim> From<Blade<T,N,G>> for SimpleBlade<T,N
 }
 
 impl<T:AllocSimpleBlade<N,G>,N:Dim,G:Dim> SimpleBlade<T,N,G> {
-    /// Unwraps `self` and a mutable reference of its inner [algebraic](galgebra::algebra) struct
+    /// Unwraps `self` and a mutable reference of its inner [algebraic](crate::algebra) struct
     pub fn as_inner_mut(&mut self) -> &mut Blade<T,N,G> { &mut self.data }
 
     /// Creates a new value of `Self` from its inner algebraic struct
     ///
-    /// Since `T:AllocSimpleBlade<N,G>`, this is guarranteed to satisfy all the preconditions of this type 
+    /// Since `T:AllocSimpleBlade<N,G>`, this is guarranteed to satisfy all the preconditions of this type
     pub fn from_inner(inner: Blade<T,N,G>) -> Self { Self { data: inner } }
 }

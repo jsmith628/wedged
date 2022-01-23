@@ -12,14 +12,14 @@ macro_rules! impl_common {
 
             impl<T:$Alloc<$($N),*>, $($N:Dim),*> $Ty<T,$($N),*> {
 
-                /// Unrwaps `self` into its internal [algebraic](galgebra::algebra) type
+                /// Unrwaps `self` into its internal [algebraic](crate::algebra) type
                 pub fn into_inner(self) -> $Target<T,$($N),*> { self.data }
 
-                /// Unrwaps `self` into a reference to its internal [algebraic](galgebra::algebra) type
+                /// Unrwaps `self` into a reference to its internal [algebraic](crate::algebra) type
                 pub fn as_inner(&self) -> &$Target<T,$($N),*> { &self.data }
 
                 ///
-                /// Creates a new value of `Self` from an internal [algebraic](galgebra::algebra) type
+                /// Creates a new value of `Self` from an internal [algebraic](crate::algebra) type
                 /// assuming that it satisfies all the guarrantees of this type
                 ///
                 /// # Safety
