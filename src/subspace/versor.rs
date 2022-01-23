@@ -91,6 +91,86 @@ impl_versor_mul!(
     Reflector<T1:AllocOdd,N> * Multivector<T2:AllocMultivector,N>;
 );
 
+macro_rules! impl_non_unit_versor_mul {
+
+    () => {};
+
+    (
+        @impl
+        $(&$a:lifetime)? $Ty1:ident<T1:$Alloc1:ident, N $(,$G1:ident)*> *
+        $(&$b:lifetime)? $Ty2:ident<T2:$Alloc2:ident, N $(,$G2:ident)*>
+        $({$($where:tt)*})?;
+        $($rest:tt)*
+    ) => {
+
+        impl<$($a,)? $($b,)? T1, T2, U, N:Dim $(, $G1:Dim)* $(, $G2:Dim)*>
+            VersorMul<$(&$b)? $Ty2<T2,N $(,$G2)?>> for $(&$a)? $Ty1<T1,N $(,$G1)?>
+        where
+            T1: $Alloc1<N $(,$G1)*> + AllRefMul<T2, AllOutput=U> + AllRefMul<T1, AllOutput=U>,
+            T2: $Alloc2<N $(,$G2)*>,
+            U: $Alloc2<N $(,$G2)*> + for<'c> Mul<&'c T1, Output=U> + AddGroup,
+            U: for<'c> Div<&'c U, Output=U>,
+            $($($where)*)?
+        {
+            type Output = $Ty2<U,N $(,$G2)?>;
+            fn versor_mul(self, rhs: $(&$b)? $Ty2<T2,N $(,$G2)?>) -> $Ty2<U,N $(,$G2)?> {
+                use crate::algebra::MultivectorSrc;
+                let shape = rhs.shape();
+                let norm_sqrd = self.norm_sqrd();
+
+                let mut res: Self::Output = versor_mul_selected(self.odd(), self, rhs, shape);
+                res = res.inv_scale(&norm_sqrd);
+                res
+            }
+        }
+
+        impl_non_unit_versor_mul!($($rest)*);
+
+    };
+
+    (
+        $Ty1:ident<T1:$Alloc1:ident, N $(,$G1:ident)*> *
+        $Ty2:ident<T2:$Alloc2:ident, N $(,$G2:ident)*>
+        $({$($where:tt)*})?;
+        $($rest:tt)*
+    ) => {
+        impl_non_unit_versor_mul!(
+            @impl     $Ty1<T1:$Alloc1, N $(,$G1)*> * $Ty2<T2:$Alloc2, N $(,$G2)*> $({$($where)*})?;
+            @impl &'a $Ty1<T1:$Alloc1, N $(,$G1)*> * $Ty2<T2:$Alloc2, N $(,$G2)*> $({$($where)*})?;
+            @impl     $Ty1<T1:$Alloc1, N $(,$G1)*> * &'b $Ty2<T2:$Alloc2, N $(,$G2)*> $({$($where)*})?;
+            @impl &'a $Ty1<T1:$Alloc1, N $(,$G1)*> * &'b $Ty2<T2:$Alloc2, N $(,$G2)*> $({$($where)*})?;
+            $($rest)*
+        );
+    }
+
+}
+
+impl_non_unit_versor_mul!(
+    Blade<T1:AllocSimpleBlade,N,G1> * Blade<T2:AllocBlade,N,G2>;
+    Blade<T1:AllocSimpleBlade,N,G1> * SimpleBlade<T2:AllocBlade,N,G2>;
+    Blade<T1:AllocSimpleBlade,N,G1> * Even<T2:AllocEven,N>;
+    Blade<T1:AllocSimpleBlade,N,G1> * Odd<T2:AllocOdd,N>;
+    Blade<T1:AllocSimpleBlade,N,G1> * Multivector<T2:AllocMultivector,N>;
+
+    SimpleBlade<T1:AllocBlade,N,G1> * Blade<T2:AllocBlade,N,G2>;
+    SimpleBlade<T1:AllocBlade,N,G1> * SimpleBlade<T2:AllocBlade,N,G2>;
+    SimpleBlade<T1:AllocBlade,N,G1> * Even<T2:AllocEven,N>;
+    SimpleBlade<T1:AllocBlade,N,G1> * Odd<T2:AllocOdd,N>;
+    SimpleBlade<T1:AllocBlade,N,G1> * Multivector<T2:AllocMultivector,N>;
+
+    Even<T1:AllocEven,N> * Blade<T2:AllocBlade,N,G2> {N:ToTypenum, AsTypenum<N>: IsLessOrEqual<U3,Output=True>};
+    Even<T1:AllocEven,N> * SimpleBlade<T2:AllocBlade,N,G2> {N:ToTypenum, AsTypenum<N>: IsLessOrEqual<U3,Output=True>};
+    Even<T1:AllocEven,N> * Even<T2:AllocEven,N> {N:ToTypenum, AsTypenum<N>: IsLessOrEqual<U3,Output=True>};
+    Even<T1:AllocEven,N> * Odd<T2:AllocOdd,N> {N:ToTypenum, AsTypenum<N>: IsLessOrEqual<U3,Output=True>};
+    Even<T1:AllocEven,N> * Multivector<T2:AllocMultivector,N> {N:ToTypenum, AsTypenum<N>: IsLessOrEqual<U3,Output=True>};
+
+    Odd<T1:AllocOdd,N> * Blade<T2:AllocBlade,N,G2> {N:ToTypenum, AsTypenum<N>: IsLessOrEqual<U3,Output=True>};
+    Odd<T1:AllocOdd,N> * SimpleBlade<T2:AllocBlade,N,G2> {N:ToTypenum, AsTypenum<N>: IsLessOrEqual<U3,Output=True>};
+    Odd<T1:AllocOdd,N> * Even<T2:AllocEven,N> {N:ToTypenum, AsTypenum<N>: IsLessOrEqual<U3,Output=True>};
+    Odd<T1:AllocOdd,N> * Odd<T2:AllocOdd,N> {N:ToTypenum, AsTypenum<N>: IsLessOrEqual<U3,Output=True>};
+    Odd<T1:AllocOdd,N> * Multivector<T2:AllocMultivector,N> {N:ToTypenum, AsTypenum<N>: IsLessOrEqual<U3,Output=True>};
+);
+
 macro_rules! versor_versor_mul {
 
     ($Ty:ident<T:$Alloc:ident, N $(,$G:ident)*>; $($a:lifetime)?; $($b:lifetime)?) => {
@@ -174,6 +254,27 @@ versor_mul_versor!(
     Reflector<T:AllocOdd,N>;
     Versor<T:AllocVersor,N>;
 );
+
+impl<T:AllocBlade<N, U1>, N:Dim> VecN<T,N> {
+    /// Reflects about `self`
+    pub fn reflect<'a,M>(&'a self, m:M) -> <&'a Self as VersorMul<M>>::Output where &'a Self: VersorMul<M> {
+        self.versor_mul(m)
+    }
+}
+
+impl<T:AllocBlade<N, U1>, N:Dim> SimpleVecN<T,N> {
+    /// Reflects about `self`
+    pub fn reflect<'a,M>(&'a self, m:M) -> <&'a Self as VersorMul<M>>::Output where &'a Self: VersorMul<M> {
+        self.versor_mul(m)
+    }
+}
+
+impl<T:AllocBlade<N, U1>, N:Dim> UnitVecN<T,N> {
+    /// Reflects about `self`
+    pub fn reflect<'a,M>(&'a self, m:M) -> <&'a Self as VersorMul<M>>::Output where &'a Self: VersorMul<M> {
+        self.versor_mul(m)
+    }
+}
 
 impl<T:AllocEven<N>, N:Dim> Rotor<T,N> {
 
@@ -901,15 +1002,16 @@ mod tests {
             for i in 0..n {
 
                 //create a reflection about one of the axes
-                let normal = VecD::<f64>::basis(n, i);
+                let normal = VecD::<f64>::basis(n, i)*2.0;
+                let unit_normal = normal.clone().into_simple().normalize();
                 let r = Reflector::reflect_normal(normal.clone());
 
                 //compute the input and output directly
                 let v1 = VecD::from_element(n, 1.0);
                 let v2 = VecD::from_index_fn(n, |j| if j==i {-1.0} else {1.0});
 
-
                 assert_eq!(r.apply(&v1), v2);
+                assert_eq!(unit_normal.reflect(&v1), v2);
 
             }
 
@@ -919,8 +1021,9 @@ mod tests {
             {U1 U2 U3 U4 U5 U6}
             |$N| for i in 0..$N::dim() {
 
-                let normal = VecN::<f64, $N>::basis(i);
-                let plane = PsuedoVecN::<f64, $N>::basis(i);
+                let normal = VecN::<f64, $N>::basis(i) * 2.0;
+                let unit_normal = normal.into_simple().normalize();
+                let plane = if $N::dim()<=2 { normal.undual() } else { PsuedoVecN::<f64, $N>::basis(i) };
 
                 let r1 = Reflector::reflect_normal(normal);
                 let r2 = Reflector::reflect_hyperplane(plane);
@@ -931,6 +1034,8 @@ mod tests {
                 assert_eq!(r1, r2);
                 assert_eq!(r1.apply(&v1), v2);
                 assert_eq!(r2.apply(&v1), v2);
+                assert_eq!(normal.reflect(&v1), v2);
+                assert_eq!(unit_normal.reflect(&v1), v2);
 
             }
         );
