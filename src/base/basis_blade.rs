@@ -60,7 +60,7 @@ impl BasisBlade {
     ///
     /// # Examples
     ///```
-    /// # use galgebra::base::*;
+    /// # use wedged::base::*;
     /// # use num_traits::One;
     ///
     /// let e = BasisBlade::one();
@@ -93,7 +93,7 @@ impl BasisBlade {
     ///
     /// # Examples
     ///```
-    /// # use galgebra::base::*;
+    /// # use wedged::base::*;
     /// # use num_traits::One;
     ///
     /// let e = BasisBlade::one();

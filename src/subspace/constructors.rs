@@ -41,8 +41,8 @@ impl<T:AllocBlade<N,U0>, N:DimName> SimpleScalar<T,N> {
     /// Creates a new `SimpleScalar` directly from its component
     ///
     /// ```
-    /// use galgebra::subspace::*;
-    /// use galgebra::base::U1;
+    /// use wedged::subspace::*;
+    /// use wedged::base::U1;
     ///
     /// let x = 6.2831;
     /// let s = SimpleScalar::<_,U1>::new(x);
@@ -61,8 +61,8 @@ impl<T:AllocBlade<N,N>, N:DimName> SimplePsuedoScalar<T,N> {
     /// Creates a psuedoscalar directly from its component
     ///
     /// ```
-    /// use galgebra::subspace::*;
-    /// use galgebra::base::U3;
+    /// use wedged::subspace::*;
+    /// use wedged::base::U3;
     ///
     /// let x = 6.2831;
     /// let s = SimpleBlade::<_,U3,U3>::new_psuedoscalar(x);

@@ -138,7 +138,7 @@ macro_rules! impl_general_constructors {
         ///
         /// # Examples
         /// ```
-        /// # use galgebra::algebra::*;
+        /// # use wedged::algebra::*;
         ///
         /// let array = [0, 1, 2, 3, 4, 5];
         ///
@@ -163,7 +163,7 @@ macro_rules! impl_general_constructors {
         ///
         /// # Examples
         /// ```
-        /// # use galgebra::algebra::*;
+        /// # use wedged::algebra::*;
         ///
         /// //computes the nth fibonnacci number
         /// fn fib(n: usize) -> usize {
@@ -198,7 +198,7 @@ macro_rules! impl_general_constructors {
         ///
         /// # Examples
         /// ```
-        /// # use galgebra::algebra::*;
+        /// # use wedged::algebra::*;
         ///
         /// //4D Trivector, so 4 elements
         /// let array = [6.28; 4];
@@ -225,7 +225,7 @@ macro_rules! impl_general_constructors {
         /// Panics if not enough values are provided
         ///
         /// ```
-        /// # use galgebra::algebra::*;
+        /// # use wedged::algebra::*;
         ///
         /// let values = [6, 2, 8, 3];
         ///
@@ -249,7 +249,7 @@ macro_rules! impl_general_constructors {
         /// Panics if not enough values are provided
         ///
         /// ```
-        /// # use galgebra::algebra::*;
+        /// # use wedged::algebra::*;
         ///
         /// let values = vec![6, 2, 8, 3];
         ///
@@ -277,7 +277,7 @@ macro_rules! impl_general_zero_basis_constructors {
         ///
         /// # Examples
         /// ```
-        /// # use galgebra::algebra::*;
+        /// # use wedged::algebra::*;
         ///
         /// let array = [0.0; 4];
         ///
@@ -454,8 +454,8 @@ impl<T:AllocBlade<N,U0>, N:DimName> Scalar<T,N> {
     /// Creates a new `Scalar` directly from its component
     ///
     /// ```
-    /// use galgebra::algebra::*;
-    /// use galgebra::base::U1;
+    /// use wedged::algebra::*;
+    /// use wedged::base::U1;
     ///
     /// let x = 6.2831;
     /// let s = Scalar::<_,U1>::new(x);
@@ -474,8 +474,8 @@ impl<T:AllocBlade<N,N>, N:DimName> PsuedoScalar<T,N> {
     /// Creates a psuedoscalar directly from its component
     ///
     /// ```
-    /// use galgebra::algebra::*;
-    /// use galgebra::base::U3;
+    /// use wedged::algebra::*;
+    /// use wedged::base::U3;
     ///
     /// let x = 6.2831;
     /// let s = Blade::<_,U3,U3>::new_psuedoscalar(x);

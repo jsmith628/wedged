@@ -1,9 +1,7 @@
 
-# `galgebra`
-
 A robust and generalized library for Geometric Algebra in Rust.
 
-## What is Geometric Algebra?
+# What is Geometric Algebra?
 
 Geometric algebra is an extension of linear algebra where vectors are extended
 with a multiplication operation called the _geometric product_, which
@@ -40,14 +38,14 @@ interpretation of the underlying algebra:
  - `homogenous` (planned) interprets the structs in `algebra` as affine spaces
    and their operations in ℝ<sup>n-1</sup> using homogeneous coordinates
 
-Additionally, the module `galgebra::base` contains the core components common
+Additionally, the module `wedged::base` contains the core components common
 to all subsystems.
 
 ## Nomenclature and Conventions
 
 Naming in geometric algebra can vary slightly across authors, so the particular
 conventions have been chosen:
-- in `galgebra`, a `SimpleBlade` refers to an object constructed from the
+- in `wedged`, a `SimpleBlade` refers to an object constructed from the
  wedge product of vectors whereas a `Blade` refers to _any_ object of a
  particular grade
 - a `Rotor` is used exclusively for objects with unit norm that encode rotations
@@ -63,8 +61,8 @@ See the docs on `BasisBlade` For more information.
 ## Generic programming
 
 In order to generalize code for different scalar types and dimensions,
-`galgebra` makes heavy use of generics. The system is based upon the
-system in [`nalgebra`][2] and, to increase interoperability, reuses a lot of its
+`wedged` makes heavy use of generics. The system is based upon the
+system in [`nalgebra`][2], and, to increase interoperability, reuses a lot of its
 components.
 
 The system is designed such that a number of different levels of abstraction
@@ -74,7 +72,7 @@ are possible:
 
 ```rust
 
-use galgebra::algebra::*;
+use wedged::algebra::*;
 
 let v1 = Vec3::new(1.0, 0.0, 0.0);
 let v2 = Vec3::new(0.0, 1.0, 0.0);
@@ -93,8 +91,8 @@ library.
 
 ```rust
 
-use galgebra::algebra::*;
-use galgebra::base::ops::*;
+use wedged::algebra::*;
+use wedged::base::ops::*;
 
 fn midpoint<T:Clone+ClosedAdd+ClosedDiv+One>(v1:Vec3<T>, v2:Vec3<T>) -> Vec3<T> {
   let two = T::one() + T::one();
@@ -117,7 +115,7 @@ assert_eq!(midpoint(v1,v2), Vec3::new(0.5f32,0.5,0.0));
 
 ```
 
-For generic scalars, `galgebra` structs implement traits and functions based on
+For generic scalars, `wedged` structs implement traits and functions based on
 what their scalars implement. For instance:
  - Structural traits like `Index`, `AsRef<[T]>`, and `Borrow<[T]>` are always
    implemented
@@ -138,15 +136,15 @@ what their scalars implement. For instance:
    on a few specific structs (like `Rotor` and `Versor`)
 
 In order to make managing these requirements easier, a number of trait aliases
-are included in `galgebra::base::ops` that combine common groupings of operations
+are included in `wedged::base::ops` that combine common groupings of operations
 together
 
 ### Generic Dimension
 
 ```rust
 
-use galgebra::base::*;
-use galgebra::algebra::*;
+use wedged::base::*;
+use wedged::algebra::*;
 
 fn point_velocity<T,N:Dim>(p:VecN<T,N>, angular_vel: BiVecN<T,N>) -> VecN<T,N> where
   T:AllocBlade<N,U1>+AllocBlade<N,U2>+RefRing
@@ -164,9 +162,9 @@ assert_eq!(point_velocity(p, av), Vec3::new(0.0,0.0,6.0));
 
 ```
 
-For a generic dimension, for every `galgebra` struct
+For a generic dimension, for every `wedged` struct
 used in the function or trait, the scalar must have the corresponding `Alloc*`
-trait bound for that struct. These are all included in `galgebra::base::alloc`,
+trait bound for that struct. These are all included in `wedged::base::alloc`,
 and there is one for each subset of the geometric algebra.
 
 For example, for a scalar `T` and dimension `N`, using a `VecN` requires `T:AllocBlade<N,U1>` bound, using an `Even` needs a `T:AllocEven<N>` bound, etc.
@@ -178,8 +176,8 @@ where clause on the function or trait.
 
 ```
 
-use galgebra::base::*;
-use galgebra::algebra::*;
+use wedged::base::*;
+use wedged::algebra::*;
 
 fn project<T,N:Dim,G:Dim>(v:VecN<T,N>, b:Blade<T,N,G>) -> VecN<T,N> where
   U1: DimSymSub<G>,
@@ -207,18 +205,6 @@ the compiler to add or subtract the grades of the two blades.
 For instance:
  - The wedge `^` product requires `G1: DimAdd<G2>`
  - The dot `%` product requires `G1: DimSymSub<G2>`
-
-
-
-## Relationship to `nalgebra`
-
-This crate has no direct affiliation with [`nalgebra`][2]. However, this crate is
-based upon `nalgebra` and designed in similar style. Also, while this crate
-does have similar features to `nalgebra`, the intent is that they be used in
-*tandem* and not as replacements. While geometric algebra and linear algebra do
-overlap quite frequently, they are not the same and can't do everything the other
-can.
-
 
 
 

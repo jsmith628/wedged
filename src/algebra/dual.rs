@@ -24,7 +24,7 @@ impl<T:AllocBlade<N,G>, N:Dim, G:Dim> Blade<T,N,G> where
     ///
     /// # Examples
     /// ```
-    /// # use galgebra::algebra::*;
+    /// # use wedged::algebra::*;
     ///
     /// //In 3D, a bivector represents a plane, and its dual is its normal
     /// let plane = BiVec3::new(6, 2, 8);

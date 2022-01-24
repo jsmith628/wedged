@@ -1,13 +1,13 @@
 [package]
 authors = ["Joshua Smith <jsmith62831@gmail.com>"]
-name = "galgebra"
+name = "wedged"
 description = "A robust and generalized library for Geometric Algebra in Rust."
 version = "0.1.0"
 edition = "2021"
 keywords = ["vector", "algebra", "geometry", "clifford", "grassmann"]
 categories = ["mathematics", "algorithms", "science", "game-development", "graphics"]
-repository = "https://github.com/jsmith628/galgebra"
-documentation = "https://docs.rs/galgebra"
+repository = "https://github.com/jsmith628/wedged"
+documentation = "https://docs.rs/wedged"
 license = "Apache-2.0"
 readme = "README.md"
 
