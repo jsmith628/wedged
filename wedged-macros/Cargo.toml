@@ -1,0 +1,13 @@
+[package]
+authors = ["Joshua Smith <jsmith62831@gmail.com>"]
+name = "wedged-macros"
+version = "0.1.0"
+edition = "2021"
+
+[lib]
+proc-macro = true
+
+[dependencies]
+basis-blade = {path="../basis-blade"}
+proc-macro2 = "^1.0.36"
+quote = "^1.0.15"

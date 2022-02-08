@@ -23,3 +23,6 @@ rayon = "^1.5"
 
 [features]
 fn_traits = []
+
+[workspace]
+members = ["basis-blade", "wedged-macros"]
