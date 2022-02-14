@@ -228,7 +228,7 @@ impl<T:AllocMultivector<N>, N:Dim> MultivectorDst for Multivector<T,N> {
 //     n1
 // }
 
-#[inline]
+// #[inline]
 pub(crate) fn mul_selected<B1,B2,B3>(b1:B1, b2:B2, shape:B3::Shape) -> B3
 where
     B1: MultivectorSrc,
@@ -251,7 +251,8 @@ where
 
     //special cases where we can apply certain optimization
     use Subspace::*;
-    match (b1.subspace(), b2.subspace(), B3::subspace_of(shape)) {
+    let algebra = (b1.subspace(), b2.subspace(), B3::subspace_of(shape));
+    match algebra {
 
         //the scalar product of two blades
         (Blade(_,g), Blade(_,g2), Blade(_,0)) if g==g2 => {
@@ -305,54 +306,57 @@ where
         _ => (),
     }
 
+    wedged_macros::gen_mul!(
+        algebra, b1, b2, dest;
 
-    //
-    //The *slow* method
-    //
+        //
+        //The *slow* method
+        //
 
-    //TODO: optimize a little. We don't always need to initialize beforehand
-    for i in 0..dest.elements() {
-        dest[i] = MaybeUninit::new(B3::Scalar::zero());
-    }
-
-    //this is irrelevant now
-    // let mut written_to = vec![true; dest.elements()];
-
-
-    //do the FOILiest of FOILs
-    for i in 0..b1.elements() {
-        let basis1 = b1.basis(i);
-        for j in 0..b2.elements() {
-            let basis2 = b2.basis(j);
-
-            //mul the bases at i and j
-            let basis3 = basis1 * basis2;
-
-            //get the index and sign of the result
-            if let Some((k, pos)) = B3::index_of(basis3, shape) {
-                //multiply the two terms
-                let term = b1.get(i).ref_mul(b2.get(j));
-
-                //write or add the result to the destination blade
-                // if written_to[k] {
-                    unsafe {
-                        //TODO: change once assume_init_ref() is stable
-                        if pos {
-                            *dest[k].as_mut_ptr() += term;
-                        } else {
-                            *dest[k].as_mut_ptr() -= term;
-                        }
-                    }
-                // } else {
-                    // dest[k] = MaybeUninit::new(if pos {term} else {-term});
-                    // written_to[k] = true;
-                // }
-            }
-
+        //TODO: optimize a little. We don't always need to initialize beforehand
+        for i in 0..dest.elements() {
+            dest[i] = MaybeUninit::new(B3::Scalar::zero());
         }
-    }
 
-    unsafe { B3::assume_init(dest) }
+        //this is irrelevant now
+        // let mut written_to = vec![true; dest.elements()];
+
+
+        //do the FOILiest of FOILs
+        for i in 0..b1.elements() {
+            let basis1 = b1.basis(i);
+            for j in 0..b2.elements() {
+                let basis2 = b2.basis(j);
+
+                //mul the bases at i and j
+                let basis3 = basis1 * basis2;
+
+                //get the index and sign of the result
+                if let Some((k, pos)) = B3::index_of(basis3, shape) {
+                    //multiply the two terms
+                    let term = b1.get(i).ref_mul(b2.get(j));
+
+                    //write or add the result to the destination blade
+                    // if written_to[k] {
+                        unsafe {
+                            //TODO: change once assume_init_ref() is stable
+                            if pos {
+                                *dest[k].as_mut_ptr() += term;
+                            } else {
+                                *dest[k].as_mut_ptr() -= term;
+                            }
+                        }
+                    // } else {
+                        // dest[k] = MaybeUninit::new(if pos {term} else {-term});
+                        // written_to[k] = true;
+                    // }
+                }
+
+            }
+        }
+
+        unsafe { B3::assume_init(dest) }
+    )
 }
 
 #[inline]

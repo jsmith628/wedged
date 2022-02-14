@@ -17,6 +17,7 @@ typenum = "^1.15"
 nalgebra = "^0.30"
 num-traits = "^0.2"
 approx = "^0.5"
+wedged-macros = {path="wedged-macros"}
 
 [dev-dependencies]
 rayon = "^1.5"
