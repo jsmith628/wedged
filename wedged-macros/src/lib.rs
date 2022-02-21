@@ -33,11 +33,91 @@ impl ToTokens for Algebra {
 
 impl Algebra {
 
-    pub fn all_in_dim(n:usize) -> impl Iterator<Item=Algebra> + Clone {
-        (0..=n).map(move |g| Algebra::Blade(n, g))
+    pub fn all_src_in_dim(n:usize) -> impl Iterator<Item=Algebra> + Clone {
+        (1..n).map(move |g| Algebra::Blade(n, g))
         .chain(once(Algebra::Even(n)))
         .chain(once(Algebra::Odd(n)))
         .chain(once(Algebra::Full(n)))
+    }
+
+    pub fn all_dst(self, lhs:Algebra) -> impl Iterator<Item=Algebra> + Clone {
+        use Algebra::*;
+        let n = self.dim().max(lhs.dim());
+
+        match (self, lhs) {
+
+            (Blade(_, g1), Blade(_, g2)) => {
+
+                let gmax = g1+g2;
+                let gmin = if g1>=g2 { g1-g2 } else { g2-g1 };
+                let even = |x| (x&1)==0;
+
+                //every grade outside this range is 0
+                (gmin..=gmax)
+                //if the grade-sum is even, remove the odds,
+                //if the grade-sum is odd, remove the evens
+                //because they are all zero and they are a special case
+                .filter(|g| even(gmax) == even(*g))
+                //we have a special case for the dot-product
+                .filter(|g| g1!=g2 || *g!=0)
+                //we have a special case for the psuedoscalar dot-product (unless the grades are the same :/)
+                .filter(|g| g1+g2!=n || *g!=n || g1==g2)
+                .map(move |g| Blade(n,g))
+
+                .chain(once(
+                    //only implement an even or odd product if it is non-zero
+                    if even(gmax) { Even(n) } else { Odd(n) } )
+                )
+                .chain(once(Full(n)))
+
+                //turn into a vector iterator to make the type the same as the below
+                .collect::<Vec<_>>()
+                .into_iter()
+            },
+
+            (rhs, lhs) => {
+
+                let mut list = vec![];
+
+                //don't even bother with partial products or blade results, they're not really
+                //necessary and dramatically slow comp times
+                if rhs.even() && lhs.even() { list.push(Even(n)); }
+                if rhs.even() && lhs.odd()  { list.push(Odd(n)); }
+                if rhs.odd()  && lhs.even() { list.push(Odd(n)); }
+                if rhs.odd()  && lhs.odd()  { list.push(Even(n)); }
+                list.push(Full(n));
+
+                list.into_iter()
+
+            }
+
+
+        }
+    }
+
+    pub fn even(self) -> bool {
+        match self {
+            Algebra::Blade(_,g) => g&1 == 0,
+            Algebra::Even(_) => true,
+            _ => false
+        }
+    }
+
+    pub fn odd(self) -> bool {
+        match self {
+            Algebra::Blade(_,g) => g&1 != 0,
+            Algebra::Odd(_) => true,
+            _ => false
+        }
+    }
+
+    pub fn dim(self) -> usize {
+        match self {
+            Algebra::Blade(n, _) => n,
+            Algebra::Even(n) => n,
+            Algebra::Odd(n) => n,
+            Algebra::Full(n) => n
+        }
     }
 
     pub fn elements(self) -> usize {
@@ -115,13 +195,13 @@ where
     }
 
     assignments.into_iter()
-    .map(|x| x.unwrap_or_else(|| quote!(Zero::zero()))) //any empty assignments become 0
+    .map(|x| x.unwrap_or_else(|| quote!(B3::Scalar::zero()))) //any empty assignments become 0
     .enumerate() //include the index
     .map(
         //prepend the rhs of the assignment
         |(i, assignment)| {
             let index = Literal::usize_unsuffixed(i);
-            quote!( #dest[#index] = MaybeUninit::new(#assignment); )
+            quote!( #dest[#index] = MaybeUninit::<B3::Scalar>::new(#assignment); )
         }
     )
     //combine everything into one token stream
@@ -143,9 +223,9 @@ fn gen_mul_for(rhs:(Ident, Algebra), lhs:(Ident, Algebra), dest:(Ident, Algebra)
 fn gen_mul_for_dim(rhs:Ident, lhs:Ident, dest:Ident, n1:usize, n2:usize) -> TokenStream {
     let mut tts = TokenStream::new();
 
-    for r in Algebra::all_in_dim(n1) {
-        for l in Algebra::all_in_dim(n2) {
-            for d in Algebra::all_in_dim(n2) {
+    for r in Algebra::all_src_in_dim(n1) {
+        for l in Algebra::all_src_in_dim(n2) {
+            for d in r.all_dst(l) {
                 let mul = gen_mul_for((rhs.clone(),r), (lhs.clone(),l), (dest.clone(),d));
                 tts.extend(quote!(
                     (#r, #l, #d) => {
@@ -222,7 +302,7 @@ fn gen_tables_(tts: TokenStream) -> Result<TokenStream, String> {
 
     //generate tables for dims 0-5
     let mut tts = TokenStream::new();
-    for n in 0..=3 {
+    for n in 0..=4 {
         tts.extend(gen_mul_for_dim(rhs.clone(), lhs.clone(), dest.clone(), n, n))
     }
 

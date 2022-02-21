@@ -1,7 +1,7 @@
 
 use super::*;
 
-#[inline(always)]
+// #[inline(always)]
 fn project_blade<T,N:Dim,G1:Dim,G2:Dim>(b1: &Blade<T,N,G1>, b2: Blade<T,N,G2>) -> Blade<T,N,G2> where
     G2: DimSymSub<G1>,
     // DimSymDiff<G2,G1>: DimSymSub<G1, Output=G2>,

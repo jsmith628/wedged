@@ -252,111 +252,111 @@ where
     //special cases where we can apply certain optimization
     use Subspace::*;
     let algebra = (b1.subspace(), b2.subspace(), B3::subspace_of(shape));
-    match algebra {
 
-        //the scalar product of two blades
-        (Blade(_,g), Blade(_,g2), Blade(_,0)) if g==g2 => {
 
-            //TODO: somehow account for the case where one of the args isn't a reference
-            //for primatives, this shouldn't be an issue, but it will probably slow down
-            //the dot product computation for polynomials and the like
+    macro_rules! base {
+        () => {
+            match algebra {
 
-            //note that it's fine that the dimensions mismatch, as missing dimensions will be 0
-            // let dot = b1.into_iter().zip(b2).map(|(t1,t2)| t1*t2).fold(B3::Scalar::zero(), |d,t| d+t);
+                //the scalar product of two blades
+                (Blade(_,g), Blade(_,g2), Blade(_,0)) if g==g2 => {
 
-            let l = b1.elements().min(b2.elements());
-            let dot = (0..l).map(|i| b1.get(i).ref_mul(b2.get(i))).fold(B3::Scalar::zero(), |d,t| d+t);
+                    //TODO: somehow account for the case where one of the args isn't a reference
+                    //for primatives, this shouldn't be an issue, but it will probably slow down
+                    //the dot product computation for polynomials and the like
 
-            // let e = b1.elements();
-            // let dot = (0..e).map(|i| b1.get(i).ref_mul(b2.get(i))).fold(B3::Scalar::zero(), |d,t| d+t);
+                    //note that it's fine that the dimensions mismatch, as missing dimensions will be 0
+                    // let dot = b1.into_iter().zip(b2).map(|(t1,t2)| t1*t2).fold(B3::Scalar::zero(), |d,t| d+t);
 
-            dest[0] = MaybeUninit::new(
-                //do `(-1)^(g*(g-1)/2) * dot`
-                if (g&0b10) == 0 { dot } else { -dot }
-            );
+                    let l = b1.elements().min(b2.elements());
+                    let dot = (0..l).map(|i| b1.get(i).ref_mul(b2.get(i))).fold(B3::Scalar::zero(), |d,t| d+t);
 
-            return unsafe { B3::assume_init(dest) };
+                    // let e = b1.elements();
+                    // let dot = (0..e).map(|i| b1.get(i).ref_mul(b2.get(i))).fold(B3::Scalar::zero(), |d,t| d+t);
 
-        },
+                    dest[0] = MaybeUninit::new(
+                        //do `(-1)^(g*(g-1)/2) * dot`
+                        if (g&0b10) == 0 { dot } else { -dot }
+                    );
 
-        //wedging two blades into the psuedoscalar
-        (Blade(_,g1), Blade(_,g2), Blade(n,g3)) if g1+g2==n && n==g3 => {
+                    unsafe { B3::assume_init(dest) }
 
-            //note that it's fine that the dimensions mismatch, as missing dimensions will be 0
-            if g1!=g2 {
-                // let dot = b1.into_iter().zip(b2).map(|(t1,t2)| t1*t2).fold(B3::Scalar::zero(), |d,t| d+t);
-                let l = b1.elements().min(b2.elements());
-                let dot = (0..l).map(|i| b1.get(i).ref_mul(b2.get(i))).fold(B3::Scalar::zero(), |d,t| d+t);
-                let neg = ((g1&0b10) != 0) ^ (g1>g2 && ((n&0b10) != 0));
+                },
 
-                dest[0] = MaybeUninit::new( if neg { -dot } else { dot } );
-                return unsafe { B3::assume_init(dest) };
-            } else {
-                //TODO: fill in
+                //wedging two blades into the psuedoscalar
+                (Blade(_,g1), Blade(_,g2), Blade(n,g3)) if g1+g2==n && n==g3 && g1!=g2 => {
+
+                    //note that it's fine that the dimensions mismatch, as missing dimensions will be 0
+
+                    // let dot = b1.into_iter().zip(b2).map(|(t1,t2)| t1*t2).fold(B3::Scalar::zero(), |d,t| d+t);
+                    let l = b1.elements().min(b2.elements());
+                    let dot = (0..l).map(|i| b1.get(i).ref_mul(b2.get(i))).fold(B3::Scalar::zero(), |d,t| d+t);
+                    let neg = ((g1&0b10) != 0) ^ (g1>g2 && ((n&0b10) != 0));
+
+                    dest[0] = MaybeUninit::new( if neg { -dot } else { dot } );
+                    unsafe { B3::assume_init(dest) }
+
+                    //TODO: do for g1==g2
+
+                },
+
+                _ => {
+                    //
+                    //The *slow* method
+                    //
+
+                    //TODO: optimize a little. We don't always need to initialize beforehand
+                    for i in 0..dest.elements() {
+                        dest[i] = MaybeUninit::new(B3::Scalar::zero());
+                    }
+
+                    //this is irrelevant now
+                    // let mut written_to = vec![true; dest.elements()];
+
+
+                    //do the FOILiest of FOILs
+                    for i in 0..b1.elements() {
+                        let basis1 = b1.basis(i);
+                        for j in 0..b2.elements() {
+                            let basis2 = b2.basis(j);
+
+                            //mul the bases at i and j
+                            let basis3 = basis1 * basis2;
+
+                            //get the index and sign of the result
+                            if let Some((k, pos)) = B3::index_of(basis3, shape) {
+                                //multiply the two terms
+                                let term = b1.get(i).ref_mul(b2.get(j));
+
+                                //write or add the result to the destination blade
+                                // if written_to[k] {
+                                    unsafe {
+                                        //TODO: change once assume_init_ref() is stable
+                                        if pos {
+                                            *dest[k].as_mut_ptr() += term;
+                                        } else {
+                                            *dest[k].as_mut_ptr() -= term;
+                                        }
+                                    }
+                                // } else {
+                                    // dest[k] = MaybeUninit::new(if pos {term} else {-term});
+                                    // written_to[k] = true;
+                                // }
+                            }
+
+                        }
+                    }
+
+                    unsafe { B3::assume_init(dest) }
+                },
             }
-
-        },
-
-        // (Blade(3,1), Blade(3,1), Blade(3,2)) => {
-        //     dest[0] = MaybeUninit::new(b1.get(1).ref_mul(b2.get(2)) - b1.get(2).ref_mul(b2.get(1)));
-        //     dest[1] = MaybeUninit::new(b1.get(2).ref_mul(b2.get(0)) - b1.get(0).ref_mul(b2.get(2)));
-        //     dest[2] = MaybeUninit::new(b1.get(0).ref_mul(b2.get(1)) - b1.get(1).ref_mul(b2.get(0)));
-        //     return unsafe { B3::assume_init(dest) };
-        // },
-        _ => (),
+        }
     }
 
-    wedged_macros::gen_mul!(
-        algebra, b1, b2, dest;
+    #[cfg(feature = "code_gen")]
+    { wedged_macros::gen_mul!(algebra, b1, b2, dest; base!()) }
 
-        //
-        //The *slow* method
-        //
-
-        //TODO: optimize a little. We don't always need to initialize beforehand
-        for i in 0..dest.elements() {
-            dest[i] = MaybeUninit::new(B3::Scalar::zero());
-        }
-
-        //this is irrelevant now
-        // let mut written_to = vec![true; dest.elements()];
-
-
-        //do the FOILiest of FOILs
-        for i in 0..b1.elements() {
-            let basis1 = b1.basis(i);
-            for j in 0..b2.elements() {
-                let basis2 = b2.basis(j);
-
-                //mul the bases at i and j
-                let basis3 = basis1 * basis2;
-
-                //get the index and sign of the result
-                if let Some((k, pos)) = B3::index_of(basis3, shape) {
-                    //multiply the two terms
-                    let term = b1.get(i).ref_mul(b2.get(j));
-
-                    //write or add the result to the destination blade
-                    // if written_to[k] {
-                        unsafe {
-                            //TODO: change once assume_init_ref() is stable
-                            if pos {
-                                *dest[k].as_mut_ptr() += term;
-                            } else {
-                                *dest[k].as_mut_ptr() -= term;
-                            }
-                        }
-                    // } else {
-                        // dest[k] = MaybeUninit::new(if pos {term} else {-term});
-                        // written_to[k] = true;
-                    // }
-                }
-
-            }
-        }
-
-        unsafe { B3::assume_init(dest) }
-    )
+    #[cfg(not(feature = "code_gen"))] { base!() }
 }
 
 #[inline]
@@ -711,7 +711,7 @@ macro_rules! impl_wedge_dot {
         {
             type Output = Blade<U,N,DimSum<G1, G2>>;
 
-            #[inline(always)]
+            // #[inline(always)]
             fn bitxor(self, rhs: $(&$b)? Blade<T2,N,G2>) -> Self::Output {
                 let (n, g) = (self.dim_generic(), self.grade_generic().add(rhs.grade_generic()));
                 mul_selected(self, rhs, (n, g))
@@ -728,7 +728,7 @@ macro_rules! impl_wedge_dot {
         {
             type Output = Blade<U,N,DimSymDiff<G1,G2>>;
 
-            #[inline(always)]
+            // #[inline(always)]
             fn rem(self, rhs: $(&$b)? Blade<T2,N,G2>) -> Self::Output {
                 let (n, g) = (self.dim_generic(), self.grade_generic().sym_sub(rhs.grade_generic()));
                 mul_selected(self, rhs, (n, g))

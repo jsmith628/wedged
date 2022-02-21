@@ -2,7 +2,7 @@
 use super::*;
 use crate::subspace::Rotor;
 
-#[inline(always)]
+// #[inline(always)]
 pub(crate) fn exp_selected<B1,B2,T:RefRealField,N:Dim>(x:B1, one:B2, epsilon: T::RealField) -> B2 where
     B1: MultivectorSrc<Scalar=T,Item=T,Dim=N>+Clone+DivAssign<T> + Debug,
     for<'a> &'a B1: MultivectorSrc<Scalar=T,Dim=N>,

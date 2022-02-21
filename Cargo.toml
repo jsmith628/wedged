@@ -17,13 +17,16 @@ typenum = "^1.15"
 nalgebra = "^0.30"
 num-traits = "^0.2"
 approx = "^0.5"
-wedged-macros = {path="wedged-macros"}
+wedged-macros = {path="wedged-macros", optional=true}
 
 [dev-dependencies]
 rayon = "^1.5"
 
 [features]
+default = ["code_gen"]
+
 fn_traits = []
+code_gen = ["wedged-macros"]
 
 [workspace]
 members = ["basis-blade", "wedged-macros"]
