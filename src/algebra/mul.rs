@@ -228,8 +228,72 @@ impl<T:AllocMultivector<N>, N:Dim> MultivectorDst for Multivector<T,N> {
 //     n1
 // }
 
+pub(crate) trait SelectedMul<Rhs, Output:MultivectorDst> {
+    fn selected_mul(&self, rhs: &Rhs, shape:Output::Shape) -> Output;
+}
+
+macro_rules! impl_selected_mul {
+
+    () => {};
+
+    (
+        ($Ty1:ident<T1:$Alloc1:ident,N $(, $G1:ident)*>)
+        ($Ty2:ident<T2:$Alloc2:ident,N $(, $G2:ident)*>)
+        ($Ty3:ident<T3:$Alloc3:ident,N $(, $G3:ident)*>) @impl
+    ) => {
+
+        impl<T1,T2,T3, N:Dim $(, $G1:Dim)* $(, $G2:Dim)* $(, $G3:Dim)*>
+            SelectedMul<$Ty2<T2,N $(,$G2)*>, $Ty3<T3,N $(,$G3)*>> for $Ty1<T1,N $(,$G1)*>
+        where
+            T1: $Alloc1<N $(,$G1)*> + AllRefMul<T2, AllOutput=T3>,
+            T2: $Alloc2<N $(,$G2)*>,
+            T3: $Alloc3<N $(,$G3)*> + AddGroup,
+        {
+            fn selected_mul(
+                &self, rhs: &$Ty2<T2,N $(,$G2)*>, shape: <$Ty3<T3,N $(,$G3)*> as MultivectorSrc>::Shape
+            ) -> $Ty3<T3,N $(,$G3)*> {
+                core_mul(self, rhs, shape)
+            }
+        }
+
+    };
+
+    (@start) => {
+        impl_selected_mul!(
+            {(Blade<T1:AllocBlade,N,G1>) (Even<T1:AllocEven,N>) (Odd<T1:AllocOdd,N>) (Multivector<T1:AllocMultivector,N>)}
+            {(Blade<T2:AllocBlade,N,G2>) (Even<T2:AllocEven,N>) (Odd<T2:AllocOdd,N>) (Multivector<T2:AllocMultivector,N>)}
+            {(Blade<T3:AllocBlade,N,G3>) (Even<T3:AllocEven,N>) (Odd<T3:AllocOdd,N>) (Multivector<T3:AllocMultivector,N>)}
+            @start
+        );
+    };
+
+    ({$($i:tt)*} {$($j:tt)*} {$($k:tt)*} @start) => {
+        impl_selected_mul!({$($i)*} [$($i)*] {$($j)*} [$($j)*] {$($k)*} @loop);
+    };
+
+    ({$i0:tt $($i:tt)*} [$($I:tt)*] {$j0:tt $($j:tt)*} [$($J:tt)*] {$k0:tt $($k:tt)*} @loop) => {
+        impl_selected_mul!({$($i)*} [$($I)*] {$j0 $($j)*} [$($J)*] {$k0 $($k)*} @loop);
+        impl_selected_mul!( $i0 $j0 $k0 @impl);
+    };
+
+    ({} [$($I:tt)*] {$j0:tt $($j:tt)*} [$($J:tt)*] {$k0:tt $($k:tt)*} @loop) => {
+        impl_selected_mul!({$($I)*} [$($I)*] {$($j)*} [$($J)*] {$k0 $($k)*} @loop);
+    };
+
+    ({$($i:tt)*} [$($I:tt)*] {} [$($J:tt)*] {$k0:tt $($k:tt)*} @loop) => {
+        impl_selected_mul!({$($i)*} [$($I)*] {$($J)*} [$($J)*] {$($k)*} @loop);
+    };
+
+    ({$($i:tt)*} [$($I:tt)*] {$($j:tt)*} [$($J:tt)*] {} @loop) => {};
+
+}
+
+// trace_macros!(true);
+impl_selected_mul!(@start);
+// trace_macros!(false);
+
 // #[inline]
-pub(crate) fn mul_selected<B1,B2,B3>(b1:B1, b2:B2, shape:B3::Shape) -> B3
+pub(crate) fn core_mul<B1,B2,B3>(b1:B1, b2:B2, shape:B3::Shape) -> B3
 where
     B1: MultivectorSrc,
     B2: MultivectorSrc,
@@ -360,7 +424,7 @@ where
 }
 
 #[inline]
-pub(crate) fn versor_mul_selected<B1,B2,B3>(odd:bool, b1:B1, b2:B2, shape:B3::Shape) -> B3
+pub(crate) fn versor_core_mul<B1,B2,B3>(odd:bool, b1:B1, b2:B2, shape:B3::Shape) -> B3
 where
     B1: MultivectorSrc,
     B2: MultivectorSrc,
@@ -418,7 +482,7 @@ where
 
 
 //TODO: when we have specialization, we'll use this to impl optimized varients for each
-//statically sized type instead of using if statements in mul_selected
+//statically sized type instead of using if statements in core_mul
 
 ///
 /// For multiplying two elements of geometric algebra while selecting only certain components
@@ -489,6 +553,10 @@ pub trait SelectedGeometricMul<Rhs>: Sized {
 //
 // }
 
+macro_rules! borrow {
+    ($a:lifetime, $e:expr) => { $e };
+    (, $e:expr) => { &$e };
+}
 
 macro_rules! impl_geometric_mul {
 
@@ -517,28 +585,28 @@ macro_rules! impl_geometric_mul {
             where U: AllocBlade<Self::N, G>
             {
                 let shape = (self.dim_generic(), g);
-                mul_selected(self, rhs, shape)
+                self.selected_mul(borrow!($($b)?, rhs), shape)
             }
 
             fn mul_even(self, rhs: $(&$b)? $Ty2<T2,N $(,$G2)*>) -> Even<U, N>
             where U: AllocEven<N>
             {
                 let n = self.dim_generic();
-                mul_selected(self, rhs, n)
+                self.selected_mul(borrow!($($b)?, rhs), n)
             }
 
             fn mul_odd(self, rhs: $(&$b)? $Ty2<T2,N $(,$G2)*>) -> Odd<U, N>
             where U: AllocOdd<N>
             {
                 let n = self.dim_generic();
-                mul_selected(self, rhs, n)
+                self.selected_mul(borrow!($($b)?, rhs), n)
             }
 
             fn mul_full(self, rhs: $(&$b)? $Ty2<T2,N $(,$G2)*>) -> Multivector<U, N>
             where U: AllocMultivector<N>
             {
                 let n = self.dim_generic();
-                mul_selected(self, rhs, n)
+                self.selected_mul(borrow!($($b)?, rhs), n)
             }
 
         }
@@ -561,7 +629,7 @@ macro_rules! impl_geometric_mul {
 
             fn mul(self, rhs: $(&$b)? $Ty2<T,N $(,$G2)*>) -> $Ty3<U,N> {
                 let n = self.dim_generic();
-                mul_selected(self, rhs, n)
+                self.selected_mul(borrow!($($b)?, rhs), n)
             }
 
         }
@@ -637,28 +705,28 @@ impl_geometric_mul!(
 //             where U: AllocBlade<Self::N, G>
 //             {
 //                 let shape = (self.dim_generic(), g);
-//                 versor_mul_selected(self.odd(), self, rhs, shape)
+//                 versor_core_mul(self.odd(), self, rhs, shape)
 //             }
 //
 //             fn versor_mul_even(self, rhs: $(&$b)? $Ty2<T2,N $(,$G2)*>) -> Even<U, N>
 //             where U: AllocEven<N>
 //             {
 //                 let n = self.dim_generic();
-//                 versor_mul_selected(self.odd(), self, rhs, n)
+//                 versor_core_mul(self.odd(), self, rhs, n)
 //             }
 //
 //             fn versor_mul_odd(self, rhs: $(&$b)? $Ty2<T2,N $(,$G2)*>) -> Odd<U, N>
 //             where U: AllocOdd<N>
 //             {
 //                 let n = self.dim_generic();
-//                 versor_mul_selected(self.odd(), self, rhs, n)
+//                 versor_core_mul(self.odd(), self, rhs, n)
 //             }
 //
 //             fn versor_mul_full(self, rhs: $(&$b)? $Ty2<T2,N $(,$G2)*>) -> Multivector<U, N>
 //             where U: AllocMultivector<N>
 //             {
 //                 let n = self.dim_generic();
-//                 versor_mul_selected(self.odd(), self, rhs, n)
+//                 versor_core_mul(self.odd(), self, rhs, n)
 //             }
 //
 //         }
@@ -714,7 +782,7 @@ macro_rules! impl_wedge_dot {
             // #[inline(always)]
             fn bitxor(self, rhs: $(&$b)? Blade<T2,N,G2>) -> Self::Output {
                 let (n, g) = (self.dim_generic(), self.grade_generic().add(rhs.grade_generic()));
-                mul_selected(self, rhs, (n, g))
+                self.selected_mul(rhs.borrow(), (n, g))
             }
         }
 
@@ -731,7 +799,7 @@ macro_rules! impl_wedge_dot {
             // #[inline(always)]
             fn rem(self, rhs: $(&$b)? Blade<T2,N,G2>) -> Self::Output {
                 let (n, g) = (self.dim_generic(), self.grade_generic().sym_sub(rhs.grade_generic()));
-                mul_selected(self, rhs, (n, g))
+                self.selected_mul(rhs.borrow(), (n, g))
             }
         }
     }
@@ -1099,9 +1167,11 @@ mod tests {
                         //Test for consistency
                         //
 
-                        let left = mul_selected::<_,_,BladeD<_>>(
-                            x1.clone(), x2.clone(), (Dynamic::new(n), Dynamic::new(g3))
-                        );
+                        // let left = core_mul::<_,_,BladeD<_>>(
+                        //     x1.clone(), x2.clone(), (Dynamic::new(n), Dynamic::new(g3))
+                        // );
+
+                        let left: BladeD<_> = x1.selected_mul(&x2.clone(), (Dynamic::new(n), Dynamic::new(g3)));
 
                         let right = x3;
 

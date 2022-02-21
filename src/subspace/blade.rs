@@ -20,18 +20,18 @@ fn project_blade<T,N:Dim,G1:Dim,G2:Dim>(b1: &Blade<T,N,G1>, b2: Blade<T,N,G2>) -
     //to use Dynamic dimensions and grades. Once specialization is stabilized, we can fix this.
     //As for now... this is unfortunately a bit slower than doing things statically, but the
     //benchmarks don't seem to show it *much* slower
-    // mul_selected::<_,_,Blade<_,_,_>>(
-    //     mul_selected::<_,_,Blade<_,_,_>>(
+    // core_mul::<_,_,Blade<_,_,_>>(
+    //     core_mul::<_,_,Blade<_,_,_>>(
     //         b2, b1, (Dynamic::new(n1.value()), Dynamic::new(g1.value()-g2.value()))
     //     ),
     //     b1,
     //     (n2, g2)
     // )
 
-    //we use mul_selected for the second % operation so we don't have to have a
+    //we use core_mul for the second % operation so we don't have to have a
     //trait bound on DimSymDiff<G2,G1> since we already know what the result should be
     //Now... we *could* just drop into Dynamic dims here, but that's a little too slow
-    mul_selected(b2 % b1, b1, (n2, g2))
+    core_mul(b2 % b1, b1, (n2, g2))
 
 }
 
@@ -42,7 +42,7 @@ fn reject_blade<T,N:Dim,G1:Dim,G2:Dim>(b1: &Blade<T,N,G1>, b2: Blade<T,N,G2>) ->
 {
     let (n1, n2, g2) = (b1.dim_generic(), b2.dim_generic(), b2.grade_generic());
     if n1!=n2 { panic!("Dimension mismatch when rejecting blades: {}!={}", n1.value(), n2.value()) }
-    mul_selected(b2 ^ b1, b1, (n2, g2))
+    core_mul(b2 ^ b1, b1, (n2, g2))
 }
 
 macro_rules! factor {

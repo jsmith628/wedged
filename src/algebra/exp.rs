@@ -34,7 +34,7 @@ pub(crate) fn exp_selected<B1,B2,T:RefRealField,N:Dim>(x:B1, one:B2, epsilon: T:
         halvings += 1;
     }
 
-    //we need the shape of the destination in order to use mul_selected
+    //we need the shape of the destination in order to use core_mul
     let shape = one.shape();
 
     //the necessary size of the next term in order to keep the final result within epsilon of the
@@ -52,7 +52,7 @@ pub(crate) fn exp_selected<B1,B2,T:RefRealField,N:Dim>(x:B1, one:B2, epsilon: T:
     while remainder > eps {
 
         //compute the next term `x^n / n!`
-        term = mul_selected(term, &x, shape);
+        term = core_mul(term, &x, shape);
         term /= i.clone();
 
         //add the term to the total
@@ -69,7 +69,7 @@ pub(crate) fn exp_selected<B1,B2,T:RefRealField,N:Dim>(x:B1, one:B2, epsilon: T:
 
     //finally, each of the halvings we did to the exponent become squarings of the result
     for _ in 0..halvings {
-        exp = mul_selected(&exp, &exp, shape);
+        exp = core_mul(&exp, &exp, shape);
     }
 
     // println!("exp({:?}) = {:?}; {}", _x, exp, i);

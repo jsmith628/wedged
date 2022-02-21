@@ -38,7 +38,7 @@ macro_rules! impl_versor_mul {
             fn versor_mul(self, rhs: $(&$b)? $Ty2<T2,N $(,$G2)?>) -> $Ty2<U,N $(,$G2)?> {
                 use crate::algebra::MultivectorSrc;
                 let shape = rhs.shape();
-                versor_mul_selected(self.odd(), self, rhs, shape)
+                versor_core_mul(self.odd(), self, rhs, shape)
             }
         }
 
@@ -118,7 +118,7 @@ macro_rules! impl_non_unit_versor_mul {
                 let shape = rhs.shape();
                 let norm_sqrd = self.norm_sqrd();
 
-                let mut res: Self::Output = versor_mul_selected(self.odd(), self, rhs, shape);
+                let mut res: Self::Output = versor_core_mul(self.odd(), self, rhs, shape);
                 res = res.inv_scale(&norm_sqrd);
                 res
             }
