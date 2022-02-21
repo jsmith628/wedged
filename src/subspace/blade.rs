@@ -31,7 +31,7 @@ fn project_blade<T,N:Dim,G1:Dim,G2:Dim>(b1: &Blade<T,N,G1>, b2: Blade<T,N,G2>) -
     //we use core_mul for the second % operation so we don't have to have a
     //trait bound on DimSymDiff<G2,G1> since we already know what the result should be
     //Now... we *could* just drop into Dynamic dims here, but that's a little too slow
-    core_mul(b2 % b1, b1, (n2, g2))
+    (b2 % b1).selected_mul(b1, (n2, g2))
 
 }
 
@@ -42,7 +42,7 @@ fn reject_blade<T,N:Dim,G1:Dim,G2:Dim>(b1: &Blade<T,N,G1>, b2: Blade<T,N,G2>) ->
 {
     let (n1, n2, g2) = (b1.dim_generic(), b2.dim_generic(), b2.grade_generic());
     if n1!=n2 { panic!("Dimension mismatch when rejecting blades: {}!={}", n1.value(), n2.value()) }
-    core_mul(b2 ^ b1, b1, (n2, g2))
+    (b2 ^ b1).selected_mul(b1, (n2, g2))
 }
 
 macro_rules! factor {

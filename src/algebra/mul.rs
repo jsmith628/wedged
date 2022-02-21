@@ -293,7 +293,7 @@ impl_selected_mul!(@start);
 // trace_macros!(false);
 
 // #[inline]
-pub(crate) fn core_mul<B1,B2,B3>(b1:B1, b2:B2, shape:B3::Shape) -> B3
+fn core_mul<B1,B2,B3>(b1:B1, b2:B2, shape:B3::Shape) -> B3
 where
     B1: MultivectorSrc,
     B2: MultivectorSrc,
@@ -553,11 +553,6 @@ pub trait SelectedGeometricMul<Rhs>: Sized {
 //
 // }
 
-macro_rules! borrow {
-    ($a:lifetime, $e:expr) => { $e };
-    (, $e:expr) => { &$e };
-}
-
 macro_rules! impl_geometric_mul {
 
     //end the loop
@@ -585,28 +580,28 @@ macro_rules! impl_geometric_mul {
             where U: AllocBlade<Self::N, G>
             {
                 let shape = (self.dim_generic(), g);
-                self.selected_mul(borrow!($($b)?, rhs), shape)
+                self.selected_mul(borrow!(rhs, $($b)?), shape)
             }
 
             fn mul_even(self, rhs: $(&$b)? $Ty2<T2,N $(,$G2)*>) -> Even<U, N>
             where U: AllocEven<N>
             {
                 let n = self.dim_generic();
-                self.selected_mul(borrow!($($b)?, rhs), n)
+                self.selected_mul(borrow!(rhs, $($b)?), n)
             }
 
             fn mul_odd(self, rhs: $(&$b)? $Ty2<T2,N $(,$G2)*>) -> Odd<U, N>
             where U: AllocOdd<N>
             {
                 let n = self.dim_generic();
-                self.selected_mul(borrow!($($b)?, rhs), n)
+                self.selected_mul(borrow!(rhs, $($b)?), n)
             }
 
             fn mul_full(self, rhs: $(&$b)? $Ty2<T2,N $(,$G2)*>) -> Multivector<U, N>
             where U: AllocMultivector<N>
             {
                 let n = self.dim_generic();
-                self.selected_mul(borrow!($($b)?, rhs), n)
+                self.selected_mul(borrow!(rhs, $($b)?), n)
             }
 
         }
@@ -629,7 +624,7 @@ macro_rules! impl_geometric_mul {
 
             fn mul(self, rhs: $(&$b)? $Ty2<T,N $(,$G2)*>) -> $Ty3<U,N> {
                 let n = self.dim_generic();
-                self.selected_mul(borrow!($($b)?, rhs), n)
+                self.selected_mul(borrow!(rhs, $($b)?), n)
             }
 
         }
@@ -782,7 +777,7 @@ macro_rules! impl_wedge_dot {
             // #[inline(always)]
             fn bitxor(self, rhs: $(&$b)? Blade<T2,N,G2>) -> Self::Output {
                 let (n, g) = (self.dim_generic(), self.grade_generic().add(rhs.grade_generic()));
-                self.selected_mul(rhs.borrow(), (n, g))
+                self.selected_mul(borrow!(rhs, $($b)?), (n, g))
             }
         }
 
@@ -799,7 +794,7 @@ macro_rules! impl_wedge_dot {
             // #[inline(always)]
             fn rem(self, rhs: $(&$b)? Blade<T2,N,G2>) -> Self::Output {
                 let (n, g) = (self.dim_generic(), self.grade_generic().sym_sub(rhs.grade_generic()));
-                self.selected_mul(rhs.borrow(), (n, g))
+                self.selected_mul(borrow!(rhs, $($b)?), (n, g))
             }
         }
     }

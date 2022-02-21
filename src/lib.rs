@@ -21,6 +21,11 @@ extern crate nalgebra as na;
 #[cfg(test)] pub(crate) const TEST_DIM: usize = 16;
 #[cfg(test)] pub(crate) const SHORT_TEST_DIM: usize = 6;
 
+macro_rules! borrow {
+    ($e:expr, $a:lifetime) => { $e };
+    ($e:expr, ) => { &$e };
+}
+
 macro_rules! cast_dim_doc {
     () => {
         "Embeds `self` into a different dimension by either removing elements or inserting zeros"

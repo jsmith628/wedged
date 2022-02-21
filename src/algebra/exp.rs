@@ -3,11 +3,9 @@ use super::*;
 use crate::subspace::Rotor;
 
 // #[inline(always)]
-pub(crate) fn exp_selected<B1,B2,T:RefRealField,N:Dim>(x:B1, one:B2, epsilon: T::RealField) -> B2 where
-    B1: MultivectorSrc<Scalar=T,Item=T,Dim=N>+Clone+DivAssign<T> + Debug,
-    for<'a> &'a B1: MultivectorSrc<Scalar=T,Dim=N>,
-    B2: MultivectorSrc<Scalar=T,Item=T,Dim=N>+MultivectorDst+Clone+AddAssign+DivAssign<T> + Debug,
-    for<'a> &'a B2: MultivectorSrc<Scalar=T,Dim=N>,
+pub(crate) fn exp_selected<B1,B2,T:RefRealField>(x:B1, one:B2, epsilon: T::RealField) -> B2 where
+    B1: MultivectorSrc<Scalar=T> + Clone+DivAssign<T> + Debug,
+    B2: MultivectorDst+SelectedMul<B1,B2>+SelectedMul<B2,B2>+Clone+AddAssign+DivAssign<T> + Debug,
 {
 
     //for convenience
@@ -52,7 +50,7 @@ pub(crate) fn exp_selected<B1,B2,T:RefRealField,N:Dim>(x:B1, one:B2, epsilon: T:
     while remainder > eps {
 
         //compute the next term `x^n / n!`
-        term = core_mul(term, &x, shape);
+        term = term.selected_mul(&x, shape);
         term /= i.clone();
 
         //add the term to the total
@@ -69,7 +67,7 @@ pub(crate) fn exp_selected<B1,B2,T:RefRealField,N:Dim>(x:B1, one:B2, epsilon: T:
 
     //finally, each of the halvings we did to the exponent become squarings of the result
     for _ in 0..halvings {
-        exp = core_mul(&exp, &exp, shape);
+        exp = exp.selected_mul(&exp, shape);
     }
 
     // println!("exp({:?}) = {:?}; {}", _x, exp, i);

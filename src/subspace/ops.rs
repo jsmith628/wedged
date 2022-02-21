@@ -271,9 +271,7 @@ macro_rules! impl_mul {
             fn mul(self, rhs: $(&$b)? $Ty2<T2,N,$($G2)*>) -> $Ty3<U,N> {
                 let n = self.dim_generic();
                 $Ty3 {
-                    data: core_mul(
-                        maybe_ref!(self.data; $($a)?), maybe_ref!(rhs.data; $($b)?), n
-                    )
+                    data: self.data.selected_mul(&rhs.data, n)
                 }
             }
 
@@ -333,15 +331,11 @@ macro_rules! impl_unit_blade_mul {
 
                 if self.even() ^ rhs.even() {
                     Versor::Odd(Reflector {
-                        data: core_mul(
-                            maybe_ref!(self.data; $($a)?), maybe_ref!(rhs.data; $($b)?), n
-                        )
+                        data: self.data.selected_mul(&rhs.data, n)
                     })
                 } else {
                     Versor::Even(Rotor {
-                        data: core_mul(
-                            maybe_ref!(self.data; $($a)?), maybe_ref!(rhs.data; $($b)?), n
-                        )
+                        data: self.data.selected_mul(&rhs.data, n)
                     })
                 }
             }
