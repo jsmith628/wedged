@@ -252,7 +252,17 @@ macro_rules! impl_selected_mul {
             fn selected_mul(
                 &self, rhs: &$Ty2<T2,N $(,$G2)*>, shape: <$Ty3<T3,N $(,$G3)*> as MultivectorSrc>::Shape
             ) -> $Ty3<T3,N $(,$G3)*> {
-                core_mul(self, rhs, shape)
+
+                #[cfg(feature = "code_gen")]
+                {
+                    wedged_macros::gen_mul_optimizations!(
+                        self, $Ty1, rhs, $Ty2, shape, $Ty3;
+                        core_mul(self, rhs, shape)
+                    )
+                }
+
+                #[cfg(not(feature = "code_gen"))] { core_mul(self, rhs, shape) }
+
             }
         }
 
@@ -417,10 +427,12 @@ where
         }
     }
 
-    #[cfg(feature = "code_gen")]
-    { wedged_macros::gen_mul!(algebra, b1, b2, dest; base!()) }
+    // #[cfg(feature = "code_gen")]
+    // { wedged_macros::gen_mul!(algebra, b1, b2, dest; base!()) }
+    //
+    // #[cfg(not(feature = "code_gen"))] { base!() }
 
-    #[cfg(not(feature = "code_gen"))] { base!() }
+    base!()
 }
 
 #[inline]
