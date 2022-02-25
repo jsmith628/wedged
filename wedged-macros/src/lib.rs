@@ -16,7 +16,7 @@ use self::tokens::*;
 mod algebra;
 mod tokens;
 
-const N:usize = 4;
+const N:usize = 5;
 
 fn gen_mul_raw<'a,I1,I2,F>(
     lhs:Ident, rhs:Ident, dest:Ident, bases1:I1, bases2:I2, index_of:F, count:usize, zero: TokenStream
@@ -197,6 +197,7 @@ fn gen_mul_optimizations_(tts: TokenStream) -> Result<TokenStream, String> {
                             for g3 in gmin..=gmax {
                                 let a3 = Algebra::Blade(n,g3);
 
+                                if g3==0 && g1==g2 { continue; }
                                 // if is_even(g1+g2) != is_even(g3) { continue; }
 
                                 //generate the multiplication operation
@@ -235,15 +236,16 @@ fn gen_mul_optimizations_(tts: TokenStream) -> Result<TokenStream, String> {
                             match (n, g1, g2, g3) {
 
                                 //special case for dot product
-                                // (n, g, g) => {
-                                //
-                                //     let mut dot = Zero::zero();
-                                //     for i in 0..#lhs.elements() {
-                                //         dot += #lhs[i].ref_mul(&#rhs[i])
-                                //     }
-                                //
-                                //     if #lhs.neg_sig() { -dot } else { dot }
-                                // },
+                                (n, g1, g2, 0) if g1==g2 => {
+
+                                    let mut dot = T3::zero();
+                                    for i in 0..#lhs.elements() {
+                                        dot += #lhs[i].ref_mul(&#rhs[i])
+                                    }
+
+                                    #dest[0] = MaybeUninit::new(if #lhs.neg_sig() { -dot } else { dot });
+                                    unsafe { Blade::assume_init(#dest) }
+                                },
 
                                 //paste in all the generated cases
                                 #patterns
