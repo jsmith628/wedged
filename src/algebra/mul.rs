@@ -249,6 +249,7 @@ macro_rules! impl_selected_mul {
             T2: $Alloc2<N $(,$G2)*>,
             T3: $Alloc3<N $(,$G3)*> + AddGroup,
         {
+            #[inline]
             fn selected_mul(
                 &self, rhs: &$Ty2<T2,N $(,$G2)*>, shape: <$Ty3<T3,N $(,$G3)*> as MultivectorSrc>::Shape
             ) -> $Ty3<T3,N $(,$G3)*> {

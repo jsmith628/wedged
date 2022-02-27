@@ -42,7 +42,7 @@ where
             if let Some((index, sign)) = index_of(b3) {
 
                 //tokens for multiplying the components of the rhs and lhs
-                let term = quote!( #lhs.get(#i).ref_mul(#rhs.get(#j)) );
+                let term = quote!( #lhs[#i].ref_mul(&#rhs[#j]) );
 
                 //add this term to the corresponding coordinate
                 assignments[index] = match (&assignments[index], sign) {
@@ -107,52 +107,6 @@ fn gen_mul_for_dim(lhs:Ident, rhs:Ident, dest:Ident, n1:usize, n2:usize) -> Toke
 
 }
 
-fn gen_tables_(tts: TokenStream) -> Result<TokenStream, String> {
-    //convert to an iterator
-    let mut tts = tts.into_iter();
-
-    //get the rhs, lhs, and dest idents AND check syntax
-    let algebra = expect_ident(tts.next())?;
-    expect_specific_punct(tts.next(), ',')?;
-    let rhs = expect_ident(tts.next())?;
-    expect_specific_punct(tts.next(), ',')?;
-    let lhs = expect_ident(tts.next())?;
-    expect_specific_punct(tts.next(), ',')?;
-    let dest = expect_ident(tts.next())?;
-
-    expect_specific_punct(tts.next(), ';')?;
-    let default_branch = TokenStream::from_iter(tts);
-
-    // expect_specific_punct(tts.next(), ',')?;
-    // let n1 = expect_usize(tts.next())?;
-    // expect_specific_punct(tts.next(), ',')?;
-    // let n2 = expect_usize(tts.next())?;
-
-    // expect_nothing(tts.next())?;
-
-    //generate tables for dims 0-5
-    let mut tts = TokenStream::new();
-    for n in 0..=N {
-        tts.extend(gen_mul_for_dim(rhs.clone(), lhs.clone(), dest.clone(), n, n))
-    }
-
-    Ok(quote!(
-        match #algebra {
-            #tts
-            _ => {
-                #default_branch
-            }
-        }
-    ))
-
-}
-
-#[proc_macro]
-pub fn gen_mul(tts: proc_macro::TokenStream) -> proc_macro::TokenStream {
-    unwrap_or_error(gen_tables_(TokenStream::from(tts)))
-}
-
-
 fn gen_mul_optimizations_(tts: TokenStream) -> Result<TokenStream, String> {
 
     //convert to an iterator
@@ -183,7 +137,7 @@ fn gen_mul_optimizations_(tts: TokenStream) -> Result<TokenStream, String> {
                 let dest = Ident::new("dest", Span::call_site());
                 let mut patterns = TokenStream::new();
 
-                // let is_even = |x:usize| x&1 == 0;
+                let is_even = |x:usize| x&1 == 0;
 
                 for n in 0..=N {
                     for g1 in 0..=n {
@@ -197,8 +151,11 @@ fn gen_mul_optimizations_(tts: TokenStream) -> Result<TokenStream, String> {
                             for g3 in gmin..=gmax {
                                 let a3 = Algebra::Blade(n,g3);
 
+                                //we have general optimizations for these:
+                                if g1==0 || g2==0 { continue; }
                                 if g3==0 && g1==g2 { continue; }
-                                // if is_even(g1+g2) != is_even(g3) { continue; }
+                                if g3==n && g1+g2==n { continue; }
+                                if is_even(g1+g2) != is_even(g3) { continue; }
 
                                 //generate the multiplication operation
                                 let table = gen_mul_for(
@@ -233,7 +190,47 @@ fn gen_mul_optimizations_(tts: TokenStream) -> Result<TokenStream, String> {
                         if n1==n2 && n2==n3 {
 
                             let n = n1;
+                            let sig_n = n&2 != 0;
+
                             match (n, g1, g2, g3) {
+
+                                //
+                                //First, we have some more general optimizations
+                                //obviously, these could definitely be easily covered with the
+                                //more specific code-gen, but there doesn't seem to be much of a
+                                //difference once all is said and done, we get some
+                                //optimizations for higher dimensions, and we get slightly
+                                //faster compilation times since we need less code-gen
+                                //
+
+                                //scalar multiplication
+                                (_, 0, g, g3) if g3==g => {
+                                    for i in 0..#dest.elements() {
+                                        #dest[i] = MaybeUninit::new(#lhs[0].ref_mul(&#rhs[i]));
+                                    }
+                                    unsafe { Blade::assume_init(#dest) }
+                                },
+                                (_, g, 0, g3) if g3==g => {
+                                    for i in 0..#dest.elements() {
+                                        #dest[i] = MaybeUninit::new(#lhs[i].ref_mul(&#rhs[0]));
+                                    }
+                                    unsafe { Blade::assume_init(#dest) }
+                                },
+
+                                //TODO: optimize for dual without rewriting everything
+
+                                //
+                                //The geometric product can only change the grade of the factors
+                                //via cancelation of commond basis vectors in the components,
+                                //so the output grades are all multiples of two from each other
+                                //
+                                //Thus, for all other grades, we can immediately set everything to zero
+                                (n, g1, g2, g3) if (g1+g2)&1 != g3&1 => {
+                                    for i in 0..#dest.elements() {
+                                        #dest[i] = MaybeUninit::new(Zero::zero());
+                                    }
+                                    unsafe { Blade::assume_init(#dest) }
+                                },
 
                                 //special case for dot product
                                 (n, g1, g2, 0) if g1==g2 => {
@@ -245,6 +242,46 @@ fn gen_mul_optimizations_(tts: TokenStream) -> Result<TokenStream, String> {
 
                                     #dest[0] = MaybeUninit::new(if #lhs.neg_sig() { -dot } else { dot });
                                     unsafe { Blade::assume_init(#dest) }
+                                },
+
+                                //special case for dual dot product
+                                (n, g1, g2, g3) if g1+g2==g3 && g3==n => {
+
+                                    let sig_g = #lhs.neg_sig();
+
+                                    if g1==g2 {
+
+                                        //here, since this grade is its own dual, we have
+                                        //to split the mul into two parts that each are selectively
+                                        //negated
+
+                                        let mid = #lhs.elements()/2;
+
+                                        let mut dot1 = T3::zero();
+                                        let mut dot2 = T3::zero();
+
+                                        for i in 0..mid { dot1 += #lhs[i].ref_mul(&#rhs[i+mid]); }
+                                        for i in 0..mid { dot2 += #lhs[i+mid].ref_mul(&#rhs[i]); }
+
+                                        let dot = dot1 + if sig_n { -dot2 } else { dot2 };
+                                        #dest[0] = MaybeUninit::new(if sig_g { -dot } else { dot });
+
+
+                                    } else {
+
+                                        let mut dot = T3::zero();
+                                        for i in 0..#lhs.elements() {
+                                            dot += #lhs[i].ref_mul(&#rhs[i])
+                                        }
+
+                                        //NOTE: this part is *heavily* based on the basis convention
+                                        let sig = sig_g ^ if 2*g1>n { sig_n } else { false };
+                                        #dest[0] = MaybeUninit::new(if sig { -dot } else { dot });
+                                    }
+
+                                    unsafe { Blade::assume_init(#dest) }
+
+
                                 },
 
                                 //paste in all the generated cases
