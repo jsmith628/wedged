@@ -1058,16 +1058,16 @@ mod tests {
 
         use rayon::prelude::*;
 
-        let count = (1 as i32) << 8;
+        let count = (1 as usize) << 8;
 
         (0..count).into_par_iter().for_each(
             |bits1| {
-                let b1 = BasisBlade::from_bits(bits1);
+                let b1 = BasisBlade::basis(8, bits1);
                 let (n1, g1) = (b1.dim(), b1.grade());
 
                 (0..count).into_par_iter().for_each(
                     |bits2| {
-                        let b2 = BasisBlade::from_bits(bits2);
+                        let b2 = BasisBlade::basis(8, bits1);
                         let (n2, g2) = (b2.dim(), b2.grade());
 
                         //multiply the two basis as BasisBlade's

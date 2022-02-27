@@ -18,6 +18,7 @@ nalgebra = "^0.30"
 num-traits = "^0.2"
 approx = "^0.5"
 wedged-macros = {path="wedged-macros", optional=true}
+basis-blade = {path="basis-blade"}
 
 [dev-dependencies]
 rayon = "^1.5"

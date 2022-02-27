@@ -16,5 +16,19 @@ pub mod dim;
 pub mod coordinates;
 pub mod ops;
 
-mod count;
-mod basis_blade;
+pub mod basis_blade {
+    #[doc(inline)] pub use basis_blade::BasisBlade;
+}
+
+pub mod count {
+
+    #[doc(inline)] pub use basis_blade::{
+        binom, even_elements, odd_elements, multivector_elements,
+        grade_index_in_versor, grade_index_in_multivector,
+        components_of, even_components_of, odd_components_of
+    };
+}
+
+
+// mod count;
+// mod basis_blade;

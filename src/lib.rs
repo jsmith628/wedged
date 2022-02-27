@@ -12,6 +12,8 @@
 #[macro_use]
 extern crate derivative;
 #[cfg(feature = "code-gen")] extern crate wedged_macros;
+
+extern crate basis_blade;
 extern crate approx;
 extern crate num_traits;
 extern crate nalgebra as na;
