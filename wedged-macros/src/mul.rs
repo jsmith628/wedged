@@ -97,6 +97,175 @@ fn gen_mul_for_dim(lhs:Ident, rhs:Ident, dest:Ident, n1:usize, n2:usize) -> Toke
 
 }
 
+fn gen_blade_mul_optimizations(lhs:Ident, rhs:Ident, shape:Ident, default_branch:TokenStream) -> TokenStream {
+
+    let dest = Ident::new("dest", Span::call_site());
+    let is_even = |x:usize| x&1 == 0;
+
+    let mut patterns = TokenStream::new();
+
+    for n in 0..=N {
+        for g1 in 0..=n {
+            let a1 = Algebra::Blade(n,g1);
+            for g2 in 0..=n {
+                let a2 = Algebra::Blade(n,g2);
+
+                let gmax = g1+g2;
+                let gmin = g1.max(g2) - g1.min(g2);
+
+                for g3 in gmin..=gmax {
+                    let a3 = Algebra::Blade(n,g3);
+
+                    //we have general optimizations for these:
+                    if g1==0 || g2==0 { continue; }
+                    if g3==0 && g1==g2 { continue; }
+                    if g3==n && g1+g2==n { continue; }
+                    if is_even(g1+g2) != is_even(g3) { continue; }
+
+                    //generate the multiplication operation
+                    let table = gen_mul_for(
+                        (lhs.clone(), a1), (rhs.clone(), a2), (dest.clone(), a3),
+                        quote!(T3::zero())
+                    );
+
+                    //add the pattern
+                    patterns.extend(quote!(
+                        (#n, #g1, #g2, #g3) => {
+                            #table
+                            unsafe { Blade::assume_init(#dest) }
+                        }
+                    ));
+
+                }
+            }
+        }
+    }
+
+    quote!(
+        {
+            //allocate the destination
+            let mut dest = Blade::<T3,N,G3>::uninit(#shape);
+
+            //grabe the dims and grades
+            let (n1, n2, n3) = (#lhs.dim(), #rhs.dim(), #shape.0.value());
+            let (g1, g2, g3) = (#lhs.grade(), #rhs.grade(), #shape.1.value());
+
+            //first, check that the dims are all the same since the optimizations are all
+            //for blades of the same dim
+            if n1==n2 && n2==n3 {
+
+                let n = n1;
+                let sig_n = n&2 != 0;
+
+                match (n, g1, g2, g3) {
+
+                    //
+                    //First, we have some more general optimizations
+                    //obviously, these could definitely be easily covered with the
+                    //more specific code-gen, but there doesn't seem to be much of a
+                    //difference once all is said and done, we get some
+                    //optimizations for higher dimensions, and we get slightly
+                    //faster compilation times since we need less code-gen
+                    //
+
+                    //scalar multiplication
+                    (_, 0, g, g3) if g3==g => {
+                        for i in 0..#dest.elements() {
+                            #dest[i] = MaybeUninit::new(#lhs[0].ref_mul(&#rhs[i]));
+                        }
+                        unsafe { Blade::assume_init(#dest) }
+                    },
+                    (_, g, 0, g3) if g3==g => {
+                        for i in 0..#dest.elements() {
+                            #dest[i] = MaybeUninit::new(#lhs[i].ref_mul(&#rhs[0]));
+                        }
+                        unsafe { Blade::assume_init(#dest) }
+                    },
+
+                    //TODO: optimize for dual without rewriting everything
+
+                    //
+                    //The geometric product can only change the grade of the factors
+                    //via cancelation of commond basis vectors in the components,
+                    //so the output grades are all multiples of two from each other
+                    //
+                    //Thus, for all other grades, we can immediately set everything to zero
+                    (n, g1, g2, g3) if (g1+g2)&1 != g3&1 => {
+                        for i in 0..#dest.elements() {
+                            #dest[i] = MaybeUninit::new(Zero::zero());
+                        }
+                        unsafe { Blade::assume_init(#dest) }
+                    },
+
+                    //special case for dot product
+                    (n, g1, g2, 0) if g1==g2 => {
+
+                        let mut dot = T3::zero();
+                        for i in 0..#lhs.elements() {
+                            dot += #lhs[i].ref_mul(&#rhs[i])
+                        }
+
+                        #dest[0] = MaybeUninit::new(if #lhs.neg_sig() { -dot } else { dot });
+                        unsafe { Blade::assume_init(#dest) }
+                    },
+
+                    //special case for dual dot product
+                    (n, g1, g2, g3) if g1+g2==g3 && g3==n => {
+
+                        let sig_g = #lhs.neg_sig();
+
+                        if g1==g2 {
+
+                            //here, since this grade is its own dual, we have
+                            //to split the mul into two parts that each are selectively
+                            //negated
+
+                            let mid = #lhs.elements()/2;
+
+                            let mut dot1 = T3::zero();
+                            let mut dot2 = T3::zero();
+
+                            for i in 0..mid { dot1 += #lhs[i].ref_mul(&#rhs[i+mid]); }
+                            for i in 0..mid { dot2 += #lhs[i+mid].ref_mul(&#rhs[i]); }
+
+                            let dot = dot1 + if sig_n { -dot2 } else { dot2 };
+                            #dest[0] = MaybeUninit::new(if sig_g { -dot } else { dot });
+
+
+                        } else {
+
+                            let mut dot = T3::zero();
+                            for i in 0..#lhs.elements() {
+                                dot += #lhs[i].ref_mul(&#rhs[i])
+                            }
+
+                            //NOTE: this part is *heavily* based on the basis convention
+                            let sig = sig_g ^ if 2*g1>n { sig_n } else { false };
+                            #dest[0] = MaybeUninit::new(if sig { -dot } else { dot });
+                        }
+
+                        unsafe { Blade::assume_init(#dest) }
+
+
+                    },
+
+                    //paste in all the generated cases
+                    #patterns
+
+                    //the default branch
+                    _ => #default_branch
+
+                }
+
+            } else {
+                #default_branch
+            }
+        }
+
+
+    )
+}
+
 pub fn gen_mul_optimizations_(tts: TokenStream) -> Result<TokenStream, String> {
 
     //convert to an iterator
@@ -122,175 +291,9 @@ pub fn gen_mul_optimizations_(tts: TokenStream) -> Result<TokenStream, String> {
     Ok(
         match (&*lhs_algebra, &*rhs_algebra, &*dest_algebra) {
 
-            ("Blade", "Blade", "Blade") => {
-
-                let dest = Ident::new("dest", Span::call_site());
-                let mut patterns = TokenStream::new();
-
-                let is_even = |x:usize| x&1 == 0;
-
-                for n in 0..=N {
-                    for g1 in 0..=n {
-                        let a1 = Algebra::Blade(n,g1);
-                        for g2 in 0..=n {
-                            let a2 = Algebra::Blade(n,g2);
-
-                            let gmax = g1+g2;
-                            let gmin = g1.max(g2) - g1.min(g2);
-
-                            for g3 in gmin..=gmax {
-                                let a3 = Algebra::Blade(n,g3);
-
-                                //we have general optimizations for these:
-                                if g1==0 || g2==0 { continue; }
-                                if g3==0 && g1==g2 { continue; }
-                                if g3==n && g1+g2==n { continue; }
-                                if is_even(g1+g2) != is_even(g3) { continue; }
-
-                                //generate the multiplication operation
-                                let table = gen_mul_for(
-                                    (lhs.clone(), a1), (rhs.clone(), a2), (dest.clone(), a3),
-                                    quote!(T3::zero())
-                                );
-
-                                //add the pattern
-                                patterns.extend(quote!(
-                                    (#n, #g1, #g2, #g3) => {
-                                        #table
-                                        unsafe { Blade::assume_init(#dest) }
-                                    }
-                                ));
-
-                            }
-                        }
-                    }
-                }
-
-                quote!(
-                    {
-                        //allocate the destination
-                        let mut dest = Blade::<T3,N,G3>::uninit(#shape);
-
-                        //grabe the dims and grades
-                        let (n1, n2, n3) = (#lhs.dim(), #rhs.dim(), #shape.0.value());
-                        let (g1, g2, g3) = (#lhs.grade(), #rhs.grade(), #shape.1.value());
-
-                        //first, check that the dims are all the same since the optimizations are all
-                        //for blades of the same dim
-                        if n1==n2 && n2==n3 {
-
-                            let n = n1;
-                            let sig_n = n&2 != 0;
-
-                            match (n, g1, g2, g3) {
-
-                                //
-                                //First, we have some more general optimizations
-                                //obviously, these could definitely be easily covered with the
-                                //more specific code-gen, but there doesn't seem to be much of a
-                                //difference once all is said and done, we get some
-                                //optimizations for higher dimensions, and we get slightly
-                                //faster compilation times since we need less code-gen
-                                //
-
-                                //scalar multiplication
-                                (_, 0, g, g3) if g3==g => {
-                                    for i in 0..#dest.elements() {
-                                        #dest[i] = MaybeUninit::new(#lhs[0].ref_mul(&#rhs[i]));
-                                    }
-                                    unsafe { Blade::assume_init(#dest) }
-                                },
-                                (_, g, 0, g3) if g3==g => {
-                                    for i in 0..#dest.elements() {
-                                        #dest[i] = MaybeUninit::new(#lhs[i].ref_mul(&#rhs[0]));
-                                    }
-                                    unsafe { Blade::assume_init(#dest) }
-                                },
-
-                                //TODO: optimize for dual without rewriting everything
-
-                                //
-                                //The geometric product can only change the grade of the factors
-                                //via cancelation of commond basis vectors in the components,
-                                //so the output grades are all multiples of two from each other
-                                //
-                                //Thus, for all other grades, we can immediately set everything to zero
-                                (n, g1, g2, g3) if (g1+g2)&1 != g3&1 => {
-                                    for i in 0..#dest.elements() {
-                                        #dest[i] = MaybeUninit::new(Zero::zero());
-                                    }
-                                    unsafe { Blade::assume_init(#dest) }
-                                },
-
-                                //special case for dot product
-                                (n, g1, g2, 0) if g1==g2 => {
-
-                                    let mut dot = T3::zero();
-                                    for i in 0..#lhs.elements() {
-                                        dot += #lhs[i].ref_mul(&#rhs[i])
-                                    }
-
-                                    #dest[0] = MaybeUninit::new(if #lhs.neg_sig() { -dot } else { dot });
-                                    unsafe { Blade::assume_init(#dest) }
-                                },
-
-                                //special case for dual dot product
-                                (n, g1, g2, g3) if g1+g2==g3 && g3==n => {
-
-                                    let sig_g = #lhs.neg_sig();
-
-                                    if g1==g2 {
-
-                                        //here, since this grade is its own dual, we have
-                                        //to split the mul into two parts that each are selectively
-                                        //negated
-
-                                        let mid = #lhs.elements()/2;
-
-                                        let mut dot1 = T3::zero();
-                                        let mut dot2 = T3::zero();
-
-                                        for i in 0..mid { dot1 += #lhs[i].ref_mul(&#rhs[i+mid]); }
-                                        for i in 0..mid { dot2 += #lhs[i+mid].ref_mul(&#rhs[i]); }
-
-                                        let dot = dot1 + if sig_n { -dot2 } else { dot2 };
-                                        #dest[0] = MaybeUninit::new(if sig_g { -dot } else { dot });
-
-
-                                    } else {
-
-                                        let mut dot = T3::zero();
-                                        for i in 0..#lhs.elements() {
-                                            dot += #lhs[i].ref_mul(&#rhs[i])
-                                        }
-
-                                        //NOTE: this part is *heavily* based on the basis convention
-                                        let sig = sig_g ^ if 2*g1>n { sig_n } else { false };
-                                        #dest[0] = MaybeUninit::new(if sig { -dot } else { dot });
-                                    }
-
-                                    unsafe { Blade::assume_init(#dest) }
-
-
-                                },
-
-                                //paste in all the generated cases
-                                #patterns
-
-                                //the default branch
-                                _ => #default_branch
-
-                            }
-
-                        } else {
-                            #default_branch
-                        }
-                    }
-
-
-                )
-
-            },
+            ("Blade", "Blade", "Blade") => gen_blade_mul_optimizations(
+                lhs, rhs, shape, default_branch
+            ),
 
             _ => quote!(#default_branch)
         }
