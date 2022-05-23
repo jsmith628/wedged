@@ -582,7 +582,7 @@ mod benches {
     fn exp_4d(b: &mut Bencher) {
         b.iter(
             || black_box(
-                black_box(BiVec4::new(1.0, 0.0, 0.0, 2.0, 0.0, 0.0)).exp()
+                black_box(BiVec4::new(1.0, 0.0, 0.0, 2.0, 0.0, 0.0)).exp_even()
             )
         )
     }
@@ -604,7 +604,7 @@ mod benches {
             || black_box(
                 black_box(
                     BiVec5::new(1.0, 0.0, 0.0, 2.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0)
-                ).exp()
+                ).exp_even()
             )
         )
     }
