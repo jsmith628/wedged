@@ -2,6 +2,8 @@
 use proc_macro2::*;
 use quote::*;
 
+use crate::algebra::*;
+
 pub type ParseError = String;
 
 pub fn expect_ident(tt: Option<TokenTree>) -> Result<Ident, ParseError> {
@@ -42,14 +44,14 @@ pub fn expect_nothing(tt: Option<TokenTree>) -> Result<(), ParseError> {
     }
 }
 
-pub fn expect_algebra(tt: Option<TokenTree>) -> Result<TokenTree, ParseError> {
+pub fn expect_algebra(tt: Option<TokenTree>) -> Result<AlgebraKind, ParseError> {
 
     match tt {
         Some(tt) => match &*format!("{}", tt) {
-            "Blade" => Ok(tt),
-            "Even" => Ok(tt),
-            "Odd" => Ok(tt),
-            "Multivector" => Ok(tt),
+            "Blade" => Ok(AlgebraKind::Blade),
+            "Even" => Ok(AlgebraKind::Even),
+            "Odd" => Ok(AlgebraKind::Odd),
+            "Multivector" => Ok(AlgebraKind::Full),
             tt => Err(format!("Expected Algebra type, found '{}'", tt)),
         },
         None => Err(format!("Expected Algebra type")),

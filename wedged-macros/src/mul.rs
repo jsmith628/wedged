@@ -73,31 +73,7 @@ fn gen_mul_for(lhs:(Ident, Algebra), rhs:(Ident, Algebra), dest:(Ident, Algebra)
     )
 }
 
-fn gen_mul_for_dim(lhs:Ident, rhs:Ident, dest:Ident, n1:usize, n2:usize) -> TokenStream {
-    let mut tts = TokenStream::new();
-
-    for l in Algebra::all_src_in_dim(n1) {
-        for r in Algebra::all_src_in_dim(n2) {
-            for d in r.all_dst(l) {
-                let mul = gen_mul_for(
-                    (lhs.clone(),l), (rhs.clone(),r), (dest.clone(),d),
-                    quote!(B3::Scalar::zero())
-                );
-                tts.extend(quote!(
-                    (#l, #r, #d) => {
-                        #mul
-                        unsafe { B3::assume_init(#dest) }
-                    },
-                ));
-            }
-        }
-    }
-
-    tts
-
-}
-
-fn gen_blade_mul_optimizations(lhs:Ident, rhs:Ident, shape:Ident, default_branch:TokenStream) -> TokenStream {
+fn gen_blade_mul(lhs:Ident, rhs:Ident, shape:Ident, default_branch:TokenStream) -> TokenStream {
 
     let dest = Ident::new("dest", Span::call_site());
     let is_even = |x:usize| x&1 == 0;
@@ -144,9 +120,9 @@ fn gen_blade_mul_optimizations(lhs:Ident, rhs:Ident, shape:Ident, default_branch
     quote!(
         {
             //allocate the destination
-            let mut dest = Blade::<T3,N,G3>::uninit(#shape);
+            let mut #dest = Blade::<T3,N,G3>::uninit(#shape);
 
-            //grabe the dims and grades
+            //grab the dims and grades
             let (n1, n2, n3) = (#lhs.dim(), #rhs.dim(), #shape.0.value());
             let (g1, g2, g3) = (#lhs.grade(), #rhs.grade(), #shape.1.value());
 
@@ -266,6 +242,66 @@ fn gen_blade_mul_optimizations(lhs:Ident, rhs:Ident, shape:Ident, default_branch
     )
 }
 
+pub fn gen_non_blade_mul(
+    lhs:Ident, ak1:AlgebraKind, rhs:Ident, ak2:AlgebraKind, shape:Ident, ak3:AlgebraKind,
+    default_branch:TokenStream
+) -> TokenStream {
+
+    let dest = Ident::new("dest", Span::call_site());
+
+    //if the output is opposite parity of what it should be, we can just return 0
+    let out_even = ak1.even()&&ak2.even() || ak1.odd()&&ak2.odd();
+    let out_odd = ak1.even()&&ak2.odd() || ak1.odd()&&ak2.even();
+    if out_even && ak3.odd() || out_odd && ak3.even() {
+        return quote!({ #ak3::zeroed_generic(#shape) });
+    }
+
+    let mut patterns = TokenStream::new();
+
+    //zip the iterators together since we're assuming that each dim only
+    //has one algebra for each kind
+    for ((a1, a2), a3) in ak1.iter_to(N).zip(ak2.iter_to(N)).zip(ak2.iter_to(N)) {
+
+        //all the dims should be the exact same (for now), so just test one of them
+        let n1 = a1.dim();
+
+        //gen the mul table
+        let table = gen_mul_for(
+            (lhs.clone(), a1), (rhs.clone(), a2), (dest.clone(), a3),
+            quote!(T3::zero())
+        );
+
+        //add the pattern
+        patterns.extend(quote!(
+            #n1 => {
+                #table
+                unsafe { #ak3::assume_init(#dest) }
+            }
+        ));
+
+    }
+
+    quote!({
+        //allocate the destination
+        let mut #dest = #ak3::<T3,_>::uninit(#shape);
+
+        //grab the dims and grades
+        let (n1, n2, n3) = (#lhs.dim(), #rhs.dim(), #shape.value());
+
+        //for now, we're only optimizing when all dimensions are the same
+        if n1==n2 && n2==n3 {
+            match n1 {
+                #patterns
+                _ => #default_branch
+            }
+        } else {
+            #default_branch
+        }
+
+    })
+
+}
+
 pub fn gen_mul_optimizations_(tts: TokenStream) -> Result<TokenStream, String> {
 
     //convert to an iterator
@@ -273,30 +309,36 @@ pub fn gen_mul_optimizations_(tts: TokenStream) -> Result<TokenStream, String> {
 
     let lhs = expect_ident(tts.next())?;
     expect_specific_punct(tts.next(), ',')?;
-    let lhs_algebra = expect_algebra(tts.next())?.to_string();
+    let lhs_algebra = expect_algebra(tts.next())?;
     expect_specific_punct(tts.next(), ',')?;
 
     let rhs = expect_ident(tts.next())?;
     expect_specific_punct(tts.next(), ',')?;
-    let rhs_algebra = expect_algebra(tts.next())?.to_string();
+    let rhs_algebra = expect_algebra(tts.next())?;
     expect_specific_punct(tts.next(), ',')?;
 
     let shape = expect_ident(tts.next())?;
     expect_specific_punct(tts.next(), ',')?;
-    let dest_algebra = expect_algebra(tts.next())?.to_string();
+    let dest_algebra = expect_algebra(tts.next())?;
 
     expect_specific_punct(tts.next(), ';')?;
     let default_branch = TokenStream::from_iter(tts);
 
+    use AlgebraKind::*;
     Ok(
-        match (&*lhs_algebra, &*rhs_algebra, &*dest_algebra) {
 
-            ("Blade", "Blade", "Blade") => gen_blade_mul_optimizations(
-                lhs, rhs, shape, default_branch
-            ),
-
-            _ => quote!(#default_branch)
+        if let (Blade, Blade, Blade) = (lhs_algebra, rhs_algebra, dest_algebra) {
+            gen_blade_mul(lhs, rhs, shape, default_branch)
+        } else if
+            !lhs_algebra.is_blade() && !rhs_algebra.is_blade() && !dest_algebra.is_blade()
+        {
+            gen_non_blade_mul(
+                lhs, lhs_algebra, rhs, rhs_algebra, shape, dest_algebra, default_branch
+            )
+        } else {
+            quote!(#default_branch)
         }
+
     )
 
 }

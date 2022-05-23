@@ -5,11 +5,97 @@ use quote::*;
 use std::iter::*;
 
 #[derive(Clone, Copy, Hash, PartialEq, Eq, Debug)]
+pub enum AlgebraKind {
+    Blade, Even, Odd, Full
+}
+
+impl ToTokens for AlgebraKind {
+    fn to_tokens(&self, tokens: &mut TokenStream) {
+        tokens.extend(
+            match self {
+                AlgebraKind::Blade => quote!(Blade),
+                AlgebraKind::Even => quote!(Even),
+                AlgebraKind::Odd => quote!(Odd),
+                AlgebraKind::Full => quote!(Multivector),
+            }
+        )
+    }
+}
+
+impl AlgebraKind {
+
+    pub fn iter_to(self, n:usize) -> impl Iterator<Item=Algebra> + Clone {
+        use AlgebraKind::*;
+        match self {
+            Blade => Algebra::Blade(n, n+1),
+            Even => Algebra::Even(n+1),
+            Odd => Algebra::Odd(n+1),
+            Full => Algebra::Full(n+1),
+        }
+    }
+
+    pub fn is_blade(self) -> bool {
+        match self {
+            AlgebraKind::Blade => true,
+            _ => false
+        }
+    }
+
+    pub fn even(self) -> bool {
+        match self {
+            AlgebraKind::Even => true,
+            _ => false
+        }
+    }
+
+    pub fn odd(self) -> bool {
+        match self {
+            AlgebraKind::Odd => true,
+            _ => false
+        }
+    }
+
+}
+
+#[derive(Clone, Copy, Hash, PartialEq, Eq, Debug)]
 pub enum Algebra {
     Blade(usize, usize),
     Even(usize),
     Odd(usize),
     Full(usize)
+}
+
+impl Iterator for Algebra {
+    type Item = Algebra;
+
+    fn next(&mut self) -> Option<Algebra> {
+        use Algebra::*;
+        match self {
+            Blade(n, g) => {
+                if *g==0 {
+                    if *n==0 {
+                        None
+                    } else {
+                        *n-=1;
+                        *g=*n+1;
+                        Some(*self)
+                    }
+                } else {
+                    *g-=1;
+                    Some(*self)
+                }
+            },
+            Even(n) | Odd(n) | Full(n) => {
+                if *n==0 {
+                    None
+                } else {
+                    *n-=1;
+                    Some(*self)
+                }
+            }
+        }
+    }
+
 }
 
 impl ToTokens for Algebra {
@@ -27,65 +113,12 @@ impl ToTokens for Algebra {
 
 impl Algebra {
 
-    pub fn all_src_in_dim(n:usize) -> impl Iterator<Item=Algebra> + Clone {
-        (1..n).map(move |g| Algebra::Blade(n, g))
-        .chain(once(Algebra::Even(n)))
-        .chain(once(Algebra::Odd(n)))
-        .chain(once(Algebra::Full(n)))
-    }
-
-    pub fn all_dst(self, rhs:Algebra) -> impl Iterator<Item=Algebra> + Clone {
-        use Algebra::*;
-        let n = self.dim().max(rhs.dim());
-
-        match (self, rhs) {
-
-            (Blade(_, g1), Blade(_, g2)) => {
-
-                let gmax = g1+g2;
-                let gmin = if g1>=g2 { g1-g2 } else { g2-g1 };
-                let even = |x| (x&1)==0;
-
-                //every grade outside this range is 0
-                (gmin..=gmax)
-                //if the grade-sum is even, remove the odds,
-                //if the grade-sum is odd, remove the evens
-                //because they are all zero and they are a special case
-                .filter(|g| even(gmax) == even(*g))
-                //we have a special case for the dot-product
-                .filter(|g| g1!=g2 || *g!=0)
-                //we have a special case for the psuedoscalar dot-product (unless the grades are the same :/)
-                .filter(|g| g1+g2!=n || *g!=n || g1==g2)
-                .map(move |g| Blade(n,g))
-
-                .chain(once(
-                    //only implement an even or odd product if it is non-zero
-                    if even(gmax) { Even(n) } else { Odd(n) } )
-                )
-                .chain(once(Full(n)))
-
-                //turn into a vector iterator to make the type the same as the below
-                .collect::<Vec<_>>()
-                .into_iter()
-            },
-
-            (lhs, rhs) => {
-
-                let mut list = vec![];
-
-                //don't even bother with partial products or blade results, they're not really
-                //necessary and dramatically slow comp times
-                if lhs.even() && rhs.even() { list.push(Even(n)); }
-                if lhs.even() && rhs.odd()  { list.push(Odd(n)); }
-                if lhs.odd()  && rhs.even() { list.push(Odd(n)); }
-                if lhs.odd()  && rhs.odd()  { list.push(Even(n)); }
-                list.push(Full(n));
-
-                list.into_iter()
-
-            }
-
-
+    pub fn kind(self) -> AlgebraKind {
+        match self {
+            Algebra::Blade(_,_) => AlgebraKind::Blade,
+            Algebra::Even(_) => AlgebraKind::Even,
+            Algebra::Odd(_) => AlgebraKind::Odd,
+            Algebra::Full(_) => AlgebraKind::Full,
         }
     }
 
