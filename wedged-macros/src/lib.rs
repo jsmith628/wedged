@@ -18,7 +18,7 @@ mod algebra;
 mod tokens;
 mod mul;
 
-const N:usize = 5;
+const N:usize = 6;
 
 #[proc_macro]
 pub fn gen_mul_optimizations(tts: proc_macro::TokenStream) -> proc_macro::TokenStream {

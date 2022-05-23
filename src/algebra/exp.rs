@@ -471,7 +471,7 @@ mod tests {
         }
 
         //dynamic dims
-        for n in 0..=7 {
+        for n in 0..=6 {
             let n = Dynamic::new(n);
             rot_test!(n);
         }

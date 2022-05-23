@@ -24,6 +24,19 @@ impl ToTokens for AlgebraKind {
 
 impl AlgebraKind {
 
+    pub fn iter_at(self, n:usize) -> impl Iterator<Item=Algebra> {
+
+        let iter: Box<dyn Iterator<Item=Algebra>> = match self {
+            AlgebraKind::Blade => Box::new((0..=n).map(move |g| Algebra::Blade(n,g))),
+            AlgebraKind::Even => Box::new(once(Algebra::Even(n))),
+            AlgebraKind::Odd => Box::new(once(Algebra::Odd(n))),
+            AlgebraKind::Full => Box::new(once(Algebra::Full(n))),
+        };
+
+        iter
+
+    }
+
     pub fn iter_to(self, n:usize) -> impl Iterator<Item=Algebra> + Clone {
         use AlgebraKind::*;
         match self {

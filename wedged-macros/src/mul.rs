@@ -258,39 +258,72 @@ pub fn gen_non_blade_mul(
 
     let mut patterns = TokenStream::new();
 
-    //zip the iterators together since we're assuming that each dim only
-    //has one algebra for each kind
-    for ((a1, a2), a3) in ak1.iter_to(N).zip(ak2.iter_to(N)).zip(ak2.iter_to(N)) {
+    for n in (0..=N) {
+        for a1 in ak1.iter_at(n) {
+            for a2 in ak2.iter_at(n) {
+                for a3 in ak3.iter_at(n) {
 
-        //all the dims should be the exact same (for now), so just test one of them
-        let n1 = a1.dim();
+                    let pat = match (a1, a2) {
+                        (Algebra::Blade(_,g1), Algebra::Blade(_,g2)) => quote!((#n,#g1,#g2)),
+                        (Algebra::Blade(_,g1), _) => quote!((#n,#g1)),
+                        (_, Algebra::Blade(_,g2)) => quote!((#n,#g2)),
+                        (_,_) => quote!(#n),
+                    };
 
-        //gen the mul table
-        let table = gen_mul_for(
-            (lhs.clone(), a1), (rhs.clone(), a2), (dest.clone(), a3),
-            quote!(T3::zero())
-        );
+                    //gen the mul table
+                    let table = gen_mul_for(
+                        (lhs.clone(), a1), (rhs.clone(), a2), (dest.clone(), a3),
+                        quote!(T3::zero())
+                    );
 
-        //add the pattern
-        patterns.extend(quote!(
-            #n1 => {
-                #table
-                unsafe { #ak3::assume_init(#dest) }
+                    //if the output is opposite parity of what it should be, we can just return 0
+                    let out_even = a1.even()&&a2.even() || a1.odd()&&a2.odd();
+                    let out_odd = a1.even()&&a2.odd() || a1.odd()&&a2.even();
+                    if out_even && a3.odd() || out_odd && a3.even() {
+                        //add the pattern
+                        patterns.extend(quote!(
+                            #pat => #ak3::zeroed_generic(#shape),
+                        ));
+                    } else {
+                        //add the pattern
+                        patterns.extend(quote!(
+                            #pat => {
+                                #table
+                                unsafe { #ak3::assume_init(#dest) }
+                            }
+                        ));
+                    }
+
+
+
+                }
             }
-        ));
+        }
+
+
 
     }
+
+    //construct the thing being tested in the pattern
+    //Yes, it's a little ugly...
+    let n1 = quote!(n1);
+    let pat = match (ak1, ak2) {
+        (AlgebraKind::Blade, AlgebraKind::Blade) => quote!((#n1, #lhs.grade(), #rhs.grade())),
+        (_, AlgebraKind::Blade) => quote!((#n1, #rhs.grade())),
+        (AlgebraKind::Blade, _) => quote!((#n1, #lhs.grade())),
+        (_, _) => quote!(#n1),
+    };
 
     quote!({
         //allocate the destination
         let mut #dest = #ak3::<T3,_>::uninit(#shape);
 
         //grab the dims and grades
-        let (n1, n2, n3) = (#lhs.dim(), #rhs.dim(), #shape.value());
+        let (#n1, n2, n3) = (#lhs.dim(), #rhs.dim(), #shape.value());
 
         //for now, we're only optimizing when all dimensions are the same
-        if n1==n2 && n2==n3 {
-            match n1 {
+        if #n1==n2 && n2==n3 {
+            match #pat {
                 #patterns
                 _ => #default_branch
             }
@@ -329,14 +362,12 @@ pub fn gen_mul_optimizations_(tts: TokenStream) -> Result<TokenStream, String> {
 
         if let (Blade, Blade, Blade) = (lhs_algebra, rhs_algebra, dest_algebra) {
             gen_blade_mul(lhs, rhs, shape, default_branch)
-        } else if
-            !lhs_algebra.is_blade() && !rhs_algebra.is_blade() && !dest_algebra.is_blade()
-        {
+        } else if let Blade = dest_algebra {
+            quote!(#default_branch)
+        } else {
             gen_non_blade_mul(
                 lhs, lhs_algebra, rhs, rhs_algebra, shape, dest_algebra, default_branch
             )
-        } else {
-            quote!(#default_branch)
         }
 
     )
