@@ -86,7 +86,7 @@ fn gen_blade_mul(lhs:Ident, rhs:Ident, shape:Ident, default_branch:TokenStream) 
             for g2 in 0..=n {
                 let a2 = Algebra::Blade(n,g2);
 
-                let gmax = g1+g2;
+                let gmax = n.min(g1+g2);
                 let gmin = g1.max(g2) - g1.min(g2);
 
                 for g3 in gmin..=gmax {
@@ -225,6 +225,9 @@ fn gen_blade_mul(lhs:Ident, rhs:Ident, shape:Ident, default_branch:TokenStream) 
 
                     },
 
+                    //null-blades are ZSTs, so just assume init
+                    (n, _, _, g) if g>n => unsafe { Blade::assume_init(#dest) },
+
                     //paste in all the generated cases
                     #patterns
 
@@ -258,7 +261,7 @@ pub fn gen_non_blade_mul(
 
     let mut patterns = TokenStream::new();
 
-    for n in (0..=N) {
+    for n in 0..=N {
         for a1 in ak1.iter_at(n) {
             for a2 in ak2.iter_at(n) {
                 for a3 in ak3.iter_at(n) {

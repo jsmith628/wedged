@@ -251,7 +251,11 @@ macro_rules! impl_selected_mul {
         {
             #[inline]
             fn selected_mul(
-                &self, rhs: &$Ty2<T2,N $(,$G2)*>, shape: <$Ty3<T3,N $(,$G3)*> as MultivectorSrc>::Shape
+                &self,
+                //odd-odd-odd and even-even-even shortcircuit to zero, and so don't use rhs
+                #[allow(unused_variables)]
+                rhs: &$Ty2<T2,N $(,$G2)*>,
+                shape: <$Ty3<T3,N $(,$G3)*> as MultivectorSrc>::Shape
             ) -> $Ty3<T3,N $(,$G3)*> {
 
                 #[cfg(feature = "code_gen")]
@@ -262,7 +266,10 @@ macro_rules! impl_selected_mul {
                     )
                 }
 
-                #[cfg(not(feature = "code_gen"))] { core_mul(self, rhs, shape) }
+                #[cfg(not(feature = "code_gen"))]
+                {
+                    core_mul(self, rhs, shape)
+                }
 
             }
         }

@@ -4,13 +4,8 @@ extern crate proc_macro2;
 extern crate quote;
 extern crate basis_blade;
 
-
-use quote::*;
 use proc_macro2::*;
-use basis_blade::*;
-use std::iter::*;
 
-use self::algebra::*;
 use self::tokens::*;
 use self::mul::*;
 

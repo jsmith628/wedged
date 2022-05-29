@@ -37,23 +37,6 @@ impl AlgebraKind {
 
     }
 
-    pub fn iter_to(self, n:usize) -> impl Iterator<Item=Algebra> + Clone {
-        use AlgebraKind::*;
-        match self {
-            Blade => Algebra::Blade(n, n+1),
-            Even => Algebra::Even(n+1),
-            Odd => Algebra::Odd(n+1),
-            Full => Algebra::Full(n+1),
-        }
-    }
-
-    pub fn is_blade(self) -> bool {
-        match self {
-            AlgebraKind::Blade => true,
-            _ => false
-        }
-    }
-
     pub fn even(self) -> bool {
         match self {
             AlgebraKind::Even => true,
@@ -78,39 +61,6 @@ pub enum Algebra {
     Full(usize)
 }
 
-impl Iterator for Algebra {
-    type Item = Algebra;
-
-    fn next(&mut self) -> Option<Algebra> {
-        use Algebra::*;
-        match self {
-            Blade(n, g) => {
-                if *g==0 {
-                    if *n==0 {
-                        None
-                    } else {
-                        *n-=1;
-                        *g=*n+1;
-                        Some(*self)
-                    }
-                } else {
-                    *g-=1;
-                    Some(*self)
-                }
-            },
-            Even(n) | Odd(n) | Full(n) => {
-                if *n==0 {
-                    None
-                } else {
-                    *n-=1;
-                    Some(*self)
-                }
-            }
-        }
-    }
-
-}
-
 impl ToTokens for Algebra {
     fn to_tokens(&self, tokens: &mut TokenStream) {
         tokens.extend(
@@ -126,6 +76,7 @@ impl ToTokens for Algebra {
 
 impl Algebra {
 
+    #[allow(dead_code)]
     pub fn kind(self) -> AlgebraKind {
         match self {
             Algebra::Blade(_,_) => AlgebraKind::Blade,
@@ -135,6 +86,8 @@ impl Algebra {
         }
     }
 
+
+    #[allow(dead_code)]
     pub fn even(self) -> bool {
         match self {
             Algebra::Blade(_,g) => g&1 == 0,
@@ -143,6 +96,7 @@ impl Algebra {
         }
     }
 
+    #[allow(dead_code)]
     pub fn odd(self) -> bool {
         match self {
             Algebra::Blade(_,g) => g&1 != 0,
@@ -151,6 +105,7 @@ impl Algebra {
         }
     }
 
+    #[allow(dead_code)]
     pub fn dim(self) -> usize {
         match self {
             Algebra::Blade(n, _) => n,
