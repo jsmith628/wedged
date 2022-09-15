@@ -59,6 +59,37 @@ pub fn expect_algebra(tt: Option<TokenTree>) -> Result<AlgebraKind, ParseError> 
 
 }
 
+pub fn parse_csv(tts: TokenStream) -> Result<Vec<TokenStream>, ParseError> {
+    parse_list(tts, ',')
+}
+
+pub fn parse_list(tts: TokenStream, sep: char) -> Result<Vec<TokenStream>, ParseError> {
+
+    let mut elements = Vec::new();
+    let mut next = Vec::new();
+    for tt in tts {
+
+        match tt {
+            TokenTree::Punct(p) => {
+                if p.as_char() == sep {
+                    elements.push(TokenStream::from_iter(next));
+                    next = Vec::new();
+                } else {
+                    next.push(TokenTree::Punct(p));
+                }
+            }
+            tt => next.push(tt),
+        }
+
+    }
+    if !next.is_empty() {
+        elements.push(TokenStream::from_iter(next));
+    }
+
+    Ok(elements)
+
+}
+
 pub fn unwrap_or_error(res: Result<TokenStream, ParseError>) -> proc_macro::TokenStream {
 
     match res {

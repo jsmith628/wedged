@@ -76,6 +76,25 @@ impl ToTokens for Algebra {
 
 impl Algebra {
 
+    pub fn to_ty_tokens(self, scalar: TokenStream) -> TokenStream {
+
+        let typenum = |n:usize| Ident::new(&*format!("U{}", n), Span::call_site());
+
+        let n = typenum(self.dim());
+
+        match self {
+
+            Algebra::Even(_) => quote!(Even<#scalar, #n>),
+            Algebra::Odd(_) => quote!(Odd<#scalar, #n>),
+            Algebra::Full(_) => quote!(Multivector<#scalar, #n>),
+            Algebra::Blade(_, g) => {
+                let g = typenum(g);
+                quote!(Blade<#scalar, #n, #g>)
+            }
+
+        }
+    }
+
     #[allow(dead_code)]
     pub fn kind(self) -> AlgebraKind {
         match self {
