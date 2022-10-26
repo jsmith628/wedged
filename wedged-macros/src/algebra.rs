@@ -24,6 +24,16 @@ impl ToTokens for AlgebraKind {
 
 impl AlgebraKind {
 
+    pub fn of(ty: &Ident) -> Result<Self, crate::tokens::ParseError> {
+        match &*format!("{}", ty) {
+            "Blade" | "SimpleBlade" | "UnitBlade" => Ok(AlgebraKind::Blade),
+            "Even" | "Rotor" => Ok(AlgebraKind::Even),
+            "Odd" | "Reflector" => Ok(AlgebraKind::Odd),
+            "Multivector" => Ok(AlgebraKind::Full),
+            ty => Err(format!("Expected Algebra type, found '{}'", ty)),
+        }
+    }
+
     pub fn iter_at(self, n:usize) -> impl Iterator<Item=Algebra> {
 
         let iter: Box<dyn Iterator<Item=Algebra>> = match self {

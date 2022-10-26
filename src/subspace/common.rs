@@ -86,7 +86,7 @@ macro_rules! impl_common {
                 type Dim = N;
                 type Shape = <$Target<T,$($N),*> as MultivectorSrc>::Shape;
 
-                fn dim(&self) -> Self::Dim { self.data.dim_generic() }
+                fn dim_(&self) -> Self::Dim { self.data.dim_generic() }
                 fn elements(&self) -> usize { self.data.elements() }
                 fn subspace(&self) -> Subspace { self.data.subspace() }
                 fn shape(&self) -> Self::Shape { self.data.shape() }
@@ -102,7 +102,7 @@ macro_rules! impl_common {
                 type Dim = N;
                 type Shape = <$Target<T,$($N),*> as MultivectorSrc>::Shape;
 
-                fn dim(&self) -> Self::Dim { self.data.dim_generic() }
+                fn dim_(&self) -> Self::Dim { self.data.dim_generic() }
                 fn elements(&self) -> usize { self.data.elements() }
                 fn subspace(&self) -> Subspace { self.data.subspace() }
                 fn shape(&self) -> Self::Shape { self.data.shape() }

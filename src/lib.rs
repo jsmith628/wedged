@@ -4,7 +4,7 @@
 #![cfg_attr(test, feature(test))]
 #![cfg_attr(feature = "fn_traits", feature(fn_traits, unboxed_closures))]
 
-#![feature(trace_macros)]
+// #![feature(trace_macros)]
 
 
 #[cfg(test)] extern crate test;

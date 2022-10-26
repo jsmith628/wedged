@@ -47,13 +47,8 @@ pub fn expect_nothing(tt: Option<TokenTree>) -> Result<(), ParseError> {
 pub fn expect_algebra(tt: Option<TokenTree>) -> Result<AlgebraKind, ParseError> {
 
     match tt {
-        Some(tt) => match &*format!("{}", tt) {
-            "Blade" => Ok(AlgebraKind::Blade),
-            "Even" => Ok(AlgebraKind::Even),
-            "Odd" => Ok(AlgebraKind::Odd),
-            "Multivector" => Ok(AlgebraKind::Full),
-            tt => Err(format!("Expected Algebra type, found '{}'", tt)),
-        },
+        Some(TokenTree::Ident(tt)) => AlgebraKind::of(&tt),
+        Some(tt) => Err(format!("Expected Algebra type, found '{}'", tt)),
         None => Err(format!("Expected Algebra type")),
     }
 

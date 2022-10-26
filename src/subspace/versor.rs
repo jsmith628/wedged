@@ -36,9 +36,22 @@ macro_rules! impl_versor_mul {
         {
             type Output = $Ty2<U,N $(,$G2)?>;
             fn versor_mul(self, rhs: $(&$b)? $Ty2<T2,N $(,$G2)?>) -> $Ty2<U,N $(,$G2)?> {
-                use crate::algebra::MultivectorSrc;
-                let shape = rhs.shape();
-                versor_core_mul(self.odd(), self, rhs, shape)
+
+                #[cfg(feature = "code_gen")] {
+                    wedged_macros::gen_versor_optimizations!(
+                        self, $Ty1, rhs, $Ty2; {
+                            use crate::algebra::MultivectorSrc;
+                            let shape = rhs.shape();
+                            versor_core_mul(self.odd(), self, rhs, shape)
+                        }
+                    )
+                }
+
+                #[cfg(not(feature = "code_gen"))] {
+                    use crate::algebra::MultivectorSrc;
+                    let shape = rhs.shape();
+                    versor_core_mul(self.odd(), self, rhs, shape)
+                }
             }
         }
 

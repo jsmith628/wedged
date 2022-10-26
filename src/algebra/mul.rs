@@ -27,7 +27,7 @@ pub(crate) trait MultivectorSrc:IntoIterator {
     type Dim: Dim;
     type Shape: Copy;
 
-    fn dim(&self) -> Self::Dim;
+    fn dim_(&self) -> Self::Dim;
     fn elements(&self) -> usize;
     fn subspace(&self) -> Subspace;
     fn shape(&self) -> Self::Shape;
@@ -56,7 +56,7 @@ impl<T:AllocBlade<N,G>, N:Dim, G:Dim> MultivectorSrc for Blade<T,N,G> {
     type Dim = N;
     type Shape = (N,G);
 
-    fn dim(&self) -> N { self.dim_generic() }
+    fn dim_(&self) -> N { self.dim_generic() }
     fn subspace(&self) -> Subspace { Subspace::Blade(Blade::dim(self), self.grade()) }
     fn elements(&self) -> usize { Blade::elements(self) }
     fn shape(&self) -> (N,G) { (self.dim_generic(), self.grade_generic()) }
@@ -74,7 +74,7 @@ impl<T:AllocEven<N>, N:Dim> MultivectorSrc for Even<T,N> {
     type Dim = N;
     type Shape = N;
 
-    fn dim(&self) -> N { self.dim_generic() }
+    fn dim_(&self) -> N { self.dim_generic() }
     fn subspace(&self) -> Subspace { Subspace::Even(Even::dim(self)) }
     fn elements(&self) -> usize { Even::elements(self) }
     fn shape(&self) -> N { self.dim_generic() }
@@ -92,7 +92,7 @@ impl<T:AllocOdd<N>, N:Dim> MultivectorSrc for Odd<T,N> {
     type Dim = N;
     type Shape = N;
 
-    fn dim(&self) -> N { self.dim_generic() }
+    fn dim_(&self) -> N { self.dim_generic() }
     fn subspace(&self) -> Subspace { Subspace::Odd(Odd::dim(self)) }
     fn elements(&self) -> usize { Odd::elements(self) }
     fn shape(&self) -> N { self.dim_generic() }
@@ -110,7 +110,7 @@ impl<T:AllocMultivector<N>, N:Dim> MultivectorSrc for Multivector<T,N> {
     type Dim = N;
     type Shape = N;
 
-    fn dim(&self) -> N { self.dim_generic() }
+    fn dim_(&self) -> N { self.dim_generic() }
     fn subspace(&self) -> Subspace { Subspace::Full(Multivector::dim(self)) }
     fn elements(&self) -> usize { Multivector::elements(self) }
     fn shape(&self) -> N { self.dim_generic() }
@@ -130,7 +130,7 @@ macro_rules! impl_src_ref {
             type Dim = N;
             type Shape = <$Ty<T,N $(, $G)*> as MultivectorSrc>::Shape;
 
-            fn dim(&self) -> N { MultivectorSrc::dim(*self) }
+            fn dim_(&self) -> N { MultivectorSrc::dim_(*self) }
             fn elements(&self) -> usize { MultivectorSrc::elements(*self) }
             fn subspace(&self) -> Subspace { MultivectorSrc::subspace(*self) }
             fn shape(&self) -> Self::Shape { MultivectorSrc::shape(*self) }
@@ -206,27 +206,6 @@ impl<T:AllocMultivector<N>, N:Dim> MultivectorDst for Multivector<T,N> {
     }
 
 }
-
-// fn check_dim<B1,B2,B3>(b1: &B1, b2: &B2, shape: B3::Shape) -> usize where
-//     B1: MultivectorSrc,
-//     B2: MultivectorSrc,
-//     B3: MultivectorDst
-// {
-//     //for convenience
-//     let (n1, n2, n3) = (b1.dim().value(), b2.dim().value(), B3::subspace_of(shape).dim());
-//
-//     //To save further headache with generics, we don't allow multiplying two blades of
-//     //different dimension
-//     if n1 != n2 {
-//         panic!("Cannot multiply two values of different dimensions: {}!={}", n1, n2)
-//     }
-//
-//     if n1 != n3 {
-//         panic!("Cannot multiply into a value of different dimension: {}!={}", n1, n3)
-//     }
-//
-//     n1
-// }
 
 pub(crate) trait SelectedMul<Rhs, Output:MultivectorDst> {
     fn selected_mul(&self, rhs: &Rhs, shape:Output::Shape) -> Output;
@@ -361,7 +340,7 @@ where
     unsafe { B3::assume_init(dest) }
 }
 
-#[inline]
+// #[inline]
 pub(crate) fn versor_core_mul<B1,B2,B3>(odd:bool, b1:B1, b2:B2, shape:B3::Shape) -> B3
 where
     B1: MultivectorSrc,
@@ -612,93 +591,6 @@ impl_geometric_mul!(
 
 
 );
-
-// macro_rules! impl_versor_mul {
-//
-//     () => {};
-//
-//     (
-//         @impl
-//         $(&$a:lifetime)? $Ty1:ident<T:$Alloc1:ident $(, $G1:ident)*>
-//         $(&$b:lifetime)? $Ty2:ident<T:$Alloc2:ident $(, $G2:ident)*>;
-//         $($rest:tt)*
-//     ) => {
-//         impl<$($a, )? $($b, )? T1, T2, U, N:Dim $(, $G1:Dim)* $(, $G2:Dim)*>
-//         SelectedVersorMul<$(&$b)? $Ty2<T2,N $(,$G2)*>> for $(&$a)? $Ty1<T1,N $(,$G1)*> where
-//             T1: $Alloc1<N $(, $G1)*> + AllRefMul<T2, AllOutput=U>,
-//             T2: $Alloc2<N $(, $G2)*>,
-//             U: for<'c> Mul<&'c T1, Output=U> + AddGroup,
-//         {
-//             type OutputScalar = U;
-//             type N = N;
-//
-//             fn versor_mul_grade_generic<G:Dim>(
-//                 self, rhs: $(&$b)? $Ty2<T2,N $(,$G2)*>, g:G
-//             ) -> Blade<U, N, G>
-//             where U: AllocBlade<Self::N, G>
-//             {
-//                 let shape = (self.dim_generic(), g);
-//                 versor_core_mul(self.odd(), self, rhs, shape)
-//             }
-//
-//             fn versor_mul_even(self, rhs: $(&$b)? $Ty2<T2,N $(,$G2)*>) -> Even<U, N>
-//             where U: AllocEven<N>
-//             {
-//                 let n = self.dim_generic();
-//                 versor_core_mul(self.odd(), self, rhs, n)
-//             }
-//
-//             fn versor_mul_odd(self, rhs: $(&$b)? $Ty2<T2,N $(,$G2)*>) -> Odd<U, N>
-//             where U: AllocOdd<N>
-//             {
-//                 let n = self.dim_generic();
-//                 versor_core_mul(self.odd(), self, rhs, n)
-//             }
-//
-//             fn versor_mul_full(self, rhs: $(&$b)? $Ty2<T2,N $(,$G2)*>) -> Multivector<U, N>
-//             where U: AllocMultivector<N>
-//             {
-//                 let n = self.dim_generic();
-//                 versor_core_mul(self.odd(), self, rhs, n)
-//             }
-//
-//         }
-//     };
-//
-//     (
-//         $Ty1:ident<T:$Alloc1:ident $(, $G1:ident)*>
-//         $Ty2:ident<T:$Alloc2:ident $(, $G2:ident)*>;
-//         $($rest:tt)*
-//     ) => {
-//         impl_versor_mul!(
-//             @impl     $Ty1<T:$Alloc1 $(, $G1)*>     $Ty2<T:$Alloc2 $(, $G2)*>;
-//             @impl &'a $Ty1<T:$Alloc1 $(, $G1)*>     $Ty2<T:$Alloc2 $(, $G2)*>;
-//             @impl     $Ty1<T:$Alloc1 $(, $G1)*> &'a $Ty2<T:$Alloc2 $(, $G2)*> ;
-//             @impl &'a $Ty1<T:$Alloc1 $(, $G1)*> &'b $Ty2<T:$Alloc2 $(, $G2)*>;
-//             $($rest)*
-//         );
-//     };
-// }
-//
-// impl_versor_mul!(
-//
-//     Blade<T:AllocBlade,G1>  Blade<T:AllocBlade,G2>;
-//     Blade<T:AllocBlade,G1>  Even<T:AllocEven>;
-//     Blade<T:AllocBlade,G1>  Odd<T:AllocOdd>;
-//     Blade<T:AllocBlade,G1>  Multivector<T:AllocMultivector>;
-//
-//     Even<T:AllocEven>  Blade<T:AllocBlade,G2>;
-//     Even<T:AllocEven>  Even<T:AllocEven>;
-//     Even<T:AllocEven>  Odd<T:AllocOdd>;
-//     Even<T:AllocEven>  Multivector<T:AllocMultivector>;
-//
-//     Odd<T:AllocOdd>  Blade<T:AllocBlade,G2>;
-//     Odd<T:AllocOdd>  Even<T:AllocEven>;
-//     Odd<T:AllocOdd>  Odd<T:AllocOdd>;
-//     Odd<T:AllocOdd>  Multivector<T:AllocMultivector>;
-//
-//
-// );
 
 macro_rules! impl_wedge_dot {
     ($($a:lifetime)?; $($b:lifetime)?) => {
