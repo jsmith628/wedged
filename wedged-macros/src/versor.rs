@@ -10,9 +10,15 @@ pub fn gen_versor_mul_table(
     v:(Ident, Algebra), a:(Ident, Algebra), dest:(Ident, Algebra), zero:TokenStream
 ) -> TokenStream {
 
-    let mut assignments: Vec<Option<TokenStream>> = vec![None; dest.1.elements()];
+    use std::collections::HashMap;
+
+    #[derive(Copy, Clone, PartialEq, Eq, Hash)]
+    struct Term(usize, usize, usize);
+
+    let mut assignments: Vec<HashMap<Term,i32>> = vec![HashMap::new(); dest.1.elements()];
     let versor = v.0;
     let object = a.0;
+
 
     let odd = v.1.odd();
 
@@ -20,23 +26,21 @@ pub fn gen_versor_mul_table(
         for (j, vb2) in v.1.bases() {
             for (k, b) in a.1.bases() {
                 
+
                 let b = if odd { b.involute() } else { b };
                 let dest_b = vb1 * b / vb2;
 
-                if let Some((index, sign)) = dest.1.index_of(dest_b) {
+                if let Some((index, neg)) = dest.1.index_of(dest_b) {
 
-                    //tokens for multiplying the components of the rhs and lhs
-                    let term = quote!(
-                        #versor[#i].ref_mul(&#object[#k]) * &#versor[#j]
-                    );
-    
-                    //add this term to the corresponding coordinate
-                    assignments[index] = match (&assignments[index], sign) {
-                        (None, true) => Some(term),
-                        (None, false) => Some(quote!(- #term)),
-                        (Some(a), true) => Some(quote!(#a + #term)),
-                        (Some(a), false) => Some(quote!(#a - #term))
-                    };
+                    //the key for the term so we can keep track of the coefficient
+                    let term = Term(i.min(j), i.max(j), k);
+
+                    match (assignments[index].get_mut(&term), neg) {
+                        (None, true) => {assignments[index].insert(term, 1);},
+                        (None, false) => {assignments[index].insert(term, -1);},
+                        (Some(a), true) => *a += 1,
+                        (Some(a), false) => *a -= 1
+                    }
     
                 }
 
@@ -45,17 +49,45 @@ pub fn gen_versor_mul_table(
     }
 
     let dest = dest.0;
+    let mut tts = TokenStream::new();
+    for (i, assignment) in assignments.into_iter().enumerate() {
 
-    TokenStream::from_iter(
-        assignments.into_iter().map(|a| a.unwrap_or_else(|| zero.clone()))
-        .enumerate()
-        .map(
-            |(i, assignment)| {
-                let index = Literal::usize_unsuffixed(i);
-                quote!( #dest[#index] = ::std::mem::MaybeUninit::new(#assignment); )
-            }
-        )
-    )
+        let mut expr = TokenStream::new();
+        let mut first = true;
+
+        for (Term(j,k,l), coeff) in assignment {
+
+            //we sadly can't multiply by ints because of the generics
+            //so we have to just use repeated addition
+            for _ in 0..(coeff.abs()) {
+                if coeff < 0 {
+                    expr.extend(quote!(-));
+                } else if !first && coeff > 0 {
+                    expr.extend(quote!(+));
+                }
+    
+                expr.extend(
+                    quote!(
+                        (#versor[#j].ref_mul(&#object[#l]) * &#versor[#k])
+                    )
+                );
+    
+                first = false;
+            }            
+        }
+
+        if expr.is_empty() {
+            expr = zero.clone()
+        }
+
+        tts.extend(
+            quote!( #dest[#i] = ::std::mem::MaybeUninit::new(#expr); )
+        );
+
+
+    }
+
+    tts
 
 }
 

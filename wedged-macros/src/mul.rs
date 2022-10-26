@@ -29,13 +29,13 @@ where
             //find the basis of the result and its index
             let b3 = b1 * b2;
 
-            if let Some((index, sign)) = index_of(b3) {
+            if let Some((index, neg)) = index_of(b3) {
 
                 //tokens for multiplying the components of the rhs and lhs
                 let term = quote!( #lhs[#i].ref_mul(&#rhs[#j]) );
 
                 //add this term to the corresponding coordinate
-                assignments[index] = match (&assignments[index], sign) {
+                assignments[index] = match (&assignments[index], neg) {
                     (None, true) => Some(term),
                     (None, false) => Some(quote!(- #term)),
                     (Some(a), true) => Some(quote!(#a + #term)),
