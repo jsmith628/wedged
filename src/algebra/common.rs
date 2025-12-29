@@ -1,7 +1,7 @@
 
 use super::*;
 
-unsafe impl<T:AllocBlade<N,G>, N:Dim, G:Dim> Alloc<Blade<T,N,G>> for DefaultAllocator {
+impl<T:AllocBlade<N,G>, N:Dim, G:Dim> Alloc<Blade<T,N,G>> for DefaultAllocator {
     type Scalar = T;
     type Shape = (N,G);
     type Buffer = AllocateBlade<T,N,G>;
@@ -13,7 +13,7 @@ unsafe impl<T:AllocBlade<N,G>, N:Dim, G:Dim> Alloc<Blade<T,N,G>> for DefaultAllo
 
 }
 
-unsafe impl<T:AllocEven<N>, N:Dim> Alloc<Even<T,N>> for DefaultAllocator {
+impl<T:AllocEven<N>, N:Dim> Alloc<Even<T,N>> for DefaultAllocator {
     type Scalar = T;
     type Shape = N;
     type Buffer = AllocateEven<T,N>;
@@ -25,7 +25,7 @@ unsafe impl<T:AllocEven<N>, N:Dim> Alloc<Even<T,N>> for DefaultAllocator {
 
 }
 
-unsafe impl<T:AllocOdd<N>, N:Dim> Alloc<Odd<T,N>> for DefaultAllocator {
+impl<T:AllocOdd<N>, N:Dim> Alloc<Odd<T,N>> for DefaultAllocator {
     type Scalar = T;
     type Shape = N;
     type Buffer = AllocateOdd<T,N>;
@@ -37,7 +37,7 @@ unsafe impl<T:AllocOdd<N>, N:Dim> Alloc<Odd<T,N>> for DefaultAllocator {
 
 }
 
-unsafe impl<T:AllocMultivector<N>, N:Dim> Alloc<Multivector<T,N>> for DefaultAllocator {
+impl<T:AllocMultivector<N>, N:Dim> Alloc<Multivector<T,N>> for DefaultAllocator {
     type Scalar = T;
     type Shape = N;
     type Buffer = AllocateMultivector<T,N>;
@@ -214,10 +214,10 @@ macro_rules! common_functions {
         pub fn as_mut_slice(&mut self) -> &mut [T] { self.data.borrow_mut() }
 
         /// Creates an iterator over references of each component
-        pub fn iter(&self) -> Iter<T> { self.as_slice().iter() }
+        pub fn iter(&self) -> Iter<'_, T> { self.as_slice().iter() }
 
         /// Creates an iterator over mutable references of each component
-        pub fn iter_mut(&mut self) -> IterMut<T> { self.as_mut_slice().iter_mut() }
+        pub fn iter_mut(&mut self) -> IterMut<'_, T> { self.as_mut_slice().iter_mut() }
     }
 }
 

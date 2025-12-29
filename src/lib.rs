@@ -134,12 +134,12 @@ macro_rules! impl_forward_scalar_binops {
         impl_forward_scalar_binops!(
             @loop
             u8, i8, u16, i16, u32, i32, u64, i64, u128, i128, usize, isize, f32, f64,
-            // ::std::num::Wrapping<u8>,    ::std::num::Wrapping<i8>,
-            // ::std::num::Wrapping<u16>,   ::std::num::Wrapping<i16>,
-            // ::std::num::Wrapping<u32>,   ::std::num::Wrapping<i32>,
-            // ::std::num::Wrapping<u64>,   ::std::num::Wrapping<i64>,
-            // ::std::num::Wrapping<u128>,  ::std::num::Wrapping<i128>,
-            // ::std::num::Wrapping<usize>, ::std::num::Wrapping<isize>,
+            ::std::num::Wrapping<u8>,    ::std::num::Wrapping<i8>,
+            ::std::num::Wrapping<u16>,   ::std::num::Wrapping<i16>,
+            ::std::num::Wrapping<u32>,   ::std::num::Wrapping<i32>,
+            ::std::num::Wrapping<u64>,   ::std::num::Wrapping<i64>,
+            ::std::num::Wrapping<u128>,  ::std::num::Wrapping<i128>,
+            ::std::num::Wrapping<usize>, ::std::num::Wrapping<isize>,
             ;$($tt)*
         );
     };
@@ -155,6 +155,9 @@ macro_rules! impl_eq {
         $($rest:tt)*
     ) => {
 
+        //I don't care what clippy says, I want to have ne() unwrap into T1/T2's
+        //implementation of ne(), not simply invert our eq() implementation
+        #[allow(clippy::partialeq_ne_impl)]
         impl<T1, T2 $(, $N1:Dim)* $(, $N2:Dim)*> PartialEq<$Ty2<T2 $(,$N2)*>> for $Ty1<T1 $(,$N1)*>
         where
             T1: $Alloc1<$($N1),*> + PartialEq<T2>,

@@ -22,6 +22,7 @@ const fn downcast_src_index(n:usize, dn:usize, g:usize) -> usize {
 }
 
 #[inline]
+#[allow(clippy::needless_range_loop)]
 fn cast_blade<T:Zero, B:Iterator<Item=T>>(
     b: &mut B, n1:usize, n2:usize, g:usize, e1:usize, e2:usize, dst: &mut [MaybeUninit<T>]
 ) {
@@ -29,7 +30,9 @@ fn cast_blade<T:Zero, B:Iterator<Item=T>>(
         let start = upcast_dst_index(n1, n2-n1, g);
 
         //any zeroes at the beginning
-        for i in 0..start { dst[i] = MaybeUninit::new(T::zero()) }
+        for i in 0..start {
+            dst[i] = MaybeUninit::new(T::zero())
+        }
 
         //copy the data into the right spot
         for i in 0..e1 {

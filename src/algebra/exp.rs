@@ -145,6 +145,7 @@ impl<T:RefRealField> BiVec4<T> {
         )
     }
 
+    #[allow(clippy::eq_op)]
     fn separate_unit_blades(self) -> (Option<(T,BiVec4<T>)>, Option<(T,BiVec4<T>)>) {
 
         let two = T::one() + T::one();
@@ -326,7 +327,7 @@ impl<T:RefRealField+AllocEven<N>, N:Dim> Even<T,N> {
                 let (s,c) = b.sin_cos();
                 Even2::new(c, s) * a.exp()
 
-            }.cast_dim_generic(n.clone()),
+            }.cast_dim_generic(n),
 
             //quaternions
             3 => {

@@ -396,6 +396,7 @@ macro_rules! impl_new {
         $(
             impl<T> $ty<T> {
                 #[doc = new_docs!($ty::new($($arg),*);)]
+                #[allow(clippy::too_many_arguments)]
                 pub const fn new($($arg: T),*) -> $ty<T> {
                     $ty { data: [ $($arg),* ] }
                 }

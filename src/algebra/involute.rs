@@ -10,9 +10,9 @@ macro_rules! norm_methods {
         /// Note that this does **not** take into account the conjugate of any
         /// complex elements. This is by explicit design:
         /// 1. We can relax the [`ComplexField`] requirement and have more possibilies for scalars
-        ///   types (like polynomials!).
+        ///    types (like polynomials!).
         /// 2. For vectors, this should give the quadradic form of the Clifford
-        ///   algebra, but the function `Q(z) = zz̅` is not a valid quadradic form[<sup>†</sup>][1]
+        ///    algebra, but the function `Q(z) = zz̅` is not a valid quadradic form[<sup>†</sup>][1]
         ///
         /// [1]: https://en.wikipedia.org/wiki/Clifford_algebra#Complex_numbers
         ///

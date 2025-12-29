@@ -279,7 +279,10 @@ impl<T,N:Dim,G:Dim> UninitStorage<T> for DynBladeStorage<MaybeUninit<T>,N,G> {
 
     unsafe fn assume_init(self) -> Self::Init {
         //TODO: maybe make less ugly
-        DynBladeStorage { data: transmute(self.data), dim: self.dim, grade: self.grade }
+        DynBladeStorage {
+            data: transmute::<Vec<MaybeUninit<T>>, Vec<T>>(self.data),
+            dim: self.dim, grade: self.grade
+        }
     }
 
 }
@@ -312,7 +315,10 @@ impl<T,N:Dim> UninitStorage<T> for DynEvenStorage<MaybeUninit<T>,N> {
 
     unsafe fn assume_init(self) -> Self::Init {
         //TODO: maybe make less ugly
-        DynEvenStorage { data: transmute(self.data), dim: self.dim }
+        DynEvenStorage {
+            data: transmute::<Vec<MaybeUninit<T>>, Vec<T>>(self.data),
+            dim: self.dim
+        }
     }
 
 }
@@ -342,7 +348,10 @@ impl<T,N:Dim> UninitStorage<T> for DynOddStorage<MaybeUninit<T>,N> {
 
     unsafe fn assume_init(self) -> Self::Init {
         //TODO: maybe make less ugly
-        DynOddStorage { data: transmute(self.data), dim: self.dim }
+        DynOddStorage {
+            data: transmute::<Vec<MaybeUninit<T>>, Vec<T>>(self.data),
+            dim: self.dim
+        }
     }
 
 }
@@ -373,7 +382,10 @@ impl<T,N:Dim> UninitStorage<T> for DynMultivectorStorage<MaybeUninit<T>,N> {
 
     unsafe fn assume_init(self) -> Self::Init {
         //TODO: maybe make less ugly
-        DynMultivectorStorage { data: transmute(self.data), dim: self.dim }
+        DynMultivectorStorage {
+            data: transmute::<Vec<MaybeUninit<T>>, Vec<T>>(self.data),
+            dim: self.dim
+        }
     }
 
 }

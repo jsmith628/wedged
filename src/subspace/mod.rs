@@ -114,14 +114,9 @@ macro_rules! maybe_ref {
     ($e:expr; $a:lifetime) => { &$e };
 }
 
-pub use self::common::*;
-pub use self::mutable::*;
-pub use self::involute::*;
-pub use self::ops::*;
 pub use self::blade::*;
 pub use self::versor::*;
 pub use self::aliases::*;
-pub use self::constructors::*;
 
 mod common;
 mod mutable;

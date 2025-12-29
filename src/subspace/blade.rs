@@ -1,3 +1,4 @@
+#![allow(clippy::multiple_bound_locations)]
 
 use super::*;
 
@@ -288,15 +289,13 @@ impl<T:AllocSimpleBlade<N,G>, N:Dim, G:Dim> Blade<T,N,G> {
 
     #[doc = proj_doc!()]
     #[inline(always)]
-    pub fn project<B>(&self, b: B) -> <Self as Project<B>>::Output where Self: Project<B>
-    {
+    pub fn project<B>(&self, b: B) -> <Self as Project<B>>::Output where Self: Project<B> {
         Project::project(self, b)
     }
 
     #[doc = rej_doc!()]
     #[inline(always)]
-    pub fn reject<B>(&self, b: B) -> <Self as Reject<B>>::Output where Self: Reject<B>
-    {
+    pub fn reject<B>(&self, b: B) -> <Self as Reject<B>>::Output where Self: Reject<B> {
         Reject::reject(self, b)
     }
 }
@@ -304,8 +303,7 @@ impl<T:AllocSimpleBlade<N,G>, N:Dim, G:Dim> Blade<T,N,G> {
 impl<T:AllocBlade<N,G>, N:Dim, G:Dim> SimpleBlade<T,N,G> {
 
     /// Divides `self` by its norm
-    pub fn normalize(self) -> UnitBlade<T,N,G> where T: RefRealField
-    {
+    pub fn normalize(self) -> UnitBlade<T,N,G> where T: RefRealField {
         self.data.normalize().into_unit_unchecked()
     }
 
@@ -315,19 +313,16 @@ impl<T:AllocBlade<N,G>, N:Dim, G:Dim> SimpleBlade<T,N,G> {
     }
 
     /// Normalizes `self` and returns its norm and normalization
-    pub fn norm_and_normalize(self) -> (T, UnitBlade<T,N,G>) where T: RefRealField
-    {
+    pub fn norm_and_normalize(self) -> (T, UnitBlade<T,N,G>) where T: RefRealField {
         let (l, b) = self.data.norm_and_normalize();
         (l, b.into_unit_unchecked())
     }
 
     /// Normalizes `self` and returns its norm and normalization if non-zero
-    pub fn try_norm_and_normalize(self) -> Option<(T, UnitBlade<T,N,G>)> where T: RefRealField
-    {
-        match self.data.try_norm_and_normalize() {
-            Some((l,b)) => Some((l, b.into_unit_unchecked())),
-            None => None
-        }
+    pub fn try_norm_and_normalize(self) -> Option<(T, UnitBlade<T,N,G>)> where T: RefRealField {
+        self.data.try_norm_and_normalize().map(
+            |(l,b)| (l, b.into_unit_unchecked())
+        )
     }
 
     #[doc = proj_doc!()]
@@ -381,7 +376,7 @@ impl<T:AllocBlade<N,G>, N:Dim, G:Dim> UnitBlade<T,N,G> {
 //
 // }
 
-#[cfg(tests)]
+#[cfg(test)]
 mod tests {
 
     use super::*;

@@ -25,7 +25,7 @@ where
         match f.width() {
 
             //if there is no padding
-            None => {
+            None | Some(0) => {
 
                 if do_sum {
 
@@ -124,7 +124,9 @@ where
             },
 
             //if there is padding
-            Some(_) => {
+            //NOTE: clippy screams at us for recursing. This should be fine. It just can't see the base-case
+            #[allow(clippy::recursive_format_impl)]
+            Some(1usize..) => {
                 //write to a temp string
                 let no_padding = if do_sum { format!("{:+?}", *self) } else { format!("{:?}", *self) };
 
@@ -186,30 +188,33 @@ impl_fmt!(
 #[cfg(test)]
 mod tests {
 
-    // use super::*;
-    //
-    // #[test]
-    // fn print() {
-    //
-    //     for n in 0..=6 {
-    //         println!("n={}", n);
-    //         for g in 0..=n {
-    //             println!("{}", BladeD::from_iterator(n, g, 1..));
-    //         }
-    //         println!();
-    //     }
-    //
-    //     println!();
-    //
-    //     for n in 0..=6 {
-    //         println!("n={}", n);
-    //         for g in 0..=n {
-    //             println!("{:+}", BladeD::from_iterator(n, g, -3..));
-    //         }
-    //         println!();
-    //     }
-    //
-    // }
+    use super::*;
+    
+    #[test]
+    fn print() {
+    
+        for n in 0..=6 {
+            println!("n={}", n);
+            for g in 0..=n {
+                println!("{}", BladeD::from_iterator(n, g, 1..));
+            }
+            println!();
+        }
+    
+        println!();
+    
+        for n in 0..=6 {
+            println!("n={}", n);
+            for g in 0..=n {
+                println!("{:+}", BladeD::from_iterator(n, g, -3..));
+            }
+            println!();
+        }
+
+        println!("{:>0}", Even3::new(1, 2, 3, 4));
+        
+    
+    }
 
 
 

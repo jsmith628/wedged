@@ -27,7 +27,7 @@ pub(crate) trait MultivectorSrc:IntoIterator {
     type Dim: Dim;
     type Shape: Copy;
 
-    fn dim(&self) -> Self::Dim;
+    #[allow(dead_code)] fn dim(&self) -> Self::Dim;
     fn elements(&self) -> usize;
     fn subspace(&self) -> Subspace;
     fn shape(&self) -> Self::Shape;
@@ -45,7 +45,7 @@ pub(crate) trait MultivectorDst: MultivectorSrc {
     fn uninit(shape: Self::Shape) -> Self::Uninit;
     unsafe fn assume_init(uninit:Self::Uninit) -> Self;
 
-    fn set(&mut self, i:usize, x: Self::Scalar);
+    #[allow(dead_code)] fn set(&mut self, i:usize, x: Self::Scalar);
     fn index_of(basis:BasisBlade, shape:Self::Shape) -> Option<(usize, bool)>;
 
 }
@@ -172,7 +172,7 @@ impl<T:AllocEven<N>, N:Dim> MultivectorDst for Even<T,N> {
 
     fn set(&mut self, i:usize, x: Self::Scalar) { self[i] = x }
     fn index_of(basis:BasisBlade, n:N) -> Option<(usize, bool)> {
-        if basis.grade()%2 == 0 { Some(basis.even_index_sign(n.value())) } else { None }
+        if basis.grade().is_multiple_of(2) { Some(basis.even_index_sign(n.value())) } else { None }
     }
 
 }
@@ -187,7 +187,7 @@ impl<T:AllocOdd<N>, N:Dim> MultivectorDst for Odd<T,N> {
 
     fn set(&mut self, i:usize, x: Self::Scalar) { self[i] = x }
     fn index_of(basis:BasisBlade, n:N) -> Option<(usize, bool)> {
-        if basis.grade()%2 == 0 { Some(basis.odd_index_sign(n.value())) } else { None }
+        if basis.grade().is_multiple_of(2) { Some(basis.odd_index_sign(n.value())) } else { None }
     }
 
 }

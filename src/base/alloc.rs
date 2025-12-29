@@ -71,9 +71,9 @@ pub type AllocateMultivector<T,N> = <T as AllocMultivector<N>>::Buffer;
 /// Finally, this trait includes some helper methods for actually creating and managing the backing
 /// buffer.
 ///
-pub unsafe trait Alloc<M> {
+pub trait Alloc<M> {
 
-    ///The type to store in the backing bufferfor a simplification of some of the systems
+    ///The type to store in the backing buffer
     type Scalar: Sized;
 
     ///A type representing the dimension and/or grade of this structure
@@ -89,7 +89,10 @@ pub unsafe trait Alloc<M> {
     fn shape(this: &M) -> Self::Shape;
     ///Makes an uninitialized buffer
     fn uninit(shape: Self::Shape) -> Self::Uninit;
-    ///Creates an `M` from an uninitialized buffer assuming it is initialized
+    
+    /// Creates an `M` from an uninitialized buffer assuming it is initialized
+    /// # Safety
+    /// Same requirements as for [MaybeUninit::assume_init]
     unsafe fn assume_init(uninit: Self::Uninit) -> M;
 
 }
