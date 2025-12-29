@@ -255,6 +255,7 @@ impl<T:AllocVersor<N>+PartialEq<U>, U:AllocVersor<N>, N:Dim> PartialEq<Versor<U,
         }
     }
 
+    #[allow(clippy::partialeq_ne_impl)]
     fn ne(&self, rhs: &Versor<U,N>) -> bool {
         match (self, rhs) {
             (Versor::Even(r1), Versor::Even(r2)) => r1.ne(r2),

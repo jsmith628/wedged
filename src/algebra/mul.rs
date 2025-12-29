@@ -27,7 +27,7 @@ pub(crate) trait MultivectorSrc:IntoIterator {
     type Dim: Dim;
     type Shape: Copy;
 
-    fn dim_(&self) -> Self::Dim;
+    #[allow(dead_code)] fn dim(&self) -> Self::Dim;
     fn elements(&self) -> usize;
     fn subspace(&self) -> Subspace;
     fn shape(&self) -> Self::Shape;
@@ -45,7 +45,7 @@ pub(crate) trait MultivectorDst: MultivectorSrc {
     fn uninit(shape: Self::Shape) -> Self::Uninit;
     unsafe fn assume_init(uninit:Self::Uninit) -> Self;
 
-    fn set(&mut self, i:usize, x: Self::Scalar);
+    #[allow(dead_code)] fn set(&mut self, i:usize, x: Self::Scalar);
     fn index_of(basis:BasisBlade, shape:Self::Shape) -> Option<(usize, bool)>;
 
 }
@@ -172,7 +172,7 @@ impl<T:AllocEven<N>, N:Dim> MultivectorDst for Even<T,N> {
 
     fn set(&mut self, i:usize, x: Self::Scalar) { self[i] = x }
     fn index_of(basis:BasisBlade, n:N) -> Option<(usize, bool)> {
-        if basis.grade()%2 == 0 { Some(basis.even_index_sign(n.value())) } else { None }
+        if basis.grade().is_multiple_of(2) { Some(basis.even_index_sign(n.value())) } else { None }
     }
 
 }
@@ -187,7 +187,7 @@ impl<T:AllocOdd<N>, N:Dim> MultivectorDst for Odd<T,N> {
 
     fn set(&mut self, i:usize, x: Self::Scalar) { self[i] = x }
     fn index_of(basis:BasisBlade, n:N) -> Option<(usize, bool)> {
-        if basis.grade()%2 == 0 { Some(basis.odd_index_sign(n.value())) } else { None }
+        if basis.grade().is_multiple_of(2) { Some(basis.odd_index_sign(n.value())) } else { None }
     }
 
 }
@@ -414,9 +414,9 @@ pub trait SelectedGeometricMul<Rhs>: Sized {
     fn mul_grade_generic<G:Dim>(self, rhs: Rhs, g:G) -> Blade<Self::OutputScalar, Self::N, G>
     where Self::OutputScalar: AllocBlade<Self::N, G>;
 
-    fn mul_dyn_grade(self, rhs: Rhs, g:usize) -> Blade<Self::OutputScalar, Self::N, Dynamic>
-    where Self::OutputScalar: AllocBlade<Self::N, Dynamic> {
-        self.mul_grade_generic(rhs, Dynamic::new(g))
+    fn mul_dyn_grade(self, rhs: Rhs, g:usize) -> Blade<Self::OutputScalar, Self::N, Dyn>
+    where Self::OutputScalar: AllocBlade<Self::N, Dyn> {
+        self.mul_grade_generic(rhs, Dyn(g))
     }
 
     fn mul_grade<G:DimName>(self, rhs: Rhs) -> Blade<Self::OutputScalar, Self::N, G>
@@ -449,9 +449,9 @@ pub trait SelectedGeometricMul<Rhs>: Sized {
 //     fn versor_mul_grade_generic<G:Dim>(self, rhs: Rhs, g:G) -> Blade<Self::OutputScalar, Self::N, G>
 //     where Self::OutputScalar: AllocBlade<Self::N, G>;
 //
-//     fn versor_mul_dyn_grade(self, rhs: Rhs, g:usize) -> Blade<Self::OutputScalar, Self::N, Dynamic>
-//     where Self::OutputScalar: AllocBlade<Self::N, Dynamic> {
-//         self.versor_mul_grade_generic(rhs, Dynamic::new(g))
+//     fn versor_mul_dyn_grade(self, rhs: Rhs, g:usize) -> Blade<Self::OutputScalar, Self::N, Dyn>
+//     where Self::OutputScalar: AllocBlade<Self::N, Dyn> {
+//         self.versor_mul_grade_generic(rhs, Dyn(g))
 //     }
 //
 //     fn versor_mul_grade<G:DimName>(self, rhs: Rhs) -> Blade<Self::OutputScalar, Self::N, G>
@@ -757,11 +757,9 @@ mod tests {
                         //Test for consistency
                         //
 
-                        // let left = core_mul::<_,_,BladeD<_>>(
-                        //     x1.clone(), x2.clone(), (Dynamic::new(n), Dynamic::new(g3))
-                        // );
-
-                        let left: BladeD<_> = x1.selected_mul(&x2.clone(), (Dynamic::new(n), Dynamic::new(g3)));
+                        let left = mul_selected::<_,_,BladeD<_>>(
+                            x1.clone(), x2.clone(), (Dyn(n), Dyn(g3))
+                        );
 
                         let right = x3;
 

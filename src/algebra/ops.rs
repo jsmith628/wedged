@@ -224,6 +224,44 @@ macro_rules! impl_binops {
 
     };
 
+    (impl<T:$Alloc:ident,$($N:ident),*> $Op:ident.$op:ident() -> Self for $Ty:ident) => {
+        impl<T, $($N:Dim),*> $Op for $Ty<T,$($N),*>
+        where
+            T: $Alloc<$($N),*> + $Op
+        {
+            fn $op(&self, v: &Self) -> Self {
+
+                check!(self, v, $Ty);
+
+                let mut dest = uninit!(self, Self);
+                for ((t1, t2), u) in self.into_iter().zip(v).zip(dest.borrow_mut()) {
+                    *u = MaybeUninit::new(t1.$op(t2));
+                }
+
+				$Ty { data: unsafe { dest.assume_init() } }
+            }
+        }
+    };
+
+    (impl<T:$Alloc:ident,$($N:ident),*> $Op:ident.$op:ident() -> Option<Self> for $Ty:ident) => {
+        impl<T, $($N:Dim),*> $Op for $Ty<T,$($N),*>
+        where
+            T: $Alloc<$($N),*> + $Op
+        {
+            fn $op(&self, v: &Self) -> Option<Self> {
+
+                check!(self, v, $Ty);
+
+                let mut dest = uninit!(self, Self);
+                for ((t1, t2), u) in self.into_iter().zip(v).zip(dest.borrow_mut()) {
+                    *u = MaybeUninit::new(t1.$op(t2)?);
+                }
+
+				Some($Ty { data: unsafe { dest.assume_init() } })
+            }
+        }
+    };
+
     //do every combination of reference and value
     (impl<T:$Alloc:ident,$($N:ident),*> $Op:ident.$op:ident() for $Ty:ident with $Ref:ident.$ref:ident()) => {
         impl_binops!(impl<T:$Alloc,$($N),*> $Op.$op() for $Ty with $Op.$op()  ;   ;   );
@@ -236,6 +274,12 @@ macro_rules! impl_binops {
     (impl<T:$Alloc:ident,$($N:ident),*> for $Ty:ident) => {
         impl_binops!(impl<T:$Alloc,$($N),*> Add.add() for $Ty with RefAdd.ref_add());
         impl_binops!(impl<T:$Alloc,$($N),*> Sub.sub() for $Ty with RefSub.ref_sub());
+        impl_binops!(impl<T:$Alloc,$($N),*> WrappingAdd.wrapping_add() -> Self for $Ty);
+        impl_binops!(impl<T:$Alloc,$($N),*> WrappingSub.wrapping_sub() -> Self for $Ty);
+        impl_binops!(impl<T:$Alloc,$($N),*> SaturatingAdd.saturating_add() -> Self for $Ty);
+        impl_binops!(impl<T:$Alloc,$($N),*> SaturatingSub.saturating_sub() -> Self for $Ty);
+        impl_binops!(impl<T:$Alloc,$($N),*> CheckedAdd.checked_add() -> Option<Self> for $Ty);
+        impl_binops!(impl<T:$Alloc,$($N),*> CheckedSub.checked_sub() -> Option<Self> for $Ty);
         impl_assign_binops!(impl<T:$Alloc,$($N),*> AddAssign.add_assign() for $Ty);
         impl_assign_binops!(impl<T:$Alloc,$($N),*> SubAssign.sub_assign() for $Ty);
     };
@@ -330,12 +374,42 @@ macro_rules! impl_unary_ops {
         impl_unary_ops!(impl<T:$Alloc,$($N),*> $Op.$op() for $Ty with $Op.$op()  ;   );
         impl_unary_ops!(impl<T:$Alloc,$($N),*> $Op.$op() for $Ty with $Ref.$ref(); 'a);
     };
+
+    (impl<T:$Alloc:ident,$($N:ident),*> for $Ty:ident) => {
+        impl_unary_ops!(impl<T:$Alloc,$($N),*> Neg.neg() for $Ty with RefNeg.ref_neg());
+
+		impl<T, $($N:Dim),*> WrappingNeg for $Ty<T,$($N),*>
+        where
+            T: $Alloc<$($N),*> + WrappingNeg
+        {
+            fn wrapping_neg(&self) -> Self {
+                let mut dest = uninit!(self, Self);
+                for (t, u) in self.into_iter().zip(dest.borrow_mut()) {
+                    *u = MaybeUninit::new(t.wrapping_neg());
+                }
+                $Ty { data: unsafe { dest.assume_init() } }
+            }
+        }
+
+        impl<T, $($N:Dim),*> CheckedNeg for $Ty<T,$($N),*>
+        where
+            T: $Alloc<$($N),*> + CheckedNeg
+        {
+            fn checked_neg(&self) -> Option<Self> {
+                let mut dest = uninit!(self, Self);
+                for (t, u) in self.into_iter().zip(dest.borrow_mut()) {
+                    *u = MaybeUninit::new(t.checked_neg()?);
+                }
+                Some($Ty { data: unsafe { dest.assume_init() } })
+            }
+        }
+    }
 }
 
-impl_unary_ops!(impl<T:AllocBlade,N,G> Neg.neg() for Blade with RefNeg.ref_neg());
-impl_unary_ops!(impl<T:AllocEven,N> Neg.neg() for Even with RefNeg.ref_neg());
-impl_unary_ops!(impl<T:AllocOdd,N> Neg.neg() for Odd with RefNeg.ref_neg());
-impl_unary_ops!(impl<T:AllocMultivector,N> Neg.neg() for Multivector with RefNeg.ref_neg());
+impl_unary_ops!(impl<T:AllocBlade,N,G> for Blade);
+impl_unary_ops!(impl<T:AllocEven,N> for Even);
+impl_unary_ops!(impl<T:AllocOdd,N> for Odd);
+impl_unary_ops!(impl<T:AllocMultivector,N> for Multivector);
 
 //
 //Scalar Multiplication and Division

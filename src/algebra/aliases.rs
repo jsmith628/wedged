@@ -2,23 +2,23 @@
 use super::*;
 
 ///An N-dimensional blade with a dynamic grade
-pub type BladeN<T,N> = Blade<T,N,Dynamic>;
+pub type BladeN<T,N> = Blade<T,N,Dyn>;
 ///A 0-dimensional blade with a dynamic grade
-pub type Blade0<T> = Blade<T,U0,Dynamic>;
+pub type Blade0<T> = Blade<T,U0,Dyn>;
 ///A 1-dimensional blade with a dynamic grade
-pub type Blade1<T> = Blade<T,U1,Dynamic>;
+pub type Blade1<T> = Blade<T,U1,Dyn>;
 ///A 2-dimensional blade with a dynamic grade
-pub type Blade2<T> = Blade<T,U2,Dynamic>;
+pub type Blade2<T> = Blade<T,U2,Dyn>;
 ///A 3-dimensional blade with a dynamic grade
-pub type Blade3<T> = Blade<T,U3,Dynamic>;
+pub type Blade3<T> = Blade<T,U3,Dyn>;
 ///A 4-dimensional blade with a dynamic grade
-pub type Blade4<T> = Blade<T,U4,Dynamic>;
+pub type Blade4<T> = Blade<T,U4,Dyn>;
 ///A 5-dimensional blade with a dynamic grade
-pub type Blade5<T> = Blade<T,U5,Dynamic>;
+pub type Blade5<T> = Blade<T,U5,Dyn>;
 ///A 6-dimensional blade with a dynamic grade
-pub type Blade6<T> = Blade<T,U6,Dynamic>;
+pub type Blade6<T> = Blade<T,U6,Dyn>;
 ///A blade with a dynamic dimension and grade
-pub type BladeD<T> = Blade<T,Dynamic,Dynamic>;
+pub type BladeD<T> = Blade<T,Dyn,Dyn>;
 
 ///A 0-dimensional rotor
 pub type Even0<T> = Even<T,U0>;
@@ -35,7 +35,7 @@ pub type Even5<T> = Even<T,U5>;
 ///A 6-dimensional rotor
 pub type Even6<T> = Even<T,U6>;
 ///A rotor with dynamic dimension
-pub type EvenD<T> = Even<T,Dynamic>;
+pub type EvenD<T> = Even<T,Dyn>;
 
 ///A 0-dimensional odd value
 pub type Odd0<T> = Odd<T,U0>;
@@ -52,7 +52,7 @@ pub type Odd5<T> = Odd<T,U5>;
 ///A 6-dimensional odd value
 pub type Odd6<T> = Odd<T,U6>;
 ///An odd value with dynamic dimension
-pub type OddD<T> = Odd<T,Dynamic>;
+pub type OddD<T> = Odd<T,Dyn>;
 
 ///A 0-dimensional multivector
 pub type Multivector0<T> = Multivector<T,U0>;
@@ -69,7 +69,7 @@ pub type Multivector5<T> = Multivector<T,U5>;
 ///A 6-dimensional multivector
 pub type Multivector6<T> = Multivector<T,U6>;
 ///A multivector with dynamic dimension
-pub type MultivectorD<T> = Multivector<T,Dynamic>;
+pub type MultivectorD<T> = Multivector<T,Dyn>;
 
 ///A scalar in N-dimensions
 pub type Scalar<T,N> = Blade<T,N,U0>;
@@ -88,7 +88,7 @@ pub type Scalar5<T> = Scalar<T,U5>;
 ///A scalar in 6-dimensions
 pub type Scalar6<T> = Scalar<T,U6>;
 ///A scalar in a dynamic number of dimensions
-pub type ScalarD<T> = Scalar<T,Dynamic>;
+pub type ScalarD<T> = Scalar<T,Dyn>;
 
 ///An N-dimensional vector
 pub type VecN<T,N> = Blade<T,N,U1>;
@@ -105,7 +105,7 @@ pub type Vec5<T> = VecN<T,U5>;
 ///A 6-dimensional vector
 pub type Vec6<T> = VecN<T,U6>;
 ///A vector with dynamic dimension
-pub type VecD<T> = VecN<T,Dynamic>;
+pub type VecD<T> = VecN<T,Dyn>;
 
 ///An N-dimensional bivector
 pub type BiVecN<T,N> = Blade<T,N,U2>;
@@ -120,7 +120,7 @@ pub type BiVec5<T> = BiVecN<T,U5>;
 ///A 6-dimensional bivector
 pub type BiVec6<T> = BiVecN<T,U6>;
 ///A bivector with dynamic dimension
-pub type BiVecD<T> = BiVecN<T,Dynamic>;
+pub type BiVecD<T> = BiVecN<T,Dyn>;
 
 ///An N-dimensional trivector
 pub type TriVecN<T,N> = Blade<T,N,U3>;
@@ -133,7 +133,7 @@ pub type TriVec5<T> = TriVecN<T,U5>;
 ///A 6-dimensional trivector
 pub type TriVec6<T> = TriVecN<T,U6>;
 ///A trivector with dynamic dimension
-pub type TriVecD<T> = TriVecN<T,Dynamic>;
+pub type TriVecD<T> = TriVecN<T,Dyn>;
 
 ///An N-dimensional quadvector
 pub type QuadVecN<T,N> = Blade<T,N,U4>;
@@ -144,7 +144,7 @@ pub type QuadVec5<T> = QuadVecN<T,U5>;
 ///A 6-dimensional quadvector
 pub type QuadVec6<T> = QuadVecN<T,U6>;
 ///A quadvector with dynamic dimension
-pub type QuadVecD<T> = QuadVecN<T,Dynamic>;
+pub type QuadVecD<T> = QuadVecN<T,Dyn>;
 
 ///An N-dimensional pentavector
 pub type PentVecN<T,N> = Blade<T,N,U5>;
@@ -153,14 +153,14 @@ pub type PentVec5<T> = PentVecN<T,U5>;
 ///A 6-dimensional pentavector
 pub type PentVec6<T> = PentVecN<T,U6>;
 ///A pentavector with dynamic dimension
-pub type PentVecD<T> = PentVecN<T,Dynamic>;
+pub type PentVecD<T> = PentVecN<T,Dyn>;
 
 ///An N-dimensional hexavector
 pub type HexVecN<T,N> = Blade<T,N,U6>;
 ///A 6-dimensional hexavector
 pub type HexVec6<T> = HexVecN<T,U6>;
 ///A hexavector with dynamic dimension
-pub type HexVecD<T> = HexVecN<T,Dynamic>;
+pub type HexVecD<T> = HexVecN<T,Dyn>;
 
 ///An n-dimensional blade of grade `N-G`
 pub type DualBlade<T,N,G> = Blade<T,N,DimDiff<N,G>>;

@@ -143,6 +143,7 @@ impl<T:RefRealField> BiVec4<T> {
         )
     }
 
+    #[allow(clippy::eq_op)]
     fn separate_unit_blades(self) -> (Option<(T,BiVec4<T>)>, Option<(T,BiVec4<T>)>) {
 
         let two = T::one() + T::one();
@@ -301,7 +302,7 @@ impl<T:RefRealField+AllocBlade<N,G>, N:Dim, G:Dim> Blade<T,N,G> {
 
 }
 
-//TODO: make work for Dynamic dims
+//TODO: make work for dynamic dims
 impl<T:RefRealField+AllocEven<N>, N:Dim> Even<T,N> {
 
     ///Computes the exponential of `self`
@@ -324,7 +325,7 @@ impl<T:RefRealField+AllocEven<N>, N:Dim> Even<T,N> {
                 let (s,c) = b.sin_cos();
                 Even2::new(c, s) * a.exp()
 
-            }.cast_dim_generic(n.clone()),
+            }.cast_dim_generic(n),
 
             //quaternions
             3 => {
@@ -471,8 +472,8 @@ mod tests {
         }
 
         //dynamic dims
-        for n in 0..=6 {
-            let n = Dynamic::new(n);
+        for n in 0..=7 {
+            let n = Dyn(n);
             rot_test!(n);
         }
 
@@ -544,7 +545,7 @@ mod tests {
 
         //dynamic
         for n in 4..=6 {
-            let n = Dynamic::new(n);
+            let n = Dyn(n);
             test!(n)
         }
 

@@ -26,6 +26,7 @@ macro_rules! sel_grade_doc {
 impl<T:AllocEven<N>+Zero, N:Dim> Even<T,N> {
 
     #[cfg(test)]
+    #[allow(dead_code)]
     pub(crate) fn grade_index(&self, g:usize) -> usize {
         grade_index_in_versor(self.dim(), g)
     }
@@ -33,7 +34,7 @@ impl<T:AllocEven<N>+Zero, N:Dim> Even<T,N> {
     #[doc = sel_grade_doc!()]
     pub fn select_grade_generic<G:Dim>(self, g:G) -> Blade<T,N,G> where T:AllocBlade<N,G> {
         let n = self.dim_generic();
-        if g.value()%2 == 0 {
+        if g.value().is_multiple_of(2) {
             Blade::from_iter_generic(
                 n, g, self.into_iter().skip(grade_index_in_versor(n.value(),g.value()))
             )
@@ -43,8 +44,8 @@ impl<T:AllocEven<N>+Zero, N:Dim> Even<T,N> {
     }
 
     #[doc = sel_grade_doc!()]
-    pub fn select_grade_dyn(self, g:usize) -> Blade<T,N,Dynamic> where T:AllocBlade<N,Dynamic> {
-        self.select_grade_generic(Dynamic::new(g))
+    pub fn select_grade_dyn(self, g:usize) -> Blade<T,N,Dyn> where T:AllocBlade<N,Dyn> {
+        self.select_grade_generic(Dyn(g))
     }
 
     #[doc = sel_grade_doc!()]
@@ -71,6 +72,7 @@ impl<T:AllocEven<N>+Zero, N:Dim> Even<T,N> {
 impl<T:AllocOdd<N>+Zero, N:Dim> Odd<T,N> {
 
     #[cfg(test)]
+    #[allow(dead_code)]
     pub(crate) fn grade_index(&self, g:usize) -> usize {
         grade_index_in_versor(self.dim(), g)
     }
@@ -88,8 +90,8 @@ impl<T:AllocOdd<N>+Zero, N:Dim> Odd<T,N> {
     }
 
     #[doc = sel_grade_doc!()]
-    pub fn select_grade_dyn(self, g:usize) -> Blade<T,N,Dynamic> where T:AllocBlade<N,Dynamic> {
-        self.select_grade_generic(Dynamic::new(g))
+    pub fn select_grade_dyn(self, g:usize) -> Blade<T,N,Dyn> where T:AllocBlade<N,Dyn> {
+        self.select_grade_generic(Dyn(g))
     }
 
     #[doc = sel_grade_doc!()]
@@ -123,6 +125,7 @@ fn grade_index(n:usize) -> impl Iterator<Item=(usize, usize)> {
 impl<T:AllocMultivector<N>, N:Dim> Multivector<T,N> {
 
     #[cfg(test)]
+    #[allow(dead_code)]
     pub(crate) fn grade_index(&self, g:usize) -> usize {
         grade_index_in_multivector(self.dim(), g)
     }
@@ -136,8 +139,8 @@ impl<T:AllocMultivector<N>, N:Dim> Multivector<T,N> {
     }
 
     #[doc = sel_grade_doc!()]
-    pub fn select_grade_dyn(self, g:usize) -> Blade<T,N,Dynamic> where T:AllocBlade<N,Dynamic> {
-        self.select_grade_generic(Dynamic::new(g))
+    pub fn select_grade_dyn(self, g:usize) -> Blade<T,N,Dyn> where T:AllocBlade<N,Dyn> {
+        self.select_grade_generic(Dyn(g))
     }
 
     #[doc = sel_grade_doc!()]

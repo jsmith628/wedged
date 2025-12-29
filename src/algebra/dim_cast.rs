@@ -22,6 +22,7 @@ const fn downcast_src_index(n:usize, dn:usize, g:usize) -> usize {
 }
 
 #[inline]
+#[allow(clippy::needless_range_loop)]
 fn cast_blade<T:Zero, B:Iterator<Item=T>>(
     b: &mut B, n1:usize, n2:usize, g:usize, e1:usize, e2:usize, dst: &mut [MaybeUninit<T>]
 ) {
@@ -29,7 +30,9 @@ fn cast_blade<T:Zero, B:Iterator<Item=T>>(
         let start = upcast_dst_index(n1, n2-n1, g);
 
         //any zeroes at the beginning
-        for i in 0..start { dst[i] = MaybeUninit::new(T::zero()) }
+        for i in 0..start {
+            dst[i] = MaybeUninit::new(T::zero())
+        }
 
         //copy the data into the right spot
         for i in 0..e1 {
@@ -86,8 +89,8 @@ impl<T:AllocBlade<N1,G>+Zero, N1:Dim, G:Dim> Blade<T,N1,G> {
     }
 
     #[doc = cast_dim_doc!()]
-    pub fn cast_dim_dyn(self, n:usize) -> Blade<T,Dynamic,G> where T:AllocBlade<Dynamic,G> {
-        self.cast_dim_generic(Dynamic::new(n))
+    pub fn cast_dim_dyn(self, n:usize) -> Blade<T,Dyn,G> where T:AllocBlade<Dyn,G> {
+        self.cast_dim_generic(Dyn(n))
     }
 
     #[doc = cast_dim_doc!()]
@@ -117,8 +120,8 @@ macro_rules! impl_dim_cast {
                 }
 
                 #[doc = cast_dim_doc!()]
-                pub fn cast_dim_dyn(self, n:usize) -> $Ty<T,Dynamic> where T:$Alloc<Dynamic> {
-                    self.cast_dim_generic(Dynamic::new(n))
+                pub fn cast_dim_dyn(self, n:usize) -> $Ty<T,Dyn> where T:$Alloc<Dyn> {
+                    self.cast_dim_generic(Dyn(n))
                 }
 
                 #[doc = cast_dim_doc!()]

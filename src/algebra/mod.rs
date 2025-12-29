@@ -53,7 +53,12 @@ use std::ops::{
 };
 use std::iter::{IntoIterator, FromIterator, Sum, Product};
 
-use num_traits::{Zero, One};
+use num_traits::{
+    Zero, One,
+    CheckedAdd, CheckedSub, CheckedNeg,
+    WrappingAdd, WrappingSub, WrappingNeg,
+    SaturatingAdd, SaturatingSub
+};
 
 use na::{ComplexField, /*RealField*/};
 use approx::{AbsDiffEq, RelativeEq, UlpsEq};
@@ -92,17 +97,8 @@ pub struct Multivector<T:AllocMultivector<N>, N:Dim> {
     pub data: AllocateMultivector<T,N>
 }
 
-pub use self::common::*;
-pub use self::involute::*;
-pub use self::ops::*;
 pub use self::mul::*;
-// pub use self::exp::*;
-pub use self::dual::*;
-pub use self::dim_cast::*;
-pub use self::grade_cast::*;
-pub use self::constructors::*;
 pub use self::aliases::*;
-pub use self::fmt::*;
 
 mod common;
 mod involute;

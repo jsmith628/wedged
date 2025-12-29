@@ -482,7 +482,7 @@ impl<T:AllocEven<U2>+RefRealField> Rotor3<T> {
     }
 
     fn get_half_scaled_plane(self) -> SimpleBiVec3<T> {
-        self.get_half_plane_angle().map_or_else(|| Zero::zero(), |(d, a)| SimpleBiVec3::from(d) * a)
+        self.get_half_plane_angle().map_or_else(Zero::zero, |(d, a)| SimpleBiVec3::from(d) * a)
     }
 
     /// Returns the plane and angle of rotation or `None` if the angle is 0
@@ -492,7 +492,7 @@ impl<T:AllocEven<U2>+RefRealField> Rotor3<T> {
 
     /// Returns the plane of rotation scaled by the angle of rotation
     pub fn get_scaled_plane(self) -> SimpleBiVec3<T> {
-        self.get_plane_angle().map_or_else(|| Zero::zero(), |(d, a)| SimpleBiVec3::from(d) * a)
+        self.get_plane_angle().map_or_else(Zero::zero, |(d, a)| SimpleBiVec3::from(d) * a)
     }
 
     /// Returns the axis and angle of rotation or `None` if the angle is 0
@@ -502,7 +502,7 @@ impl<T:AllocEven<U2>+RefRealField> Rotor3<T> {
 
     /// Returns the axis of rotation scaled by the angle of rotation
     pub fn get_scaled_axis(self) -> Vec3<T> {
-        self.get_plane_angle().map_or_else(|| Zero::zero(), |(d, a)| BiVec3::from(d).dual() * a)
+        self.get_plane_angle().map_or_else(Zero::zero, |(d, a)| BiVec3::from(d).dual() * a)
     }
 
 }

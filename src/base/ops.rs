@@ -150,10 +150,11 @@ pub trait InvScale<Rhs=Self> {
 
 // trace_macros!(true);
 auto! {
-    pub use na::ClosedAdd;
-    pub use na::ClosedSub;
-    pub use na::ClosedMul;
-    pub use na::ClosedDiv;
+
+    pub trait ClosedAdd = Sized + Add<Self,Output=Self> + AddAssign<Self>;
+    pub trait ClosedSub = Sized + Sub<Self,Output=Self> + SubAssign<Self>;
+    pub trait ClosedMul = Sized + Mul<Self,Output=Self> + MulAssign<Self>;
+    pub trait ClosedDiv = Sized + Div<Self,Output=Self> + DivAssign<Self>;
 
     ///Trait **alias** for [`Neg`] with a result of type `Self`
     pub trait ClosedNeg = Neg<Output=Self>;

@@ -265,15 +265,15 @@ impl BasisBlade {
     /// 2. if `g==1`, then the basis is e<sub>i</sub>
     /// 3. if `g<=n/2` and `i<binom(n-1,g)`, then `basis_blade(n,g,i) == basis_blade(n-1,g,i)`
     /// 4. if `g>n/2` and `i>binom(n-1,n-g)`, then
-    ///      `basis_blade(n,g,i) == basis_blade(n-1,g,i-binom(n-1,n-g))`
+    ///    `basis_blade(n,g,i) == basis_blade(n-1,g,i-binom(n-1,n-g))`
     ///
     /// 5. for `g<n/2`, `basis_blade(n,g,i) == basis_blade(n,n-g,i) / psuedoscalar(n)`
     ///    - Lemma #1: for `g>n/2`, `basis_blade(n,g,i) == basis_blade(n,n-g,i) * psuedoscalar(n)`
     ///
     /// 6. for `g==n/2`, `i<binom(n,g)/2`,
-    ///      `basis_blade(n,g,i) == basis_blade(n,n-g,i+binom(n,g)/2) / psuedoscalar(n)`
+    ///    `basis_blade(n,g,i) == basis_blade(n,n-g,i+binom(n,g)/2) / psuedoscalar(n)`
     ///    - Lemma #2: for `g==n/2`, `i>binom(n,g)/2`,
-    ///         `basis_blade(n,g,i) == basis_blade(n,n-g,i-binom(n,g)/2) * psuedoscalar(n)`
+    ///      `basis_blade(n,g,i) == basis_blade(n,n-g,i-binom(n,g)/2) * psuedoscalar(n)`
     ///
     pub fn basis_blade(n:usize, g:usize, i:usize) -> BasisBlade {
 
@@ -560,7 +560,7 @@ impl BasisBlade {
 
     /// Gets the index and sign of this basis blade in an `Odd` of dimension `n`
     pub const fn odd_index_sign(&self, n: usize) -> (usize, bool) {
-        if self.grade()%2 == 0 { return (0,self.positive()); }
+        if self.grade().is_multiple_of(2) { return (0,self.positive()); }
         let (i, sign) = self.blade_index_sign(n);
 
         //TODO: optimize by having a progressive value of the binomial coefficient
@@ -611,7 +611,7 @@ impl Display for BasisBlade {
             }
 
             //loop from most sig digit to least
-            (0..digits).into_iter().map(
+            (0..digits).map(
                 move |_| {
                     let (q, r) = (n/div, n%div);
                     let digit = unsafe { char::from_u32_unchecked(0x2080 + q as u32) };

@@ -42,24 +42,24 @@ pub trait DimNameSymSub<D: na::dimension::DimName>: na::dimension::DimName {
     fn sym_sub(self, other: D) -> Self::Output;
 }
 
-impl<D:Dim> DimSymSub<D> for Dynamic {
-    type Output = Dynamic;
+impl<D:Dim> DimSymSub<D> for Dyn {
+    type Output = Dyn;
     fn sym_sub(self, other: D) -> Self::Output {
         if self.value() >= other.value() {
-            Dynamic::new(self.value()-other.value())
+            Dyn(self.value()-other.value())
         } else {
-            Dynamic::new(other.value()-self.value())
+            Dyn(other.value()-self.value())
         }
     }
 }
 
-impl<D:DimName> DimSymSub<Dynamic> for D {
-    type Output = Dynamic;
-    fn sym_sub(self, other: Dynamic) -> Self::Output {
+impl<D:DimName> DimSymSub<Dyn> for D {
+    type Output = Dyn;
+    fn sym_sub(self, other: Dyn) -> Self::Output {
         if self.value() >= other.value() {
-            Dynamic::new(self.value()-other.value())
+            Dyn(self.value()-other.value())
         } else {
-            Dynamic::new(other.value()-self.value())
+            Dyn(other.value()-self.value())
         }
     }
 }
@@ -118,24 +118,24 @@ pub trait DimNameBinomCoeff<K:na::dimension::DimName>: na::dimension::DimName {
     fn binom(self, k: K) -> Self::Output;
 }
 
-impl DimBinomCoeff<Dynamic> for Dynamic {
-    type Output = Dynamic;
-    fn binom(self, k: Dynamic) -> Dynamic {
-        Dynamic::new(binom(self.value(), k.value()))
+impl DimBinomCoeff<Dyn> for Dyn {
+    type Output = Dyn;
+    fn binom(self, k: Dyn) -> Dyn {
+        Dyn(binom(self.value(), k.value()))
     }
 }
 
-impl<const N:usize> DimBinomCoeff<Dynamic> for Const<N> {
-    type Output = Dynamic;
-    fn binom(self, k: Dynamic) -> Dynamic {
-        Dynamic::new(binom(self.value(), k.value()))
+impl<const N:usize> DimBinomCoeff<Dyn> for Const<N> {
+    type Output = Dyn;
+    fn binom(self, k: Dyn) -> Dyn {
+        Dyn(binom(self.value(), k.value()))
     }
 }
 
-impl<const K:usize> DimBinomCoeff<Const<K>> for Dynamic {
-    type Output = Dynamic;
-    fn binom(self, k: Const<K>) -> Dynamic {
-        Dynamic::new(binom(self.value(), k.value()))
+impl<const K:usize> DimBinomCoeff<Const<K>> for Dyn {
+    type Output = Dyn;
+    fn binom(self, k: Const<K>) -> Dyn {
+        Dyn(binom(self.value(), k.value()))
     }
 }
 

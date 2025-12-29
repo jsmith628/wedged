@@ -7,7 +7,7 @@
 //!    is not simply the dimension or grade but instead a more involved function of them. Hence,
 //!    since generic `const` expressions aren't currently supported, we
 //!    cannot use them to construct the backing array.
-//! 2. We need to *also* support non-array storage for [`Dynamic`] dimensions and grades
+//! 2. We need to *also* support non-array storage for [`Dyn`] dimensions and grades
 //!
 //! Instead, we use a trait based system with associated types to select what the backing buffer
 //! should be.
@@ -22,7 +22,7 @@
 //! This is both due to the fact we don't have generic const expressions *and* out of practical
 //! considerations regarding sizes in high numbers of dimensions.
 //! (`f32` Multivectors in 16D already use ~**260KB**!!) However,
-//! if a high number of dimensions are required, using a [`Dynamic`] dimension or grade will allow
+//! if a high number of dimensions are required, using a [`Dyn`] dimension or grade will allow
 //! that number of dimensions to be used, just using the heap instead
 //!
 //!
@@ -71,9 +71,9 @@ pub type AllocateMultivector<T,N> = <T as AllocMultivector<N>>::Buffer;
 /// Finally, this trait includes some helper methods for actually creating and managing the backing
 /// buffer.
 ///
-pub unsafe trait Alloc<M> {
+pub trait Alloc<M> {
 
-    ///The type to store in the backing bufferfor a simplification of some of the systems
+    ///The type to store in the backing buffer
     type Scalar: Sized;
 
     ///A type representing the dimension and/or grade of this structure
@@ -89,7 +89,10 @@ pub unsafe trait Alloc<M> {
     fn shape(this: &M) -> Self::Shape;
     ///Makes an uninitialized buffer
     fn uninit(shape: Self::Shape) -> Self::Uninit;
-    ///Creates an `M` from an uninitialized buffer assuming it is initialized
+    
+    /// Creates an `M` from an uninitialized buffer assuming it is initialized
+    /// # Safety
+    /// Same requirements as for [MaybeUninit::assume_init]
     unsafe fn assume_init(uninit: Self::Uninit) -> M;
 
 }
@@ -134,8 +137,8 @@ pub trait AllocMultivector<N:Dim>: Sized {
 ///
 pub trait AllocSimpleBlade<N:Dim,G:Dim>: AllocBlade<N,G> {}
 
-impl<T:AllocBlade<Dynamic,Const<0>>> AllocSimpleBlade<Dynamic,Const<0>> for T {}
-impl<T:AllocBlade<Dynamic,Const<1>>> AllocSimpleBlade<Dynamic,Const<1>> for T {}
+impl<T:AllocBlade<Dyn,Const<0>>> AllocSimpleBlade<Dyn,Const<0>> for T {}
+impl<T:AllocBlade<Dyn,Const<1>>> AllocSimpleBlade<Dyn,Const<1>> for T {}
 impl<T:AllocBlade<N,G>,N:Dim,G:Dim> AllocSimpleBlade<N,G> for T where
     //establish that `N` and `G` are constant numbers
     N: DimName+ToTypenum,
@@ -149,28 +152,28 @@ impl<T:AllocBlade<N,G>,N:Dim,G:Dim> AllocSimpleBlade<N,G> for T where
     LeEq<G::Typenum, U1>: BitOr<LeEq<N::Typenum, Sum<G::Typenum,U1>>, Output=True>
 {}
 
-impl<T, const N: usize> AllocBlade<Const<N>, Dynamic> for T {
-    type Buffer = DynBladeStorage<T, Const<N>, Dynamic>;
+impl<T, const N: usize> AllocBlade<Const<N>, Dyn> for T {
+    type Buffer = DynBladeStorage<T, Const<N>, Dyn>;
 }
 
-impl<T, const G: usize> AllocBlade<Dynamic, Const<G>> for T {
-    type Buffer = DynBladeStorage<T, Dynamic, Const<G>>;
+impl<T, const G: usize> AllocBlade<Dyn, Const<G>> for T {
+    type Buffer = DynBladeStorage<T, Dyn, Const<G>>;
 }
 
-impl<T> AllocBlade<Dynamic, Dynamic> for T {
-    type Buffer = DynBladeStorage<T, Dynamic, Dynamic>;
+impl<T> AllocBlade<Dyn, Dyn> for T {
+    type Buffer = DynBladeStorage<T, Dyn, Dyn>;
 }
 
-impl<T> AllocEven<Dynamic> for T {
-    type Buffer = DynEvenStorage<T, Dynamic>;
+impl<T> AllocEven<Dyn> for T {
+    type Buffer = DynEvenStorage<T, Dyn>;
 }
 
-impl<T> AllocOdd<Dynamic> for T {
-    type Buffer = DynOddStorage<T, Dynamic>;
+impl<T> AllocOdd<Dyn> for T {
+    type Buffer = DynOddStorage<T, Dyn>;
 }
 
-impl<T> AllocMultivector<Dynamic> for T {
-    type Buffer = DynMultivectorStorage<T, Dynamic>;
+impl<T> AllocMultivector<Dyn> for T {
+    type Buffer = DynMultivectorStorage<T, Dyn>;
 }
 
 #[inline(always)]

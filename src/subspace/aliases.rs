@@ -3,42 +3,42 @@ use super::*;
 
 
 ///An N-dimensional simple blade with a dynamic grade
-pub type SimpleBladeN<T,N> = SimpleBlade<T,N,Dynamic>;
+pub type SimpleBladeN<T,N> = SimpleBlade<T,N,Dyn>;
 ///A 0-dimensional simple blade with a dynamic grade
-pub type SimpleBlade0<T> = SimpleBlade<T,U0,Dynamic>;
+pub type SimpleBlade0<T> = SimpleBlade<T,U0,Dyn>;
 ///A 1-dimensional simple blade with a dynamic grade
-pub type SimpleBlade1<T> = SimpleBlade<T,U1,Dynamic>;
+pub type SimpleBlade1<T> = SimpleBlade<T,U1,Dyn>;
 ///A 2-dimensional simple blade with a dynamic grade
-pub type SimpleBlade2<T> = SimpleBlade<T,U2,Dynamic>;
+pub type SimpleBlade2<T> = SimpleBlade<T,U2,Dyn>;
 ///A 3-dimensional simple blade with a dynamic grade
-pub type SimpleBlade3<T> = SimpleBlade<T,U3,Dynamic>;
+pub type SimpleBlade3<T> = SimpleBlade<T,U3,Dyn>;
 ///A 4-dimensional simple blade with a dynamic grade
-pub type SimpleBlade4<T> = SimpleBlade<T,U4,Dynamic>;
+pub type SimpleBlade4<T> = SimpleBlade<T,U4,Dyn>;
 ///A 5-dimensional simple blade with a dynamic grade
-pub type SimpleBlade5<T> = SimpleBlade<T,U5,Dynamic>;
+pub type SimpleBlade5<T> = SimpleBlade<T,U5,Dyn>;
 ///A 6-dimensional simple blade with a dynamic grade
-pub type SimpleBlade6<T> = SimpleBlade<T,U6,Dynamic>;
+pub type SimpleBlade6<T> = SimpleBlade<T,U6,Dyn>;
 ///A simple blade with a dynamic dimension and grade
-pub type SimpleBladeD<T> = SimpleBlade<T,Dynamic,Dynamic>;
+pub type SimpleBladeD<T> = SimpleBlade<T,Dyn,Dyn>;
 
 ///An N-dimensional unit blade with a dynamic grade
-pub type UnitBladeN<T,N> = UnitBlade<T,N,Dynamic>;
+pub type UnitBladeN<T,N> = UnitBlade<T,N,Dyn>;
 ///A 0-dimensional unit blade with a dynamic grade
-pub type UnitBlade0<T> = UnitBlade<T,U0,Dynamic>;
+pub type UnitBlade0<T> = UnitBlade<T,U0,Dyn>;
 ///A 1-dimensional unit blade with a dynamic grade
-pub type UnitBlade1<T> = UnitBlade<T,U1,Dynamic>;
+pub type UnitBlade1<T> = UnitBlade<T,U1,Dyn>;
 ///A 2-dimensional unit blade with a dynamic grade
-pub type UnitBlade2<T> = UnitBlade<T,U2,Dynamic>;
+pub type UnitBlade2<T> = UnitBlade<T,U2,Dyn>;
 ///A 3-dimensional unit blade with a dynamic grade
-pub type UnitBlade3<T> = UnitBlade<T,U3,Dynamic>;
+pub type UnitBlade3<T> = UnitBlade<T,U3,Dyn>;
 ///A 4-dimensional unit blade with a dynamic grade
-pub type UnitBlade4<T> = UnitBlade<T,U4,Dynamic>;
+pub type UnitBlade4<T> = UnitBlade<T,U4,Dyn>;
 ///A 5-dimensional unit blade with a dynamic grade
-pub type UnitBlade5<T> = UnitBlade<T,U5,Dynamic>;
+pub type UnitBlade5<T> = UnitBlade<T,U5,Dyn>;
 ///A 6-dimensional unit blade with a dynamic grade
-pub type UnitBlade6<T> = UnitBlade<T,U6,Dynamic>;
+pub type UnitBlade6<T> = UnitBlade<T,U6,Dyn>;
 ///A unit blade with a dynamic dimension and grade
-pub type UnitBladeD<T> = UnitBlade<T,Dynamic,Dynamic>;
+pub type UnitBladeD<T> = UnitBlade<T,Dyn,Dyn>;
 
 ///A 0-dimensional rotor
 pub type Rotor0<T> = Rotor<T,U0>;
@@ -55,7 +55,7 @@ pub type Rotor5<T> = Rotor<T,U5>;
 ///A 6-dimensional rotor
 pub type Rotor6<T> = Rotor<T,U6>;
 ///A rotor with dynamic dimension
-pub type RotorD<T> = Rotor<T,Dynamic>;
+pub type RotorD<T> = Rotor<T,Dyn>;
 
 ///A 0-dimensional reflector
 pub type Reflector0<T> = Reflector<T,U0>;
@@ -72,7 +72,7 @@ pub type Reflector5<T> = Reflector<T,U5>;
 ///A 6-dimensional reflector
 pub type Reflector6<T> = Reflector<T,U6>;
 ///A reflector with dynamic dimension
-pub type ReflectorD<T> = Reflector<T,Dynamic>;
+pub type ReflectorD<T> = Reflector<T,Dyn>;
 
 ///A 0-dimensional versor
 pub type Versor0<T> = Versor<T,U0>;
@@ -89,7 +89,7 @@ pub type Versor5<T> = Versor<T,U5>;
 ///A 6-dimensional versor
 pub type Versor6<T> = Versor<T,U6>;
 ///An versor with dynamic dimension
-pub type VersorD<T> = Versor<T,Dynamic>;
+pub type VersorD<T> = Versor<T,Dyn>;
 
 ///A scalar in N-dimensions
 pub type SimpleScalar<T,N> = SimpleBlade<T,N,U0>;
@@ -108,7 +108,7 @@ pub type SimpleScalar5<T> = SimpleScalar<T,U5>;
 ///A scalar in 6-dimensions
 pub type SimpleScalar6<T> = SimpleScalar<T,U6>;
 ///A scalar in a dynamic number of dimensions
-pub type SimpleScalarD<T> = SimpleScalar<T,Dynamic>;
+pub type SimpleScalarD<T> = SimpleScalar<T,Dyn>;
 
 ///A scalar in N-dimensions
 pub type UnitScalar<T,N> = UnitBlade<T,N,U0>;
@@ -127,7 +127,7 @@ pub type UnitScalar5<T> = UnitScalar<T,U5>;
 ///A scalar in 6-dimensions
 pub type UnitScalar6<T> = UnitScalar<T,U6>;
 ///A scalar in a dynamic number of dimensions
-pub type UnitScalarD<T> = UnitScalar<T,Dynamic>;
+pub type UnitScalarD<T> = UnitScalar<T,Dyn>;
 
 ///An N-dimensional vector
 pub type SimpleVecN<T,N> = SimpleBlade<T,N,U1>;
@@ -144,7 +144,7 @@ pub type SimpleVec5<T> = SimpleVecN<T,U5>;
 ///A 6-dimensional vector
 pub type SimpleVec6<T> = SimpleVecN<T,U6>;
 ///A vector with dynamic dimension
-pub type SimpleVecD<T> = SimpleVecN<T,Dynamic>;
+pub type SimpleVecD<T> = SimpleVecN<T,Dyn>;
 
 ///An N-dimensional unit vector
 pub type UnitVecN<T,N> = UnitBlade<T,N,U1>;
@@ -161,7 +161,7 @@ pub type UnitVec5<T> = UnitVecN<T,U5>;
 ///A 6-dimensional unit vector
 pub type UnitVec6<T> = UnitVecN<T,U6>;
 ///A unit vector with dynamic dimension
-pub type UnitVecD<T> = UnitVecN<T,Dynamic>;
+pub type UnitVecD<T> = UnitVecN<T,Dyn>;
 
 ///An N-dimensional simple bivector
 pub type SimpleBiVecN<T,N> = SimpleBlade<T,N,U2>;
@@ -176,7 +176,7 @@ pub type SimpleBiVec5<T> = SimpleBiVecN<T,U5>;
 ///A 6-dimensional simple bivector
 pub type SimpleBiVec6<T> = SimpleBiVecN<T,U6>;
 ///A simple bivector with dynamic dimension
-pub type SimpleBiVecD<T> = SimpleBiVecN<T,Dynamic>;
+pub type SimpleBiVecD<T> = SimpleBiVecN<T,Dyn>;
 
 ///An N-dimensional unit bivector
 pub type UnitBiVecN<T,N> = UnitBlade<T,N,U2>;
@@ -191,7 +191,7 @@ pub type UnitBiVec5<T> = UnitBiVecN<T,U5>;
 ///A 6-dimensional unit bivector
 pub type UnitBiVec6<T> = UnitBiVecN<T,U6>;
 ///A unit bivector with dynamic dimension
-pub type UnitBiVecD<T> = UnitBiVecN<T,Dynamic>;
+pub type UnitBiVecD<T> = UnitBiVecN<T,Dyn>;
 
 ///An N-dimensional simple trivector
 pub type SimpleTriVecN<T,N> = SimpleBlade<T,N,U3>;
@@ -204,7 +204,7 @@ pub type SimpleTriVec5<T> = SimpleTriVecN<T,U5>;
 ///A 6-dimensional simple trivector
 pub type SimpleTriVec6<T> = SimpleTriVecN<T,U6>;
 ///A simple trivector with dynamic dimension
-pub type SimpleTriVecD<T> = SimpleTriVecN<T,Dynamic>;
+pub type SimpleTriVecD<T> = SimpleTriVecN<T,Dyn>;
 
 ///An N-dimensional unit trivector
 pub type UnitTriVecN<T,N> = UnitBlade<T,N,U3>;
@@ -217,7 +217,7 @@ pub type UnitTriVec5<T> = UnitTriVecN<T,U5>;
 ///A 6-dimensional unit trivector
 pub type UnitTriVec6<T> = UnitTriVecN<T,U6>;
 ///A unit trivector with dynamic dimension
-pub type UnitTriVecD<T> = UnitTriVecN<T,Dynamic>;
+pub type UnitTriVecD<T> = UnitTriVecN<T,Dyn>;
 
 ///An N-dimensional simple quadvector
 pub type SimpleQuadVecN<T,N> = SimpleBlade<T,N,U4>;
@@ -228,7 +228,7 @@ pub type SimpleQuadVec5<T> = SimpleQuadVecN<T,U5>;
 ///A 6-dimensional simple quadvector
 pub type SimpleQuadVec6<T> = SimpleQuadVecN<T,U6>;
 ///A simple quadvector with dynamic dimension
-pub type SimpleQuadVecD<T> = SimpleQuadVecN<T,Dynamic>;
+pub type SimpleQuadVecD<T> = SimpleQuadVecN<T,Dyn>;
 
 ///An N-dimensional unit quadvector
 pub type UnitQuadVecN<T,N> = UnitBlade<T,N,U4>;
@@ -239,7 +239,7 @@ pub type UnitQuadVec5<T> = UnitQuadVecN<T,U5>;
 ///A 6-dimensional unit quadvector
 pub type UnitQuadVec6<T> = UnitQuadVecN<T,U6>;
 ///A unit quadvector with dynamic dimension
-pub type UnitQuadVecD<T> = UnitQuadVecN<T,Dynamic>;
+pub type UnitQuadVecD<T> = UnitQuadVecN<T,Dyn>;
 
 ///An N-dimensional simple pentavector
 pub type SimplePentVecN<T,N> = SimpleBlade<T,N,U5>;
@@ -248,7 +248,7 @@ pub type SimplePentVec5<T> = SimplePentVecN<T,U5>;
 ///A 6-dimensional simple pentavector
 pub type SimplePentVec6<T> = SimplePentVecN<T,U6>;
 ///A simple pentavector with dynamic dimension
-pub type SimplePentVecD<T> = SimplePentVecN<T,Dynamic>;
+pub type SimplePentVecD<T> = SimplePentVecN<T,Dyn>;
 
 ///An N-dimensional unit pentavector
 pub type UnitPentVecN<T,N> = UnitBlade<T,N,U5>;
@@ -257,21 +257,21 @@ pub type UnitPentVec5<T> = UnitPentVecN<T,U5>;
 ///A 6-dimensional unit pentavector
 pub type UnitPentVec6<T> = UnitPentVecN<T,U6>;
 ///A unit pentavector with dynamic dimension
-pub type UnitPentVecD<T> = UnitPentVecN<T,Dynamic>;
+pub type UnitPentVecD<T> = UnitPentVecN<T,Dyn>;
 
 ///An N-dimensional simple hexavector
 pub type SimpleHexVecN<T,N> = SimpleBlade<T,N,U6>;
 ///A 6-dimensional simple hexavector
 pub type SimpleHexVec6<T> = SimpleHexVecN<T,U6>;
 ///A simple hexavector with dynamic dimension
-pub type SimpleHexVecD<T> = SimpleHexVecN<T,Dynamic>;
+pub type SimpleHexVecD<T> = SimpleHexVecN<T,Dyn>;
 
 ///An N-dimensional unit hexavector
 pub type UnitHexVecN<T,N> = UnitBlade<T,N,U6>;
 ///A 6-dimensional unit hexavector
 pub type UnitHexVec6<T> = UnitHexVecN<T,U6>;
 ///A unit hexavector with dynamic dimension
-pub type UnitHexVecD<T> = UnitHexVecN<T,Dynamic>;
+pub type UnitHexVecD<T> = UnitHexVecN<T,Dyn>;
 
 //An N-dimension simple blade of grade `N-G`
 pub type SimpleDualBlade<T,N,G> = SimpleBlade<T,N,DimDiff<N,G>>;

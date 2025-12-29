@@ -326,6 +326,7 @@ macro_rules! impl_unit_blade_mul {
 
             type Output = Versor<U,N>;
 
+            #[allow(clippy::suspicious_arithmetic_impl)]
             fn mul(self, rhs: $(&$b)? $Ty2<T2,N,$($G2)*>) -> Versor<U,N> {
                 let n = self.dim_generic();
 
@@ -451,6 +452,7 @@ macro_rules! impl_div {
 
             type Output = $Ty3<U,N>;
 
+            #[allow(clippy::suspicious_arithmetic_impl)]
             fn div(self, rhs: $(&$b)? $Ty2<T2,N,$($G2)*>) -> $Ty3<U,N> {
                 self * Inv::inv(rhs)
             }
@@ -573,9 +575,9 @@ impl<T:AllocEven<N>, N:Dim> Rotor<T,N> {
     }
 }
 
-impl<T:AllocEven<Dynamic>> RotorD<T> {
+impl<T:AllocEven<Dyn>> RotorD<T> {
     pub fn one_dyn(n: usize) -> Self where T: One+Zero {
-        Self::one_generic(Dynamic::new(n))
+        Self::one_generic(Dyn(n))
     }
 }
 
@@ -589,7 +591,7 @@ impl<T:AllocVersor<N>+AddGroup+Mul<Output=T>+AllRefMul<T,AllOutput=T>+One+Partia
     }
     fn set_one(&mut self) {
         match self {
-            Versor::Even(r) => return r.set_one(),
+            Versor::Even(r) => r.set_one(),
             Versor::Odd(_) => *self = Self::one()
         }
     }
@@ -602,9 +604,9 @@ impl<T:AllocVersor<N>, N:Dim> Versor<T,N> {
     }
 }
 
-impl<T:AllocVersor<Dynamic>> VersorD<T> {
+impl<T:AllocVersor<Dyn>> VersorD<T> {
     pub fn one_dyn(n: usize) -> Self where T: One+Zero {
-        Self::one_generic(Dynamic::new(n))
+        Self::one_generic(Dyn(n))
     }
 }
 
