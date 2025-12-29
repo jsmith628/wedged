@@ -581,9 +581,9 @@ impl<T:AllocEven<N>, N:Dim> Rotor<T,N> {
     }
 }
 
-impl<T:AllocEven<Dynamic>> RotorD<T> {
+impl<T:AllocEven<Dyn>> RotorD<T> {
     pub fn one_dyn(n: usize) -> Self where T: One+Zero {
-        Self::one_generic(Dynamic::new(n))
+        Self::one_generic(Dyn(n))
     }
 }
 
@@ -610,9 +610,9 @@ impl<T:AllocVersor<N>, N:Dim> Versor<T,N> {
     }
 }
 
-impl<T:AllocVersor<Dynamic>> VersorD<T> {
+impl<T:AllocVersor<Dyn>> VersorD<T> {
     pub fn one_dyn(n: usize) -> Self where T: One+Zero {
-        Self::one_generic(Dynamic::new(n))
+        Self::one_generic(Dyn(n))
     }
 }
 

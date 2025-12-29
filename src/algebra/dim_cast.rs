@@ -89,8 +89,8 @@ impl<T:AllocBlade<N1,G>+Zero, N1:Dim, G:Dim> Blade<T,N1,G> {
     }
 
     #[doc = cast_dim_doc!()]
-    pub fn cast_dim_dyn(self, n:usize) -> Blade<T,Dynamic,G> where T:AllocBlade<Dynamic,G> {
-        self.cast_dim_generic(Dynamic::new(n))
+    pub fn cast_dim_dyn(self, n:usize) -> Blade<T,Dyn,G> where T:AllocBlade<Dyn,G> {
+        self.cast_dim_generic(Dyn(n))
     }
 
     #[doc = cast_dim_doc!()]
@@ -120,8 +120,8 @@ macro_rules! impl_dim_cast {
                 }
 
                 #[doc = cast_dim_doc!()]
-                pub fn cast_dim_dyn(self, n:usize) -> $Ty<T,Dynamic> where T:$Alloc<Dynamic> {
-                    self.cast_dim_generic(Dynamic::new(n))
+                pub fn cast_dim_dyn(self, n:usize) -> $Ty<T,Dyn> where T:$Alloc<Dyn> {
+                    self.cast_dim_generic(Dyn(n))
                 }
 
                 #[doc = cast_dim_doc!()]

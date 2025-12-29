@@ -429,9 +429,9 @@ pub trait SelectedGeometricMul<Rhs>: Sized {
     fn mul_grade_generic<G:Dim>(self, rhs: Rhs, g:G) -> Blade<Self::OutputScalar, Self::N, G>
     where Self::OutputScalar: AllocBlade<Self::N, G>;
 
-    fn mul_dyn_grade(self, rhs: Rhs, g:usize) -> Blade<Self::OutputScalar, Self::N, Dynamic>
-    where Self::OutputScalar: AllocBlade<Self::N, Dynamic> {
-        self.mul_grade_generic(rhs, Dynamic::new(g))
+    fn mul_dyn_grade(self, rhs: Rhs, g:usize) -> Blade<Self::OutputScalar, Self::N, Dyn>
+    where Self::OutputScalar: AllocBlade<Self::N, Dyn> {
+        self.mul_grade_generic(rhs, Dyn(g))
     }
 
     fn mul_grade<G:DimName>(self, rhs: Rhs) -> Blade<Self::OutputScalar, Self::N, G>
@@ -464,9 +464,9 @@ pub trait SelectedGeometricMul<Rhs>: Sized {
 //     fn versor_mul_grade_generic<G:Dim>(self, rhs: Rhs, g:G) -> Blade<Self::OutputScalar, Self::N, G>
 //     where Self::OutputScalar: AllocBlade<Self::N, G>;
 //
-//     fn versor_mul_dyn_grade(self, rhs: Rhs, g:usize) -> Blade<Self::OutputScalar, Self::N, Dynamic>
-//     where Self::OutputScalar: AllocBlade<Self::N, Dynamic> {
-//         self.versor_mul_grade_generic(rhs, Dynamic::new(g))
+//     fn versor_mul_dyn_grade(self, rhs: Rhs, g:usize) -> Blade<Self::OutputScalar, Self::N, Dyn>
+//     where Self::OutputScalar: AllocBlade<Self::N, Dyn> {
+//         self.versor_mul_grade_generic(rhs, Dyn(g))
 //     }
 //
 //     fn versor_mul_grade<G:DimName>(self, rhs: Rhs) -> Blade<Self::OutputScalar, Self::N, G>
@@ -1096,7 +1096,7 @@ mod tests {
                         //
 
                         let left = mul_selected::<_,_,BladeD<_>>(
-                            x1.clone(), x2.clone(), (Dynamic::new(n), Dynamic::new(g3))
+                            x1.clone(), x2.clone(), (Dyn(n), Dyn(g3))
                         );
 
                         let right = x3;

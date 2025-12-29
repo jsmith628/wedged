@@ -12,7 +12,7 @@ impl<T:AllocBlade<N1,G>+Zero, N1:Dim, G:Dim> SimpleBlade<T,N1,G> {
     }
 
     #[doc = cast_dim_doc!()]
-    pub fn cast_dim_dyn(self, n:usize) -> SimpleBlade<T,Dynamic,G> where T:AllocBlade<Dynamic,G> {
+    pub fn cast_dim_dyn(self, n:usize) -> SimpleBlade<T,Dyn,G> where T:AllocBlade<Dyn,G> {
         SimpleBlade::from_inner_unchecked(self.into_inner().cast_dim_dyn(n))
     }
 
@@ -35,8 +35,8 @@ macro_rules! impl_dim_cast {
             }
 
             #[doc = cast_dim_doc!()]
-            pub fn cast_dim_dyn_unchecked(self, n:usize) -> $Ty<T, Dynamic $(,$N)*> where
-                T:$Alloc<Dynamic $(,$N)*>
+            pub fn cast_dim_dyn_unchecked(self, n:usize) -> $Ty<T, Dyn $(,$N)*> where
+                T:$Alloc<Dyn $(,$N)*>
             {
                 $Ty::from_inner_unchecked(self.into_inner().cast_dim_dyn(n))
             }

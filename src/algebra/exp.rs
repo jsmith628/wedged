@@ -304,7 +304,7 @@ impl<T:RefRealField+AllocBlade<N,G>, N:Dim, G:Dim> Blade<T,N,G> {
 
 }
 
-//TODO: make work for Dynamic dims
+//TODO: make work for dynamic dims
 impl<T:RefRealField+AllocEven<N>, N:Dim> Even<T,N> {
 
     ///Computes the exponential of `self`
@@ -475,7 +475,7 @@ mod tests {
 
         //dynamic dims
         for n in 0..=7 {
-            let n = Dynamic::new(n);
+            let n = Dyn(n);
             rot_test!(n);
         }
 
@@ -547,7 +547,7 @@ mod tests {
 
         //dynamic
         for n in 4..=6 {
-            let n = Dynamic::new(n);
+            let n = Dyn(n);
             test!(n)
         }
 

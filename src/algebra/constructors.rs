@@ -320,27 +320,27 @@ impl<T:AllocBlade<N,G>, N:DimName, G:DimName> SimpleBlade<T,N,G> {
 }
 
 ///Constructors for blades with dynamic dimension
-impl<T:AllocBlade<Dynamic,G>, G:DimName> Blade<T,Dynamic,G> {
-    impl_general_constructors!(n; Dynamic::new(n), G::name());
-    impl_general_zero_basis_constructors!(n; Dynamic::new(n), G::name());
+impl<T:AllocBlade<Dyn,G>, G:DimName> Blade<T,Dyn,G> {
+    impl_general_constructors!(n; Dyn(n), G::name());
+    impl_general_zero_basis_constructors!(n; Dyn(n), G::name());
 }
-impl<T:AllocSimpleBlade<Dynamic,G>, G:DimName> SimpleBlade<T,Dynamic,G> {
-    impl_general_constructors!(n; Dynamic::new(n), G::name());
+impl<T:AllocSimpleBlade<Dyn,G>, G:DimName> SimpleBlade<T,Dyn,G> {
+    impl_general_constructors!(n; Dyn(n), G::name());
 }
-impl<T:AllocBlade<Dynamic,G>, G:DimName> SimpleBlade<T,Dynamic,G> {
-    impl_general_zero_basis_constructors!(n; Dynamic::new(n), G::name());
+impl<T:AllocBlade<Dyn,G>, G:DimName> SimpleBlade<T,Dyn,G> {
+    impl_general_zero_basis_constructors!(n; Dyn(n), G::name());
 }
 
 ///Constructors for blades with dynamic grade
-impl<T:AllocBlade<N,Dynamic>, N:DimName> BladeN<T,N> {
-    impl_general_constructors!(g; N::name(), Dynamic::new(g));
-    impl_general_zero_basis_constructors!(g; N::name(), Dynamic::new(g));
+impl<T:AllocBlade<N,Dyn>, N:DimName> BladeN<T,N> {
+    impl_general_constructors!(g; N::name(), Dyn(g));
+    impl_general_zero_basis_constructors!(g; N::name(), Dyn(g));
 }
 
 ///Constructors for blades with dynamic dimension and grade
-impl<T:AllocBlade<Dynamic,Dynamic>> BladeD<T> {
-    impl_general_constructors!(n,g; Dynamic::new(n), Dynamic::new(g));
-    impl_general_zero_basis_constructors!(n,g; Dynamic::new(n), Dynamic::new(g));
+impl<T:AllocBlade<Dyn,Dyn>> BladeD<T> {
+    impl_general_constructors!(n,g; Dyn(n), Dyn(g));
+    impl_general_zero_basis_constructors!(n,g; Dyn(n), Dyn(g));
 }
 
 ///Constructors for statically sized rotors
@@ -350,13 +350,13 @@ impl<T:AllocEven<N>, N:DimName> Even<T, N> {
 }
 
 ///Constructors for rotors with dynamic dimension
-impl<T:AllocEven<Dynamic>> EvenD<T> {
-    impl_general_constructors!(n; Dynamic::new(n));
-    impl_general_zero_basis_constructors!(n; Dynamic::new(n));
+impl<T:AllocEven<Dyn>> EvenD<T> {
+    impl_general_constructors!(n; Dyn(n));
+    impl_general_zero_basis_constructors!(n; Dyn(n));
 
     //Constructs the multiplicative identity element using a dynamic dimension
     pub fn one_dyn(n: usize) -> Self where T:One+Zero {
-        Self::one_generic(Dynamic::new(n))
+        Self::one_generic(Dyn(n))
     }
 }
 
@@ -367,9 +367,9 @@ impl<T:AllocOdd<N>, N:DimName> Odd<T, N> {
 }
 
 //Constructors for odd values with dynamic dimension
-impl<T:AllocOdd<Dynamic>> OddD<T> {
-    impl_general_constructors!(n; Dynamic::new(n));
-    impl_general_zero_basis_constructors!(n; Dynamic::new(n));
+impl<T:AllocOdd<Dyn>> OddD<T> {
+    impl_general_constructors!(n; Dyn(n));
+    impl_general_zero_basis_constructors!(n; Dyn(n));
 }
 
 ///Constructors for statically sized rotors
@@ -379,13 +379,13 @@ impl<T:AllocMultivector<N>, N:DimName> Multivector<T, N> {
 }
 
 ///Constructors for rotors with dynamic dimension
-impl<T:AllocMultivector<Dynamic>> MultivectorD<T> {
-    impl_general_constructors!(n; Dynamic::new(n));
-    impl_general_zero_basis_constructors!(n; Dynamic::new(n));
+impl<T:AllocMultivector<Dyn>> MultivectorD<T> {
+    impl_general_constructors!(n; Dyn(n));
+    impl_general_zero_basis_constructors!(n; Dyn(n));
 
     //Constructs the multiplicative identity element using a dynamic dimension
     pub fn one_dyn(n: usize) -> Self where T:One+Zero {
-        Self::one_generic(Dynamic::new(n))
+        Self::one_generic(Dyn(n))
     }
 }
 

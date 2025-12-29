@@ -13,8 +13,8 @@ readme = "README.md"
 
 [dependencies]
 derivative = "^2.2"
-typenum = "^1.15"
-nalgebra = "^0.30"
+typenum = "^1.19"
+nalgebra = "^0.34"
 num-traits = "^0.2"
 approx = "^0.5"
 
