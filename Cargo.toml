@@ -2,7 +2,7 @@
 authors = ["Joshua Smith <jsmith62831@gmail.com>"]
 name = "wedged"
 description = "A robust and generalized library for Geometric Algebra in Rust."
-version = "0.1.0"
+version = "0.1.1"
 edition = "2021"
 keywords = ["vector", "algebra", "geometry", "clifford", "grassmann"]
 categories = ["mathematics", "algorithms", "science", "game-development", "graphics"]
