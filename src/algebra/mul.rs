@@ -56,7 +56,7 @@ impl<T:AllocBlade<N,G>, N:Dim, G:Dim> MultivectorSrc for Blade<T,N,G> {
     type Dim = N;
     type Shape = (N,G);
 
-    fn dim_(&self) -> N { self.dim_generic() }
+    fn dim(&self) -> N { self.dim_generic() }
     fn subspace(&self) -> Subspace { Subspace::Blade(Blade::dim(self), self.grade()) }
     fn elements(&self) -> usize { Blade::elements(self) }
     fn shape(&self) -> (N,G) { (self.dim_generic(), self.grade_generic()) }
@@ -74,7 +74,7 @@ impl<T:AllocEven<N>, N:Dim> MultivectorSrc for Even<T,N> {
     type Dim = N;
     type Shape = N;
 
-    fn dim_(&self) -> N { self.dim_generic() }
+    fn dim(&self) -> N { self.dim_generic() }
     fn subspace(&self) -> Subspace { Subspace::Even(Even::dim(self)) }
     fn elements(&self) -> usize { Even::elements(self) }
     fn shape(&self) -> N { self.dim_generic() }
@@ -92,7 +92,7 @@ impl<T:AllocOdd<N>, N:Dim> MultivectorSrc for Odd<T,N> {
     type Dim = N;
     type Shape = N;
 
-    fn dim_(&self) -> N { self.dim_generic() }
+    fn dim(&self) -> N { self.dim_generic() }
     fn subspace(&self) -> Subspace { Subspace::Odd(Odd::dim(self)) }
     fn elements(&self) -> usize { Odd::elements(self) }
     fn shape(&self) -> N { self.dim_generic() }
@@ -110,7 +110,7 @@ impl<T:AllocMultivector<N>, N:Dim> MultivectorSrc for Multivector<T,N> {
     type Dim = N;
     type Shape = N;
 
-    fn dim_(&self) -> N { self.dim_generic() }
+    fn dim(&self) -> N { self.dim_generic() }
     fn subspace(&self) -> Subspace { Subspace::Full(Multivector::dim(self)) }
     fn elements(&self) -> usize { Multivector::elements(self) }
     fn shape(&self) -> N { self.dim_generic() }
@@ -130,7 +130,7 @@ macro_rules! impl_src_ref {
             type Dim = N;
             type Shape = <$Ty<T,N $(, $G)*> as MultivectorSrc>::Shape;
 
-            fn dim_(&self) -> N { MultivectorSrc::dim_(*self) }
+            fn dim(&self) -> N { MultivectorSrc::dim(*self) }
             fn elements(&self) -> usize { MultivectorSrc::elements(*self) }
             fn subspace(&self) -> Subspace { MultivectorSrc::subspace(*self) }
             fn shape(&self) -> Self::Shape { MultivectorSrc::shape(*self) }
@@ -757,9 +757,10 @@ mod tests {
                         //Test for consistency
                         //
 
-                        let left = mul_selected::<_,_,BladeD<_>>(
-                            x1.clone(), x2.clone(), (Dyn(n), Dyn(g3))
-                        );
+                        let left: BladeD<_> = x1.selected_mul(&x2, (Dyn(n), Dyn(g3)));
+                        // let left = mul_selected::<_,_,BladeD<_>>(
+                        //     x1.clone(), x2.clone(), (Dyn(n), Dyn(g3))
+                        // );
 
                         let right = x3;
 
